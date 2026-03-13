@@ -8,7 +8,11 @@ extension AVAudioPCMBuffer: @unchecked @retroactive Sendable {}
 extension SortformerModel: @unchecked @retroactive Sendable {}
 extension Qwen3ASRModel: @unchecked @retroactive Sendable {}
 
-final actor SpeakerDetection {
+final actor Mic {
+    nonisolated var unownedExecutor: UnownedSerialExecutor {
+        HighPriorityExecutor.sharedExecutor.asUnownedSerialExecutor()
+    }
+
     weak var modeDelegate: ViewModel?
 
     let phraseStream: AsyncStream<String>
@@ -19,8 +23,6 @@ final actor SpeakerDetection {
 
     private var transcriber: Qwen3ASRModel?
     private var detector: SortformerModel?
-    private let effectPlayer = AVAudioPlayerNode()
-    private let effectQueue = AsyncStream.makeStream(of: SoundEffect.self, bufferingPolicy: .bufferingNewest(2))
     private let phraseContinuation: AsyncStream<String>.Continuation
     private let recorder: Recorder
     private var warmupTask1: Task<Void, Never>?
@@ -31,33 +33,11 @@ final actor SpeakerDetection {
 
         recorder = Recorder(engine: self.engine)
 
-        engine.attach(effectPlayer)
-        let effectFormat = AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 1)
-        engine.connect(effectPlayer, to: engine.mainMixerNode, format: effectFormat)
-
         (phraseStream, phraseContinuation) = AsyncStream.makeStream(of: String.self, bufferingPolicy: .unbounded)
-
-        let stream = effectQueue.stream
-
-        Task { @LowPriorityActor [weak self] in
-            for await effect in stream {
-                guard let self else { return }
-                await handleEffect(effect)
-            }
-            log("Effect player queue done")
-        }
     }
 
     func setModeDelegate(_ delegate: ViewModel) {
         modeDelegate = delegate
-    }
-
-    private func handleEffect(_ effect: SoundEffect) async {
-        effectPlayer.volume = effect.preferredVolume
-        effectPlayer.play()
-        await effectPlayer.scheduleFile(effect.audioFile, at: nil)
-        try? await Task.sleep(for: .seconds(1))
-        effectPlayer.stop()
     }
 
     func boot() async throws {
@@ -96,7 +76,6 @@ final actor SpeakerDetection {
     func shutdown() async {
         await stop()
         await recorder.shutdown()
-        effectQueue.continuation.finish()
         phraseContinuation.finish()
     }
 
@@ -112,7 +91,7 @@ final actor SpeakerDetection {
             return
         }
 
-        effectQueue.continuation.yield(.startListening)
+        await delegate.playEffect(.startListening)
 
         log("Manual recording")
 
@@ -135,7 +114,7 @@ final actor SpeakerDetection {
                 await resetToWaiting()
             } else {
                 log("Manual recording done, parsing")
-                effectQueue.continuation.yield(.endListening)
+                await delegate.playEffect(.endListening)
                 if let session = await delegate.getSession() {
                     await delegate.setMode(.transcribing(session: session))
                 }

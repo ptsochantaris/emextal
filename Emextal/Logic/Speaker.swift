@@ -3,12 +3,19 @@ import MLXAudioTTS
 import MLXLMCommon
 import MLX
 
-final actor SpeechQueue {
-    let speechStream: AsyncStream<String>
+final actor Speaker {
+    nonisolated var unownedExecutor: UnownedSerialExecutor {
+        HighPriorityExecutor.sharedExecutor.asUnownedSerialExecutor()
+    }
 
+    private let speechStream: AsyncStream<String>
     private let spechContinuation: AsyncStream<String>.Continuation
+
     private let engine: AVAudioEngine
     private let speechPlayer = AVAudioPlayerNode()
+
+    private let effectPlayer = AVAudioPlayerNode()
+    private let effectContinuation: AsyncStream<SoundEffect>.Continuation
 
     init(engine: AVAudioEngine) {
         self.engine = engine
@@ -17,9 +24,38 @@ final actor SpeechQueue {
         engine.attach(speechPlayer)
         let speechFormat = AVAudioFormat(standardFormatWithSampleRate: 32000, channels: 1)
         engine.connect(speechPlayer, to: engine.mainMixerNode, format: speechFormat)
+
+        engine.attach(effectPlayer)
+        let effectFormat = AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 1)
+        engine.connect(effectPlayer, to: engine.mainMixerNode, format: effectFormat)
+
+        let pair = AsyncStream.makeStream(of: SoundEffect.self, bufferingPolicy: .bufferingNewest(2))
+        let stream = pair.stream
+        effectContinuation = pair.continuation
+
+        Task { [weak self] in
+            for await effect in stream {
+                guard let self else { return }
+                await handleEffect(effect)
+            }
+            log("Effect player queue done")
+        }
+    }
+
+    nonisolated func playEffect(_ effect: SoundEffect) {
+        effectContinuation.yield(effect)
+    }
+
+    private func handleEffect(_ effect: SoundEffect) async {
+        effectPlayer.volume = effect.preferredVolume
+        effectPlayer.play()
+        await effectPlayer.scheduleFile(effect.audioFile, at: nil)
+        try? await Task.sleep(for: .seconds(1))
+        effectPlayer.stop()
     }
 
     func shutdown() {
+        effectContinuation.finish()
         spechContinuation.finish()
     }
 
@@ -34,7 +70,7 @@ final actor SpeechQueue {
 
         let stream = speechStream
 
-        Task { @LowPriorityActor [weak self] in
+        Task { [weak self] in
             #if os(macOS)
                 log("Speech model warmup...")
                 _ = try? await model.generate(text: "This is a warmup!")

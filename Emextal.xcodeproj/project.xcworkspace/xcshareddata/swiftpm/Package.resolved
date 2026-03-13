@@ -1,5 +1,5 @@
 {
-  "originHash" : "c5e9785d8f18092635ffeb5329f0f7c784703d28707372548931754f502abf76",
+  "originHash" : "bc4f1f57798db2200d2741190385683a86279e0b0b41ac0b6db0e15d87fedb02",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -60,8 +60,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/ml-explore/mlx-swift-lm/",
       "state" : {
-        "revision" : "7e19e09027923d89ac47dd087d9627f610e5a91a",
-        "version" : "2.30.6"
+        "branch" : "main",
+        "revision" : "bc3c20ef4644c86f2b347debcfe1efe4308712a6"
       }
     },
     {
@@ -276,8 +276,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/huggingface/swift-transformers",
       "state" : {
-        "revision" : "150169bfba0889c229a2ce7494cf8949f18e6906",
-        "version" : "1.1.9"
+        "revision" : "eed7264ac5e4ec5dfa6165c6e5c5577364344fe4",
+        "version" : "1.2.0"
       }
     },
     {

@@ -11,20 +11,6 @@ struct SideBar: View {
         VStack(spacing: 0) {
             Color.clear.frame(height: 33)
 
-            if let statusMessage = state.statusMessage {
-                Text(statusMessage)
-                    .foregroundStyle(.accent)
-                    .multilineTextAlignment(.center)
-                    .font(.caption2.bold())
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.vertical, 4)
-                    .padding(.horizontal, 8)
-                    .background {
-                        Capsule(style: .continuous)
-                            .stroke(.accent, lineWidth: 1)
-                    }
-            }
-
             if state.mode.showGenie {
                 Genie(show: state.mode.showGenie)
                     .padding(.top, -4)

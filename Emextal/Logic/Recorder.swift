@@ -5,6 +5,10 @@ import MLX
 extension MLXArray: @unchecked @retroactive Sendable {}
 
 final actor Recorder {
+    nonisolated var unownedExecutor: UnownedSerialExecutor {
+        HighPriorityExecutor.sharedExecutor.asUnownedSerialExecutor()
+    }
+
     private let engine: AVAudioEngine
 
     private let transcriptionSampleRate = 16000

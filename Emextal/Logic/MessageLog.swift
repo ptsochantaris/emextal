@@ -21,7 +21,7 @@ final actor MessageLog {
 
     func setWebView(_ webView: WKWebView) {
         self.webView = webView
-        Task { @LowPriorityActor [weak self] in
+        Task { [weak self] in
             log("Messagelog queue started")
             guard let stream = self?.changeQueue.stream else { return }
             for await change in stream {

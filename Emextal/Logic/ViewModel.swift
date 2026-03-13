@@ -3,34 +3,34 @@ import HTMLString
 import MLX
 import MLXAudioCore
 import MLXAudioSTT
-import MLXLLM
 import MLXLMCommon
 import SwiftUI
+import WebKit
 
 /// Only for reference passing
 extension ChatSession: @unchecked @retroactive Sendable {}
 
 @Observable final class ViewModel {
-    private let modelConfiguration = LLMRegistry.llama3_8B_4bit
+    private let modelConfiguration = ModelConfiguration(
+        id: "mlx-community/Qwen3.5-27B-4bit"
+    )
+
+    private let messageLog = MessageLog()
     private let engine = AVAudioEngine()
+    private let speaker: Speaker
+    private let mic: Mic
 
-    private let speechQueue: SpeechQueue
-    private let speakerDetector: SpeakerDetection
-
-    private(set) var statusMessage: String?
     private(set) var micPermission = false
-
-    let messageLog = MessageLog()
+    private(set) var activationState = ActivationState.button
+    private(set) var recognitionLoop: Task<Void, Never>?
 
     var prompt = ""
-    var activationState = ActivationState.button
     var textOnly = true
-    var recognitionLoop: Task<Void, Never>?
 
     var mode = AppMode.loading(progress: 0) {
         didSet {
             if oldValue != mode {
-                speakerDetector.ignoreMic = mode.shouldIgnoreMic
+                mic.ignoreMic = mode.shouldIgnoreMic
             }
         }
     }
@@ -51,8 +51,8 @@ extension ChatSession: @unchecked @retroactive Sendable {}
         Memory.cacheLimit = 200 * 1024 * 1024
 
         nonisolated(unsafe) let engineRef = engine
-        speechQueue = SpeechQueue(engine: engineRef)
-        speakerDetector = SpeakerDetection(engine: engineRef)
+        speaker = Speaker(engine: engineRef)
+        mic = Mic(engine: engineRef)
 
         Task {
             micPermission = await AVCaptureDevice.requestAccess(for: .audio)
@@ -67,6 +67,10 @@ extension ChatSession: @unchecked @retroactive Sendable {}
         modelConfiguration.name
     }
 
+    func setWebView(_ webView: WKWebView) async {
+        await messageLog.setWebView(webView)
+    }
+
     func getMode() -> AppMode {
         mode
     }
@@ -79,38 +83,55 @@ extension ChatSession: @unchecked @retroactive Sendable {}
         mode.session
     }
 
+    func playEffect(_ effect: SoundEffect) {
+        speaker.playEffect(effect)
+    }
+
     private func boot() async {
-        await speakerDetector.setModeDelegate(self)
+        await mic.setModeDelegate(self)
 
         do {
             var utilProgress: Double = 0
             var modelProgress: Double = 0
 
             let t1 = Task {
-                try await speechQueue.boot()
-                utilProgress += 0.5
-                mode = .loading(progress: (utilProgress * 0.3) + (modelProgress * 0.7))
-
-                try await speakerDetector.boot()
+                try await speaker.boot()
                 utilProgress += 0.5
                 mode = .loading(progress: (utilProgress * 0.3) + (modelProgress * 0.7))
             }
 
-            let model = try await Task {
-                try await loadModelContainer(configuration: modelConfiguration) { value in
-                    Task { @MainActor in
-                        modelProgress = value.fractionCompleted
-                        self.mode = .loading(progress: (utilProgress * 0.3) + (modelProgress * 0.7))
-                    }
+            let t2 = Task {
+                try await mic.boot()
+                utilProgress += 0.5
+                mode = .loading(progress: (utilProgress * 0.3) + (modelProgress * 0.7))
+            }
+
+            let model = try await loadModelContainer(configuration: modelConfiguration) { progress in
+                Task { @MainActor in
+                    modelProgress = progress.fractionCompleted
+                    self.mode = .loading(progress: (utilProgress * 0.3) + (modelProgress * 0.7))
                 }
-            }.value
+            }
+
+            /* Qwen 3.5:
+             Thinking mode for general tasks: temperature=1.0, top_p=0.95, top_k=20, min_p=0.0, presence_penalty=1.5, repetition_penalty=1.0
+             Thinking mode for precise coding tasks (e.g. WebDev): temperature=0.6, top_p=0.95, top_k=20, min_p=0.0, presence_penalty=0.0, repetition_penalty=1.0
+             Instruct (or non-thinking) mode for general tasks: temperature=0.7, top_p=0.8, top_k=20, min_p=0.0, presence_penalty=1.5, repetition_penalty=1.0
+             Instruct (or non-thinking) mode for reasoning tasks: temperature=1.0, top_p=0.95, top_k=20, min_p=0.0, presence_penalty=1.5, repetition_penalty=1.0
+             */
 
             let session = ChatSession(model, generateParameters: GenerateParameters(
-                temperature: 0.6,
-                topP: 0.95
-            ))
+                temperature: 0.7,
+                topP: 0.8,
+                topK: 20,
+                minP: 0,
+                presencePenalty: 1.5,
+                frequencyPenalty: 1
+            ), additionalContext: ["enable_thinking": false])
 
             try await t1.value
+
+            try await t2.value
 
             engine.inputNode.volume = 1.0
             try engine.start()
@@ -118,10 +139,24 @@ extension ChatSession: @unchecked @retroactive Sendable {}
             mode = .waiting(session: session)
 
             recognitionLoop = Task {
-                for await text in speakerDetector.phraseStream {
+                for await text in mic.phraseStream {
                     receivedPhrase(text, in: session)
                 }
             }
+
+            #if DEBUG
+            Task {
+                let format = ByteCountFormatStyle(style: .memory, allowedUnits: .all, spellsOutZero: false, includesActualByteCount: false, locale: .autoupdatingCurrent)
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(2))
+                    print("MEM -      Active: \(format.format(Int64(Memory.activeMemory)))")
+                    print("MEM -        Peak: \(format.format(Int64(Memory.peakMemory)))")
+                    print("MEM -       Cache: \(format.format(Int64(Memory.cacheMemory)))")
+                    print("MEM - Cache Limit: \(format.format(Int64(Memory.cacheLimit)))")
+                    print()
+                }
+            }
+            #endif
 
         } catch {
             mode = .error(error)
@@ -135,7 +170,7 @@ extension ChatSession: @unchecked @retroactive Sendable {}
                 mode = .waiting(session: session)
             case .voiceActivated:
                 Task {
-                    await speakerDetector.startAutodetect()
+                    await mic.startAutodetect()
                 }
             }
         } else {
@@ -161,22 +196,23 @@ extension ChatSession: @unchecked @retroactive Sendable {}
         prompt = ""
         messageLog.commitNewText()
 
-        let responseTask = Task { @UtilityActor in
-            var buffer = ""
+        let responseTask = Task { @DefaultQueueActor in
+            var charBuffer = ""
             var lineBuffer = ""
             var first = true
             for try await item in session.streamResponse(to: trimmedText) {
                 for char in item {
-                    buffer.append(char)
+                    charBuffer.append(char)
+
                     switch char {
-                    case "!", "?", ".":
+                    case "!", "?", ".", ",", ":":
                         lineBuffer.append(char)
-                        await appendText(buffer, session: session, first: &first)
-                        buffer.removeAll(keepingCapacity: true)
+                        await appendText(charBuffer, session: session, first: &first)
+                        charBuffer.removeAll(keepingCapacity: true)
 
                     case "\n":
                         if await !textOnly {
-                            await speechQueue.queue(lineBuffer)
+                            await speaker.queue(lineBuffer)
                         }
                         lineBuffer.removeAll(keepingCapacity: true)
 
@@ -185,7 +221,8 @@ extension ChatSession: @unchecked @retroactive Sendable {}
                     }
                 }
             }
-            await appendText(buffer, session: session, first: &first)
+
+            await appendText(charBuffer, session: session, first: &first)
 
             await responseEnd(lineBuffer: lineBuffer, session: session)
         }
@@ -195,11 +232,11 @@ extension ChatSession: @unchecked @retroactive Sendable {}
 
     private func responseEnd(lineBuffer: String, session: ChatSession) async {
         if !textOnly, !lineBuffer.isEmpty {
-            await speechQueue.queue(lineBuffer)
+            await speaker.queue(lineBuffer)
         }
 
         if !textOnly {
-            await speechQueue.waitUntilDone()
+            await speaker.waitUntilDone()
         }
 
         switch activationState {
@@ -207,7 +244,7 @@ extension ChatSession: @unchecked @retroactive Sendable {}
             setMode(.waiting(session: session))
 
         case .voiceActivated:
-            await speakerDetector.startAutodetect()
+            await mic.startAutodetect()
         }
     }
 
@@ -223,7 +260,7 @@ extension ChatSession: @unchecked @retroactive Sendable {}
         }
         activationState = .button
         Task {
-            await speakerDetector.stop()
+            await mic.stop()
             if let session = mode.session {
                 mode = .waiting(session: session)
             }
@@ -236,7 +273,7 @@ extension ChatSession: @unchecked @retroactive Sendable {}
         }
         activationState = .voiceActivated
         Task {
-            await speakerDetector.startAutodetect()
+            await mic.startAutodetect()
         }
     }
 
@@ -251,8 +288,8 @@ extension ChatSession: @unchecked @retroactive Sendable {}
         }
 
         messageLog.shutdown()
-        await speakerDetector.shutdown()
-        await speechQueue.shutdown()
+        await mic.shutdown()
+        await speaker.shutdown()
 
         mode = .shutdown
     }
@@ -262,7 +299,7 @@ extension ChatSession: @unchecked @retroactive Sendable {}
             return
         }
         Task {
-            await speakerDetector.startManual()
+            await mic.startManual()
         }
     }
 
@@ -271,7 +308,7 @@ extension ChatSession: @unchecked @retroactive Sendable {}
             return
         }
         Task {
-            await speakerDetector.stop()
+            await mic.stop()
             if let session = mode.session {
                 mode = .waiting(session: session)
             }

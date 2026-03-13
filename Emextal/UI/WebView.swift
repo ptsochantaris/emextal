@@ -57,7 +57,7 @@ extension WebView {
 
             self.viewModel = viewModel
             Task {
-                await viewModel.messageLog.setWebView(webView)
+                await viewModel.setWebView(webView)
             }
         }
     }
