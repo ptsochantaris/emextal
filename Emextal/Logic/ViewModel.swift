@@ -94,6 +94,8 @@ extension ChatSession: @unchecked @retroactive Sendable {}
         await mic.setModeDelegate(self)
 
         do {
+            try messageLog.setHistory(from: sessionUrl)
+
             var addedChild = false
             var statusComponents = ["Language Model", "Text-to-Speech", "Voice Recognition"].map { LoadingProgressDisplay.Status(loaded: false, text: $0) }
 
@@ -163,14 +165,21 @@ extension ChatSession: @unchecked @retroactive Sendable {}
              Instruct (or non-thinking) mode for reasoning tasks: temperature=1.0, top_p=0.95, top_k=20, min_p=0.0, presence_penalty=1.5, repetition_penalty=1.0
              */
 
-            let session = ChatSession(model, generateParameters: GenerateParameters(
-                temperature: 0.7,
-                topP: 0.8,
-                topK: 20,
-                minP: 0,
-                presencePenalty: 1.5,
-                frequencyPenalty: 1
-            ), additionalContext: ["enable_thinking": false])
+            let asHistory = await messageLog.asSessionHistory
+
+            let session = ChatSession(
+                model,
+                history: asHistory,
+                generateParameters: GenerateParameters(
+                    temperature: 0.7,
+                    topP: 0.8,
+                    topK: 20,
+                    minP: 0,
+                    presencePenalty: 1.5,
+                    frequencyPenalty: 1
+                ),
+                additionalContext: ["enable_thinking": false]
+            )
 
             mode = .waiting(session: session)
 
@@ -243,11 +252,14 @@ extension ChatSession: @unchecked @retroactive Sendable {}
             }
         }
         prompt = ""
-        messageLog.commitNewText()
 
         let responseTask = Task { @DefaultQueueActor in
             var charBuffer = ""
+            charBuffer.reserveCapacity(1024)
+
             var lineBuffer = ""
+            lineBuffer.reserveCapacity(1024)
+
             var first = true
             let images = [attached]
                 .compactMap { $0?.cgImage(forProposedRect: nil, context: nil, hints: nil) }
@@ -256,27 +268,34 @@ extension ChatSession: @unchecked @retroactive Sendable {}
 
             for try await item in session.streamResponse(to: trimmedText, images: images, videos: []) {
                 for char in item {
-                    charBuffer.append(char)
-
                     switch char {
-                    case ",", ":", "!", "?", ".":
-                        lineBuffer.append(char)
+                    case ",", ":", "!", "?", ".", ")":
+                        charBuffer.append(char)
                         await appendText(charBuffer, session: session, first: &first, image: nil)
                         charBuffer.removeAll(keepingCapacity: true)
+                        lineBuffer.append(char)
+
+                    case "\r":
+                        break
 
                     case "\n":
+                        charBuffer.append(char)
+                        await appendText(charBuffer, session: session, first: &first, image: nil)
+                        charBuffer.removeAll(keepingCapacity: true)
                         if await !textOnly {
                             await speaker.queue(lineBuffer)
                         }
                         lineBuffer.removeAll(keepingCapacity: true)
 
                     default:
+                        charBuffer.append(char)
                         lineBuffer.append(char)
                     }
                 }
             }
 
             await appendText(charBuffer, session: session, first: &first, image: nil)
+            messageLog.commitNewText()
 
             await responseEnd(lineBuffer: lineBuffer, session: session)
         }
@@ -284,9 +303,22 @@ extension ChatSession: @unchecked @retroactive Sendable {}
         mode = .processingPrompt(session: session, task: responseTask)
     }
 
+    private var sessionUrl: URL {
+        get throws {
+            let root = try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            return root.appendingPathComponent("messageLog.json", conformingTo: .json)
+        }
+    }
+
     private func responseEnd(lineBuffer: String, session: ChatSession) async {
         if !textOnly, !lineBuffer.isEmpty {
             await speaker.queue(lineBuffer)
+        }
+
+        do {
+            try await messageLog.save(to: sessionUrl)
+        } catch {
+            log("Warning: Failed to save message log: \(error)")
         }
 
         if !textOnly {
@@ -375,7 +407,9 @@ extension ChatSession: @unchecked @retroactive Sendable {}
                 task.cancel()
                 try? await task.value
             }
+            // TODO: stop speaking
             messageLog.reset()
+            try? await messageLog.save(to: sessionUrl)
             if let session = mode.session {
                 await session.clear()
             }

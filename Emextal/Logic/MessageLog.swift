@@ -1,7 +1,10 @@
 import Foundation
 import Ink
+import MLXLMCommon
 import SwiftUI
 import WebKit
+
+extension Chat.Message: @unchecked @retroactive Sendable {}
 
 final actor MessageLog {
     nonisolated var unownedExecutor: UnownedSerialExecutor {
@@ -13,17 +16,22 @@ final actor MessageLog {
              commit,
              save(to: URL, @Sendable (Error?) -> Void),
              isEmpty(@Sendable (Bool) -> Void),
-             setHistory(text: String),
+             setHistory(newHistory: [Turn]),
+             reset,
              allText(@Sendable (String) -> Void)
     }
 
     private weak var webView: WKWebView?
 
+    var asSessionHistory: [Chat.Message] {
+        [] // TODO:
+    }
+
     func setWebView(_ webView: WKWebView) {
         self.webView = webView
         Task { [weak self] in
             log("Messagelog queue started")
-            guard let stream = self?.changeQueue.stream else { return }
+            guard let stream = self?.changeStream else { return }
             for await change in stream {
                 await self?.process(change: change)
             }
@@ -35,7 +43,7 @@ final actor MessageLog {
         get async {
             await withCheckedContinuation { [weak self] continuation in
                 if let self {
-                    changeQueue.continuation.yield(.isEmpty {
+                    changeContinuation.yield(.isEmpty {
                         continuation.resume(returning: $0)
                     })
                 } else {
@@ -49,7 +57,7 @@ final actor MessageLog {
         get async {
             await withCheckedContinuation { [weak self] continuation in
                 if let self {
-                    changeQueue.continuation.yield(.allText {
+                    changeContinuation.yield(.allText {
                         continuation.resume(returning: $0)
                     })
                 } else {
@@ -60,21 +68,21 @@ final actor MessageLog {
     }
 
     nonisolated func append(text: String, image: NSImage?) {
-        changeQueue.continuation.yield(.append(text: text, image: image))
+        changeContinuation.yield(.append(text: text, image: image))
     }
 
     nonisolated func reset() {
-        changeQueue.continuation.yield(.setHistory(text: ""))
+        changeContinuation.yield(.reset)
     }
 
     nonisolated func commitNewText() {
-        changeQueue.continuation.yield(.commit)
+        changeContinuation.yield(.commit)
     }
 
     nonisolated func save(to url: URL) async throws {
         try await withCheckedThrowingContinuation { [weak self] (continuation: CheckedContinuation<Void, Error>) in
             if let self {
-                changeQueue.continuation.yield(.save(to: url) { exception in
+                changeContinuation.yield(.save(to: url) { exception in
                     if let exception {
                         continuation.resume(throwing: exception)
                     } else {
@@ -87,51 +95,66 @@ final actor MessageLog {
         }
     }
 
-    nonisolated func setHistory(_ text: String) {
-        changeQueue.continuation.yield(.setHistory(text: text))
-    }
-
-    nonisolated func setHistory(from url: URL?) {
-        let historyString = if let url {
-            (try? String(contentsOf: url, encoding: .utf8)) ?? ""
-        } else {
-            ""
-        }
-        changeQueue.continuation.yield(.setHistory(text: historyString))
+    nonisolated func setHistory(from _: URL?) {
+        // TODO: enable after asSessionHistory is implemented
+        /* let turns = if let url, let data = try? Data(contentsOf: url), let history = try? JSONDecoder().decode([Turn].self, from: data) {
+             history
+         } else {
+             [Turn]()
+         }
+         changeContinuation.yield(.setHistory(newHistory: turns))
+          */
     }
 
     nonisolated func shutdown() {
-        changeQueue.continuation.finish()
+        changeContinuation.finish()
+    }
+
+    init() {
+        (changeStream, changeContinuation) = AsyncStream.makeStream(of: Change.self, bufferingPolicy: .unbounded)
     }
 
     deinit {
         log("\(Self.self) deinit")
     }
 
+    private struct Turn: Codable {
+        let id: UUID
+        let text: String
+
+        init(text: String) {
+            id = UUID()
+            self.text = text
+        }
+    }
+
     private var displayedHistoryCount = 0
     private var displayedBuildingCount = 0
-    private var history = ""
+    private var history = [Turn]()
     private var newText = ""
 
-    private let changeQueue = AsyncStream.makeStream(of: Change.self, bufferingPolicy: .unbounded)
+    private let changeStream: AsyncStream<Change>
+    private let changeContinuation: AsyncStream<Change>.Continuation
     private let parser = MarkdownParser()
 
     private func markdownToHtml(_ markdown: String) -> String {
         let source = markdown.trimmingCharacters(in: .whitespacesAndNewlines)
-        if source.isEmpty {
-            return ""
+        return if source.isEmpty {
+            ""
+        } else {
+            parser.html(from: source)
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "'", with: "\\'")
+                .replacingOccurrences(of: "\n", with: "\\n")
         }
-        return parser.html(from: source)
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "'", with: "\\'")
-            .replacingOccurrences(of: "\n", with: "\\n")
     }
 
     private func process(change: Change) async {
         switch change {
         case let .save(url, callback):
             do {
-                try history.write(toFile: url.path, atomically: true, encoding: .utf8)
+                let encoder = JSONEncoder()
+                try encoder.encode(history).write(to: url)
                 callback(nil)
             } catch {
                 callback(error)
@@ -139,7 +162,8 @@ final actor MessageLog {
             return
 
         case let .allText(callback):
-            callback(history + newText)
+            let text = history.map(\.text).joined()
+            callback(text + newText)
             return
 
         case let .isEmpty(callback):
@@ -165,12 +189,16 @@ final actor MessageLog {
                 newText += text
             }
 
-        case .commit:
-            history += newText
+        case .reset:
+            history.removeAll()
             newText = ""
 
-        case let .setHistory(text):
-            history = text
+        case .commit:
+            history.append(Turn(text: newText))
+            newText = ""
+
+        case let .setHistory(newHistory):
+            history = newHistory
             newText = ""
         }
 
@@ -179,43 +207,50 @@ final actor MessageLog {
             return
         }
 
-        let html1: String?
+        var latestHistoryChunk: (String, String)?
+        var historyReset = false
         let newHistoryCount = history.count
         if displayedHistoryCount != newHistoryCount {
-            html1 = markdownToHtml(history)
+            if let latestChunk = history.last {
+                latestHistoryChunk = (latestChunk.id.uuidString, markdownToHtml(latestChunk.text))
+            } else {
+                historyReset = true
+            }
             displayedHistoryCount = newHistoryCount
-        } else {
-            html1 = nil
         }
 
-        let html2: String?
+        var newTextChunk: String?
         let newBuildingCount = newText.count
         if displayedBuildingCount != newBuildingCount {
-            html2 = markdownToHtml(newText)
+            newTextChunk = markdownToHtml(newText)
             displayedBuildingCount = newBuildingCount
-        } else {
-            html2 = nil
         }
 
-        if (html1 ?? html2) != nil {
-            let h1 = if let html1 { "'\(html1)'" } else { "null" }
-            let h2 = if let html2 { "'\(html2)'" } else { "null" }
-            let js = "setHTML(\(h1),\(h2));"
-
-            await Task { @MainActor [weak webView] in
-                guard let webView else { return }
-                while webView.isLoading {
-                    await Task.yield()
-                    if Task.isCancelled {
-                        return
-                    }
+        await Task { @MainActor [weak webView] in
+            guard let webView else { return }
+            while webView.isLoading {
+                await Task.yield()
+                if Task.isCancelled {
+                    return
                 }
-                do {
+            }
+
+            do {
+                if let latestHistoryChunk {
+                    let js = "addHistory('\(latestHistoryChunk.0)', '\(latestHistoryChunk.1)');"
                     try await webView.evaluateJavaScript(js)
-                } catch {
-                    log("Error evaluating JS: \(error)")
+
+                } else if historyReset {
+                    try await webView.evaluateJavaScript("reset();")
                 }
-            }.value
-        }
+
+                if let newTextChunk {
+                    let js = "setNewText('\(newTextChunk)');"
+                    try await webView.evaluateJavaScript(js)
+                }
+            } catch {
+                log("Error evaluating JS: \(error)")
+            }
+        }.value
     }
 }
