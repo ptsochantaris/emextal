@@ -9,7 +9,7 @@ final actor MessageLog {
     }
 
     private enum Change {
-        case append(text: String),
+        case append(text: String, image: NSImage?),
              commit,
              save(to: URL, @Sendable (Error?) -> Void),
              isEmpty(@Sendable (Bool) -> Void),
@@ -59,8 +59,8 @@ final actor MessageLog {
         }
     }
 
-    nonisolated func appendText(_ text: String) {
-        changeQueue.continuation.yield(.append(text: text))
+    nonisolated func append(text: String, image: NSImage?) {
+        changeQueue.continuation.yield(.append(text: text, image: image))
     }
 
     nonisolated func reset() {
@@ -147,8 +147,23 @@ final actor MessageLog {
             callback(isEmpty)
             return
 
-        case let .append(text):
-            newText += text
+        case let .append(text, image):
+            if let image,
+               let data = image.tiffRepresentation,
+               let rep = NSBitmapImageRep(data: data),
+               let imgData = rep.representation(using: .jpeg, properties: [.compressionFactor: NSNumber(floatLiteral: 0.8)]) {
+                let filename = UUID().uuidString + "-attachment.jpg"
+                let path = WebView.temporaryDirectory.appendingPathComponent(filename)
+                do {
+                    try imgData.write(to: path)
+                    newText += text + "![Image](\(path.absoluteString))\n"
+                } catch {
+                    log("Warning: Error saving image: \(error)")
+                    newText += text
+                }
+            } else {
+                newText += text
+            }
 
         case .commit:
             history += newText

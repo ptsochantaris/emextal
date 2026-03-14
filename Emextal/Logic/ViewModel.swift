@@ -223,8 +223,8 @@ extension ChatSession: @unchecked @retroactive Sendable {}
         }
     }
 
-    private func appendText(_ text: String, session: ChatSession, first: inout Bool) {
-        messageLog.appendText(text)
+    private func appendText(_ text: String, session: ChatSession, first: inout Bool, image: NSImage?) {
+        messageLog.append(text: text, image: image)
         if first, let task = mode.task {
             mode = .replying(session: session, task: task)
             first = false
@@ -234,15 +234,14 @@ extension ChatSession: @unchecked @retroactive Sendable {}
     private func respond(session: ChatSession) {
         guard mode.canRespond else { return }
 
+        let trimmedText = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         let attached = attachedImage
-        if attachedImage != nil {
+        messageLog.append(text: "\n#### \(trimmedText.addingUnicodeEntities())\n", image: attached)
+        if attached != nil {
             withAnimation {
                 attachedImage = nil
             }
         }
-
-        let trimmedText = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
-        messageLog.appendText("\n#### \(trimmedText.addingUnicodeEntities())\n")
         prompt = ""
         messageLog.commitNewText()
 
@@ -262,7 +261,7 @@ extension ChatSession: @unchecked @retroactive Sendable {}
                     switch char {
                     case ",", ":", "!", "?", ".":
                         lineBuffer.append(char)
-                        await appendText(charBuffer, session: session, first: &first)
+                        await appendText(charBuffer, session: session, first: &first, image: nil)
                         charBuffer.removeAll(keepingCapacity: true)
 
                     case "\n":
@@ -277,7 +276,7 @@ extension ChatSession: @unchecked @retroactive Sendable {}
                 }
             }
 
-            await appendText(charBuffer, session: session, first: &first)
+            await appendText(charBuffer, session: session, first: &first, image: nil)
 
             await responseEnd(lineBuffer: lineBuffer, session: session)
         }

@@ -70,3 +70,10 @@ think {
     margin-bottom: 8pt;
     display: block;
 }
+
+img {
+    width: 256pt;
+    margin-top: 12pt;
+    margin-bottom: -3pt;
+    border-radius: 10pt;
+}

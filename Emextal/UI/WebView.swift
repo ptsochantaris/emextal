@@ -1,3 +1,4 @@
+internal import UniformTypeIdentifiers
 import Foundation
 import Ink
 import SwiftUI
@@ -30,9 +31,10 @@ import WebKit
 #endif
 
 extension WebView {
+    nonisolated static let temporaryDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("emextal-webview", conformingTo: .directory)
+
     final class Coordinator {
         let webView: WKWebView
-        private let viewModel: ViewModel
 
         deinit {
             log("\(Self.self) deinit")
@@ -41,11 +43,27 @@ extension WebView {
         init(viewModel: ViewModel) {
             log("Coordinator init")
 
-            let logView = Bundle.main.url(forResource: "log", withExtension: "html")!
+            // Move to RW directory
+            let itemsToCopy = [Bundle.main.url(forResource: "log", withExtension: "html")!,
+                               Bundle.main.url(forResource: "highlight", withExtension: "css")!,
+                               Bundle.main.url(forResource: "highlight", withExtension: "js")!,
+                               Bundle.main.url(forResource: "style", withExtension: "css")!]
+            let fm = FileManager.default
+            if !fm.fileExists(atPath: WebView.temporaryDirectory.path) {
+                try! fm.createDirectory(at: WebView.temporaryDirectory, withIntermediateDirectories: true)
+            }
+            for item in itemsToCopy {
+                let destination = WebView.temporaryDirectory.appendingPathComponent(item.lastPathComponent)
+                if fm.fileExists(atPath: destination.path) {
+                    try! fm.removeItem(at: destination)
+                }
+                try! fm.copyItem(at: item, to: destination)
+            }
+
             let config = WKWebViewConfiguration()
             config.suppressesIncrementalRendering = true
             webView = WKWebView(frame: .zero, configuration: config)
-            webView.loadFileURL(logView, allowingReadAccessTo: logView.deletingLastPathComponent())
+            webView.loadFileURL(WebView.temporaryDirectory.appending(path: "log.html"), allowingReadAccessTo: WebView.temporaryDirectory)
 
             #if canImport(AppKit)
                 webView.setValue(false, forKey: "drawsBackground")
@@ -55,7 +73,6 @@ extension WebView {
                 webView.scrollView.alwaysBounceHorizontal = false
             #endif
 
-            self.viewModel = viewModel
             Task {
                 await viewModel.setWebView(webView)
             }
