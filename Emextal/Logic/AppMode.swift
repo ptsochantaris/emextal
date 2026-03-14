@@ -5,7 +5,7 @@ enum AppMode: Equatable {
     case startup
     case booting
     case warmup
-    case loading(progress: CGFloat)
+    case loading(progress: CGFloat, status: String)
     case waiting(session: ChatSession)
     case listening(state: MicState, session: ChatSession)
     case transcribing(session: ChatSession)
@@ -110,8 +110,8 @@ enum AppMode: Equatable {
              (.waiting, .waiting),
              (.warmup, .warmup):
             true
-        case let (.loading(p1), .loading(p2)):
-            p1 == p2
+        case let (.loading(p1, s1), .loading(p2, s2)):
+            p1 == p2 && s1 == s2
         case let (.listening(stateL, _), .listening(stateR, _)):
             stateL == stateR
         default:

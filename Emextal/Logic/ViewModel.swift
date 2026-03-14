@@ -1,5 +1,7 @@
+internal import Hub
 import AVFoundation
 import CoreImage
+import Foundation
 import HTMLString
 import MLX
 import MLXAudioCore
@@ -30,7 +32,7 @@ extension ChatSession: @unchecked @retroactive Sendable {}
     var attachedImage: NSImage?
     var textOnly = true
 
-    var mode = AppMode.loading(progress: 0) {
+    var mode = AppMode.loading(progress: 0, status: "Loading…") {
         didSet {
             if oldValue != mode {
                 mic.ignoreMic = mode.shouldIgnoreMic
@@ -51,8 +53,6 @@ extension ChatSession: @unchecked @retroactive Sendable {}
     }
 
     init() {
-        // Memory.cacheLimit = 256 * 1024 * 1024
-
         nonisolated(unsafe) let engineRef = engine
         speaker = Speaker(engine: engineRef)
         mic = Mic(engine: engineRef)
@@ -94,25 +94,43 @@ extension ChatSession: @unchecked @retroactive Sendable {}
         await mic.setModeDelegate(self)
 
         do {
-            var utilProgress: Double = 0
-            var modelProgress: Double = 0
+            var addedChild = false
+            var statusComponents = ["Model"]
+
+            let loadProgress = Progress(totalUnitCount: 1000)
+            let observer = loadProgress.observe(\.fractionCompleted, options: [.initial, .new]) { [weak self] _, change in
+                if let fraction = change.newValue {
+                    Task { @MainActor in
+                        let statusLine = "Loading " + statusComponents.joined(separator: ", ") + "…"
+                        self?.mode = .loading(progress: fraction, status: statusLine)
+                    }
+                }
+            }
 
             let t1 = Task {
+                statusComponents.append("Text-to-Speech")
                 try await speaker.boot()
-                utilProgress += 0.5
-                mode = .loading(progress: (utilProgress * 0.3) + (modelProgress * 0.7))
+                loadProgress.completedUnitCount += 100
+                if let index = statusComponents.firstIndex(where: { $0 == "Text-to-Speech" }) {
+                    statusComponents.remove(at: index)
+                }
             }
 
             let t2 = Task {
+                statusComponents.append("Voice Recognition")
                 try await mic.boot()
-                utilProgress += 0.5
-                mode = .loading(progress: (utilProgress * 0.3) + (modelProgress * 0.7))
+                loadProgress.completedUnitCount += 200
+                if let index = statusComponents.firstIndex(where: { $0 == "Voice Recognition" }) {
+                    statusComponents.remove(at: index)
+                }
             }
 
             let model = try await VLMModelFactory.shared.loadContainer(configuration: modelConfiguration) { progress in
                 Task { @MainActor in
-                    modelProgress = progress.fractionCompleted
-                    self.mode = .loading(progress: (utilProgress * 0.3) + (modelProgress * 0.7))
+                    if !addedChild {
+                        loadProgress.addChild(progress, withPendingUnitCount: 700)
+                        addedChild = true
+                    }
                 }
             }
 
@@ -140,6 +158,10 @@ extension ChatSession: @unchecked @retroactive Sendable {}
             try engine.start()
 
             mode = .waiting(session: session)
+
+            withExtendedLifetime(observer) {
+                $0.invalidate()
+            }
 
             recognitionLoop = Task {
                 for await text in mic.phraseStream {

@@ -13,11 +13,11 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             switch viewModel.mode {
-            case let .loading(progress):
-                ProgressView("Loading", value: progress, total: 1)
+            case let .loading(progress, status):
+                ProgressView(status, value: progress, total: 1)
                     .colorScheme(.dark)
                     .padding(88)
-                    .navigationTitle("Loading")
+                    .navigationTitle("Loading \(viewModel.displayName)")
 
             case let .error(error):
                 Text("Error: \(error.localizedDescription)")
