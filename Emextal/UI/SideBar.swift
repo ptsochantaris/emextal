@@ -58,6 +58,26 @@ struct SideBar: View {
                 .padding([.leading, .trailing])
                 .foregroundColor(.widgetForeground.opacity(state.mode.isWaiting ? 0.7 : 0.8))
                 .frame(height: assistantWidth) // make it square
+
+            if let image = state.attachedImage {
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(image.size.width / image.size.height, contentMode: .fit)
+                    .frame(width: assistantWidth)
+                    .overlay(alignment: .topTrailing) {
+                        Button {
+                            withAnimation {
+                                state.attachedImage = nil
+                            }
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title)
+                                .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 0)
+                                .padding(8)
+                        }
+                        .buttonStyle(.plain)
+                    }
+            }
         }
         .foregroundColor(.widgetForeground)
         .background {

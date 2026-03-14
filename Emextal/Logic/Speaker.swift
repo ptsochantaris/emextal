@@ -1,7 +1,7 @@
 import AVFoundation
+import MLX
 import MLXAudioTTS
 import MLXLMCommon
-import MLX
 
 final actor Speaker {
     nonisolated var unownedExecutor: UnownedSerialExecutor {

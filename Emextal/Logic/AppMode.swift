@@ -85,14 +85,14 @@ enum AppMode: Equatable {
              .loading,
              .shutdown,
              .startup,
-             .waiting,
              .transcribing,
              .transcribingDone,
+             .waiting,
              .warmup:
             nil
 
         case let .processingPrompt(_, task),
-            let .replying(_, task):
+             let .replying(_, task):
             task
         }
     }

@@ -45,7 +45,7 @@ final actor Mic {
             try await SortformerModel.fromPretrained("mlx-community/diar_streaming_sortformer_4spk-v2.1-fp16")
         }
 
-        //transcriber = try await VoxtralRealtimeModel.fromPretrained("mlx-community/Voxtral-Mini-4B-Realtime-2602-4bit")
+        // transcriber = try await VoxtralRealtimeModel.fromPretrained("mlx-community/Voxtral-Mini-4B-Realtime-2602-4bit")
         transcriber = try await Qwen3ASRModel.fromPretrained("mlx-community/Qwen3-ASR-1.7B-4bit")
         #if os(macOS)
             warmupTask2 = Task {

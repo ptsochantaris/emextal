@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		161605B82F64DCF0005E783C /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = 161605B72F64DCF0005E783C /* MLXVLM */; };
 		166C6B6E2F5CAC7C00BFEF31 /* Ink in Frameworks */ = {isa = PBXBuildFile; productRef = 166C6B6D2F5CAC7C00BFEF31 /* Ink */; };
 		166C6B8A2F5CC0BE00BFEF31 /* HTMLString in Frameworks */ = {isa = PBXBuildFile; productRef = 166C6B892F5CC0BE00BFEF31 /* HTMLString */; };
 		169368232F5B41E100C9D403 /* MLXAudioCodecs in Frameworks */ = {isa = PBXBuildFile; productRef = 169368222F5B41E100C9D403 /* MLXAudioCodecs */; };
@@ -14,7 +15,6 @@
 		169368272F5B41E100C9D403 /* MLXAudioSTT in Frameworks */ = {isa = PBXBuildFile; productRef = 169368262F5B41E100C9D403 /* MLXAudioSTT */; };
 		169368292F5B41E100C9D403 /* MLXAudioTTS in Frameworks */ = {isa = PBXBuildFile; productRef = 169368282F5B41E100C9D403 /* MLXAudioTTS */; };
 		1693682B2F5B41E100C9D403 /* MLXAudioVAD in Frameworks */ = {isa = PBXBuildFile; productRef = 1693682A2F5B41E100C9D403 /* MLXAudioVAD */; };
-		16C305E22F64751C004DDEFE /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 16C305E12F64751C004DDEFE /* MLXLMCommon */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -39,8 +39,8 @@
 				169368232F5B41E100C9D403 /* MLXAudioCodecs in Frameworks */,
 				1693682B2F5B41E100C9D403 /* MLXAudioVAD in Frameworks */,
 				166C6B6E2F5CAC7C00BFEF31 /* Ink in Frameworks */,
+				161605B82F64DCF0005E783C /* MLXVLM in Frameworks */,
 				169368272F5B41E100C9D403 /* MLXAudioSTT in Frameworks */,
-				16C305E22F64751C004DDEFE /* MLXLMCommon in Frameworks */,
 				166C6B8A2F5CC0BE00BFEF31 /* HTMLString in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -48,10 +48,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		161605B62F64DCF0005E783C /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		1695272E2F5B3F1400E04F44 = {
 			isa = PBXGroup;
 			children = (
 				169527392F5B3F1400E04F44 /* Emextal */,
+				161605B62F64DCF0005E783C /* Frameworks */,
 				169527382F5B3F1400E04F44 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -91,7 +99,7 @@
 				1693682A2F5B41E100C9D403 /* MLXAudioVAD */,
 				166C6B6D2F5CAC7C00BFEF31 /* Ink */,
 				166C6B892F5CC0BE00BFEF31 /* HTMLString */,
-				16C305E12F64751C004DDEFE /* MLXLMCommon */,
+				161605B72F64DCF0005E783C /* MLXVLM */,
 			);
 			productName = Emextal;
 			productReference = 169527372F5B3F1400E04F44 /* Emextal.app */;
@@ -474,6 +482,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		161605B72F64DCF0005E783C /* MLXVLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 16C305E02F64751C004DDEFE /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXVLM;
+		};
 		166C6B6D2F5CAC7C00BFEF31 /* Ink */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 166C6B6C2F5CAC7C00BFEF31 /* XCRemoteSwiftPackageReference "Ink" */;
@@ -508,11 +521,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 169368212F5B41E100C9D403 /* XCRemoteSwiftPackageReference "mlx-audio-swift" */;
 			productName = MLXAudioVAD;
-		};
-		16C305E12F64751C004DDEFE /* MLXLMCommon */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 16C305E02F64751C004DDEFE /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
-			productName = MLXLMCommon;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

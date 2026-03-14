@@ -1,9 +1,11 @@
 import AVFoundation
+import CoreImage
 import HTMLString
 import MLX
 import MLXAudioCore
 import MLXAudioSTT
 import MLXLMCommon
+import MLXVLM
 import SwiftUI
 import WebKit
 
@@ -25,6 +27,7 @@ extension ChatSession: @unchecked @retroactive Sendable {}
     private(set) var recognitionLoop: Task<Void, Never>?
 
     var prompt = ""
+    var attachedImage: NSImage?
     var textOnly = true
 
     var mode = AppMode.loading(progress: 0) {
@@ -48,7 +51,7 @@ extension ChatSession: @unchecked @retroactive Sendable {}
     }
 
     init() {
-        Memory.cacheLimit = 200 * 1024 * 1024
+        // Memory.cacheLimit = 256 * 1024 * 1024
 
         nonisolated(unsafe) let engineRef = engine
         speaker = Speaker(engine: engineRef)
@@ -106,7 +109,7 @@ extension ChatSession: @unchecked @retroactive Sendable {}
                 mode = .loading(progress: (utilProgress * 0.3) + (modelProgress * 0.7))
             }
 
-            let model = try await loadModelContainer(configuration: modelConfiguration) { progress in
+            let model = try await VLMModelFactory.shared.loadContainer(configuration: modelConfiguration) { progress in
                 Task { @MainActor in
                     modelProgress = progress.fractionCompleted
                     self.mode = .loading(progress: (utilProgress * 0.3) + (modelProgress * 0.7))
@@ -145,17 +148,20 @@ extension ChatSession: @unchecked @retroactive Sendable {}
             }
 
             #if DEBUG
-            Task {
-                let format = ByteCountFormatStyle(style: .memory, allowedUnits: .all, spellsOutZero: false, includesActualByteCount: false, locale: .autoupdatingCurrent)
-                while !Task.isCancelled {
-                    try? await Task.sleep(for: .seconds(2))
-                    print("MEM -      Active: \(format.format(Int64(Memory.activeMemory)))")
-                    print("MEM -        Peak: \(format.format(Int64(Memory.peakMemory)))")
-                    print("MEM -       Cache: \(format.format(Int64(Memory.cacheMemory)))")
-                    print("MEM - Cache Limit: \(format.format(Int64(Memory.cacheLimit)))")
-                    print()
+                Task {
+                    let format = ByteCountFormatStyle(style: .memory, allowedUnits: .all, spellsOutZero: false, includesActualByteCount: false, locale: .autoupdatingCurrent)
+                    while !Task.isCancelled {
+                        try? await Task.sleep(for: .seconds(2))
+                        print("""
+
+                        MEM:
+                          Active: \(format.format(Int64(Memory.activeMemory))) (Peak: \(format.format(Int64(Memory.peakMemory))))
+                           Cache: \(format.format(Int64(Memory.cacheMemory))) (Limit: \(format.format(Int64(Memory.cacheLimit))))
+                           Total: \(format.format(Int64(Memory.activeMemory + Memory.cacheMemory))) / \(format.format(Int64(Memory.memoryLimit)))
+
+                        """)
+                    }
                 }
-            }
             #endif
 
         } catch {
@@ -191,6 +197,13 @@ extension ChatSession: @unchecked @retroactive Sendable {}
     private func respond(session: ChatSession) {
         guard mode.canRespond else { return }
 
+        let attached = attachedImage
+        if attachedImage != nil {
+            withAnimation {
+                attachedImage = nil
+            }
+        }
+
         let trimmedText = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         messageLog.appendText("\n#### \(trimmedText.addingUnicodeEntities())\n")
         prompt = ""
@@ -200,12 +213,17 @@ extension ChatSession: @unchecked @retroactive Sendable {}
             var charBuffer = ""
             var lineBuffer = ""
             var first = true
-            for try await item in session.streamResponse(to: trimmedText) {
+            let images = [attached]
+                .compactMap { $0?.cgImage(forProposedRect: nil, context: nil, hints: nil) }
+                .map { CIImage(cgImage: $0) }
+                .map { UserInput.Image.ciImage($0) }
+
+            for try await item in session.streamResponse(to: trimmedText, images: images, videos: []) {
                 for char in item {
                     charBuffer.append(char)
 
                     switch char {
-                    case "!", "?", ".", ",", ":":
+                    case ",", ":", "!", "?", ".":
                         lineBuffer.append(char)
                         await appendText(charBuffer, session: session, first: &first)
                         charBuffer.removeAll(keepingCapacity: true)
