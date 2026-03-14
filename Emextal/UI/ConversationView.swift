@@ -125,10 +125,12 @@ extension NSImage {
     nonisolated func fit(side: CGFloat) -> NSImage? {
         let newSize: CGSize
         if size.width > size.height {
-            let s = side / size.width
+            // landscape
+            let s = side / size.height
             newSize = CGSize(width: size.width * s, height: size.height * s)
         } else {
-            let s = side / size.height
+            // square or portrait
+            let s = side / size.width
             newSize = CGSize(width: size.width * s, height: size.height * s)
         }
         return scale(outputSize: newSize)

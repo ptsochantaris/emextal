@@ -32,7 +32,7 @@ extension ChatSession: @unchecked @retroactive Sendable {}
     var attachedImage: NSImage?
     var textOnly = true
 
-    var mode = AppMode.loading(progress: 0, status: "Loading…") {
+    var mode = AppMode.loading(progress: 0, status: []) {
         didSet {
             if oldValue != mode {
                 mic.ignoreMic = mode.shouldIgnoreMic
@@ -95,44 +95,66 @@ extension ChatSession: @unchecked @retroactive Sendable {}
 
         do {
             var addedChild = false
-            var statusComponents = ["Model"]
+            var statusComponents = ["Language Model", "Text-to-Speech", "Voice Recognition"].map { LoadingProgressDisplay.Status(loaded: false, text: $0) }
 
             let loadProgress = Progress(totalUnitCount: 1000)
             let observer = loadProgress.observe(\.fractionCompleted, options: [.initial, .new]) { [weak self] _, change in
                 if let fraction = change.newValue {
                     Task { @MainActor in
-                        let statusLine = "Loading " + statusComponents.joined(separator: ", ") + "…"
-                        self?.mode = .loading(progress: fraction, status: statusLine)
+                        self?.mode = .loading(progress: fraction, status: statusComponents)
                     }
                 }
             }
 
-            let t1 = Task {
-                statusComponents.append("Text-to-Speech")
+            let speakerTask = Task {
                 try await speaker.boot()
                 loadProgress.completedUnitCount += 100
-                if let index = statusComponents.firstIndex(where: { $0 == "Text-to-Speech" }) {
-                    statusComponents.remove(at: index)
+                if let index = statusComponents.firstIndex(where: { $0.text == "Text-to-Speech" }) {
+                    statusComponents[index] = .init(loaded: true, text: statusComponents[index].text)
                 }
             }
 
-            let t2 = Task {
-                statusComponents.append("Voice Recognition")
+            let micTask = Task {
                 try await mic.boot()
                 loadProgress.completedUnitCount += 200
-                if let index = statusComponents.firstIndex(where: { $0 == "Voice Recognition" }) {
-                    statusComponents.remove(at: index)
+                if let index = statusComponents.firstIndex(where: { $0.text == "Voice Recognition" }) {
+                    statusComponents[index] = .init(loaded: true, text: statusComponents[index].text)
                 }
+            }
+
+            let warmupTask = Task {
+                try await speakerTask.value
+                try await micTask.value
+
+                engine.inputNode.volume = 1.0
+                try engine.start()
+
+                loadProgress.completedUnitCount += 50
+
+                try await speaker.warmup()
+                try await mic.warmup()
+
+                loadProgress.completedUnitCount += 50
             }
 
             let model = try await VLMModelFactory.shared.loadContainer(configuration: modelConfiguration) { progress in
                 Task { @MainActor in
                     if !addedChild {
-                        loadProgress.addChild(progress, withPendingUnitCount: 700)
+                        loadProgress.addChild(progress, withPendingUnitCount: 600)
                         addedChild = true
                     }
                 }
             }
+
+            if let index = statusComponents.firstIndex(where: { $0.text == "Language Model" }) {
+                statusComponents[index] = .init(loaded: true, text: statusComponents[index].text)
+            }
+
+            mode = .loading(progress: 1.0, status: statusComponents)
+
+            try? await Task.sleep(for: .seconds(1.0))
+
+            try await warmupTask.value
 
             /* Qwen 3.5:
              Thinking mode for general tasks: temperature=1.0, top_p=0.95, top_k=20, min_p=0.0, presence_penalty=1.5, repetition_penalty=1.0
@@ -149,13 +171,6 @@ extension ChatSession: @unchecked @retroactive Sendable {}
                 presencePenalty: 1.5,
                 frequencyPenalty: 1
             ), additionalContext: ["enable_thinking": false])
-
-            try await t1.value
-
-            try await t2.value
-
-            engine.inputNode.volume = 1.0
-            try engine.start()
 
             mode = .waiting(session: session)
 
@@ -176,10 +191,10 @@ extension ChatSession: @unchecked @retroactive Sendable {}
                         try? await Task.sleep(for: .seconds(2))
                         print("""
 
-                        MEM:
-                          Active: \(format.format(Int64(Memory.activeMemory))) (Peak: \(format.format(Int64(Memory.peakMemory))))
-                           Cache: \(format.format(Int64(Memory.cacheMemory))) (Limit: \(format.format(Int64(Memory.cacheLimit))))
-                           Total: \(format.format(Int64(Memory.activeMemory + Memory.cacheMemory))) / \(format.format(Int64(Memory.memoryLimit)))
+                        Memory stats:
+                              Active: \(format.format(Int64(Memory.activeMemory))) (Peak: \(format.format(Int64(Memory.peakMemory))))
+                               Cache: \(format.format(Int64(Memory.cacheMemory))) (Limit: \(format.format(Int64(Memory.cacheLimit))))
+                               Total: \(format.format(Int64(Memory.activeMemory + Memory.cacheMemory))) / \(format.format(Int64(Memory.memoryLimit)))
 
                         """)
                     }

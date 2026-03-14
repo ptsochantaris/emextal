@@ -14,13 +14,13 @@ struct ContentView: View {
         NavigationStack {
             switch viewModel.mode {
             case let .loading(progress, status):
-                ProgressView(status, value: progress, total: 1)
+                LoadingProgressDisplay(title: viewModel.displayName, progress: progress, status: status)
                     .colorScheme(.dark)
                     .padding(88)
                     .navigationTitle("Loading \(viewModel.displayName)")
 
             case let .error(error):
-                Text("Error: \(error.localizedDescription)")
+                Text("**Loading failed:** \(String(describing: error))")
                     .colorScheme(.dark)
                     .padding(88)
                     .navigationTitle("Loading Failed")

@@ -63,19 +63,26 @@ final actor Speaker {
         log("\(Self.self) deinit")
     }
 
+    func warmup() async throws {
+        #if os(macOS)
+            log("Speech model warmup...")
+            _ = try await loadedModel?.generate(text: "This is a warmup!")
+            log("Speech model warmup done")
+        #endif
+    }
+
+    private var loadedModel: SopranoModel?
+
     func boot() async throws {
         let model = try await Task {
             try await SopranoModel.fromPretrained("mlx-community/Soprano-80M-8bit")
         }.value
 
+        loadedModel = model
+
         let stream = speechStream
 
         Task { [weak self] in
-            #if os(macOS)
-                log("Speech model warmup...")
-                _ = try? await model.generate(text: "This is a warmup!")
-                log("Speech model warmup done")
-            #endif
             do {
                 for await line in stream {
                     guard let self else { return }

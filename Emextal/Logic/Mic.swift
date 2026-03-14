@@ -25,8 +25,6 @@ final actor Mic {
     private var detector: SortformerModel?
     private let phraseContinuation: AsyncStream<String>.Continuation
     private let recorder: Recorder
-    private var warmupTask1: Task<Void, Never>?
-    private var warmupTask2: Task<Void, Never>?
 
     init(engine: AVAudioEngine) {
         self.engine = engine
@@ -40,33 +38,23 @@ final actor Mic {
         modeDelegate = delegate
     }
 
+    func warmup() async throws {
+        #if os(macOS)
+            let blank = MLXArray.zeros([100_000])
+            log("Speaker detection warmup...")
+            _ = try await detector?.generate(audio: blank)
+            log("Speaker detection warmup done")
+
+            log("Transcriber warmup...")
+            _ = transcriber?.generate(audio: blank)
+            log("Transcriber warmup done")
+        #endif
+    }
+
     func boot() async throws {
-        let detectorTask = Task {
-            try await SortformerModel.fromPretrained("mlx-community/diar_streaming_sortformer_4spk-v2.1-fp16")
-        }
-
-        // transcriber = try await VoxtralRealtimeModel.fromPretrained("mlx-community/Voxtral-Mini-4B-Realtime-2602-4bit")
+        async let detectorTask = try await SortformerModel.fromPretrained("mlx-community/diar_streaming_sortformer_4spk-v2.1-fp16")
         transcriber = try await Qwen3ASRModel.fromPretrained("mlx-community/Qwen3-ASR-1.7B-4bit")
-        #if os(macOS)
-            warmupTask2 = Task {
-                let blank = MLXArray.zeros([100_000])
-                log("Transcriber warmup...")
-                _ = transcriber?.generate(audio: blank)
-                log("Transcriber warmup done")
-                warmupTask2 = nil
-            }
-        #endif
-
-        detector = try await detectorTask.value
-        #if os(macOS)
-            warmupTask1 = Task {
-                let blank = MLXArray.zeros([100_000])
-                log("Speaker detection warmup...")
-                _ = try? await detector?.generate(audio: blank)
-                log("Speaker detection warmup done")
-                warmupTask1 = nil
-            }
-        #endif
+        detector = try await detectorTask
     }
 
     func stop() async {
@@ -84,9 +72,6 @@ final actor Mic {
     }
 
     func startManual() async {
-        await warmupTask1?.value
-        await warmupTask2?.value
-
         guard let transcriber, let delegate = modeDelegate else {
             return
         }
@@ -129,9 +114,6 @@ final actor Mic {
     }
 
     func startAutodetect() async {
-        await warmupTask1?.value
-        await warmupTask2?.value
-
         guard let detector, let transcriber, let delegate = modeDelegate else {
             return
         }

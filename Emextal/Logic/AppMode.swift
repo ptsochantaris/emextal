@@ -5,7 +5,7 @@ enum AppMode: Equatable {
     case startup
     case booting
     case warmup
-    case loading(progress: CGFloat, status: String)
+    case loading(progress: CGFloat, status: [LoadingProgressDisplay.Status])
     case waiting(session: ChatSession)
     case listening(state: MicState, session: ChatSession)
     case transcribing(session: ChatSession)
