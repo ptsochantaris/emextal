@@ -1,5 +1,5 @@
-import Foundation
-import SwiftUI
+internal import Foundation
+internal import SwiftUI
 
 struct LoadingProgressDisplay: View {
     struct Status: Equatable, Identifiable {

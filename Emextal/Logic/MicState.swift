@@ -1,4 +1,4 @@
-import Foundation
+internal import Foundation
 
 nonisolated enum MicState: Equatable {
     case quiet, talking

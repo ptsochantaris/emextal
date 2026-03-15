@@ -1,6 +1,6 @@
-import AVFoundation
-import Foundation
-import MLX
+internal import AVFoundation
+internal import Foundation
+internal import MLX
 
 extension MLXArray: @unchecked @retroactive Sendable {}
 

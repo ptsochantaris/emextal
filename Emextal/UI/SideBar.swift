@@ -1,69 +1,23 @@
-import Foundation
-import SwiftUI
+internal import Foundation
+internal import SwiftUI
+internal import UniformTypeIdentifiers
 
-struct SideBar: View {
+struct ImageDrop: View {
     let state: ViewModel
-    @FocusState.Binding var focusEntryField: Bool
 
-    @State private var originalPos: CGPoint? = nil
+    @State private var busy = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            Color.clear.frame(height: 33)
+        ZStack {
+            if busy {
+                ProgressView()
+                    .frame(height: 88)
 
-            if state.mode.showGenie {
-                Genie(show: state.mode.showGenie)
-                    .padding(.top, -4)
-                    .padding(.bottom, -1)
-                    .gesture(DragGesture().onChanged { value in
-                        dragged(by: value)
-                    }.onEnded { _ in
-                        dragEnd()
-                    })
-
-            } else {
-                let va = state.activationState == .voiceActivated
-                if state.mode.showAlwaysOn {
-                    Button("ALWAYS ON") { [weak state] in
-                        guard let state else { return }
-                        if va {
-                            state.switchToPushButton()
-                        } else {
-                            state.switchToVoiceActivated()
-                        }
-                    }
-                    .font(.caption2.bold())
-                    .buttonStyle(PlainButtonStyle())
-                    .foregroundStyle(va ? .accent : .widgetForeground)
-                    .padding(.vertical, 4)
-                    .padding(.horizontal, 8)
-                    .background {
-                        Capsule(style: .continuous)
-                            .stroke(va ? .accent : .widgetForeground, lineWidth: 1)
-                    }
-                    .padding(1)
-                }
-
-                Color(.clear)
-                    .contentShape(Rectangle())
-                    .gesture(DragGesture().onChanged { value in
-                        dragged(by: value)
-                    }.onEnded { _ in
-                        dragEnd()
-                    })
-            }
-
-            ModeView(modeProvider: state)
-                .padding(.bottom, 4)
-                .padding([.leading, .trailing])
-                .foregroundColor(.widgetForeground.opacity(state.mode.isWaiting ? 0.7 : 0.8))
-                .frame(height: assistantWidth) // make it square
-
-            if let image = state.attachedImage {
+            } else if let image = state.attachedImage {
                 Image(nsImage: image)
                     .resizable()
                     .aspectRatio(image.size.width / image.size.height, contentMode: .fit)
-                    .frame(width: assistantWidth)
+                    .clipShape(RoundedRectangle(cornerRadius: 11))
                     .overlay(alignment: .topTrailing) {
                         Button {
                             withAnimation {
@@ -77,7 +31,68 @@ struct SideBar: View {
                         }
                         .buttonStyle(.plain)
                     }
+
+            } else {
+                Image(systemName: "photo")
+                    .font(.title)
+                    .frame(height: 88)
             }
+        }
+        .frame(maxWidth: .infinity)
+        .background {
+            if busy || state.attachedImage == nil {
+                RoundedRectangle(cornerRadius: 11)
+                    .stroke(style: .init(lineWidth: 2, lineCap: .round, dash: [2.0, 4.0]))
+            }
+        }
+        .onDrop(of: [.png, .jpeg], isTargeted: nil) { providers in
+            busy = true
+            providers.first?.loadObject(ofClass: NSImage.self) { item, _ in
+                guard let image = item as? NSImage,
+                      let scaled = image.fit(side: 512)
+                else {
+                    return
+                }
+                Task { @MainActor in
+                    withAnimation {
+                        state.attachedImage = scaled
+                        busy = false
+                    }
+                }
+            }
+            return true
+        }
+    }
+}
+
+struct SideBar: View {
+    let state: ViewModel
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if state.mode.showGenie {
+                Color.clear
+                    .frame(height: 16)
+
+                Genie(show: state.mode.showGenie)
+                    .padding(.top, -4)
+                    .padding(.bottom, -1)
+
+            } else {
+                if state.supportsImageInputs {
+                    ImageDrop(state: state)
+                        .padding()
+                        .foregroundColor(.widgetForeground.opacity(0.7))
+                }
+
+                Spacer()
+            }
+
+            ModeView(modeProvider: state)
+                .padding(.bottom, 4)
+                .padding([.leading, .trailing])
+                .foregroundColor(.widgetForeground.opacity(state.mode.isWaiting ? 0.7 : 0.8))
+                .frame(height: assistantWidth) // make it square
         }
         .foregroundColor(.widgetForeground)
         .background {
@@ -86,22 +101,5 @@ struct SideBar: View {
         }
         .frame(width: assistantWidth)
         .cornerRadius(21)
-    }
-
-    private func dragged(by value: DragGesture.Value) {
-        #if canImport(AppKit)
-            guard let window = NSApplication.shared.keyWindow else {
-                return
-            }
-            var frame = window.frame
-            let p = window.frame.origin
-            frame.origin = CGPoint(x: p.x + value.translation.width, y: p.y - value.translation.height)
-            originalPos = frame.origin
-            window.setFrame(frame, display: false)
-        #endif
-    }
-
-    private func dragEnd() {
-        originalPos = nil
     }
 }

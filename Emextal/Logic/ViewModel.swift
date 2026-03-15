@@ -1,12 +1,12 @@
-import AVFoundation
-import Foundation
-import MLX
-import MLXAudioCore
-import MLXAudioSTT
-import MLXLMCommon
-import MLXVLM
-import SwiftUI
-import WebKit
+internal import AVFoundation
+internal import Foundation
+internal import MLX
+internal import MLXAudioCore
+internal import MLXAudioSTT
+internal import MLXLMCommon
+internal import MLXVLM
+internal import SwiftUI
+internal import WebKit
 
 /// Only for reference passing
 extension ChatSession: @unchecked @retroactive Sendable {}
@@ -66,6 +66,10 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
 
     var displayName: String {
         modelConfiguration.name
+    }
+
+    var supportsImageInputs: Bool {
+        true
     }
 
     func setWebView(_ webView: WKWebView) async {
@@ -249,9 +253,7 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
         let attached = attachedImage
         messageLog.prompt(text: trimmedText, image: attached)
         if attached != nil {
-            withAnimation {
-                attachedImage = nil
-            }
+            attachedImage = nil
         }
         prompt = ""
 

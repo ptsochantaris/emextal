@@ -1,7 +1,7 @@
-import AVFoundation
-import MLX
-import MLXAudioTTS
-import MLXLMCommon
+internal import AVFoundation
+internal import MLX
+internal import MLXAudioTTS
+internal import MLXLMCommon
 
 final actor Speaker {
     nonisolated var unownedExecutor: UnownedSerialExecutor {

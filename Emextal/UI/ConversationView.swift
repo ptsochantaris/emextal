@@ -1,5 +1,5 @@
-import AVFoundation
-import SwiftUI
+internal import AVFoundation
+internal import SwiftUI
 
 struct ConversationView: View {
     @Bindable var state: ViewModel
@@ -17,7 +17,7 @@ struct ConversationView: View {
             HStack(spacing: spacing) {
                 WebView(viewModel: state)
 
-                SideBar(state: state, focusEntryField: $focusEntryField)
+                SideBar(state: state)
                 #if os(visionOS)
                     .padding(.top, 0)
                     .padding(.bottom, spacing - 1)
@@ -54,67 +54,55 @@ struct ConversationView: View {
                     }
             }
         }
-        .onDrop(of: [.png, .jpeg], isTargeted: nil) { providers in
-            providers.first?.loadObject(ofClass: NSImage.self) { item, _ in
-                guard let image = item as? NSImage,
-                      let scaled = image.fit(side: 512)
-                else {
-                    return
-                }
-                Task { @MainActor in
-                    withAnimation {
-                        state.attachedImage = scaled
-                    }
-                }
-            }
-            return true
-        }
         .colorScheme(.dark)
         .toolbar {
             Button {
                 state.textOnly.toggle()
             } label: {
-                HStack(spacing: 0) {
-                    Image(systemName: state.textOnly ? "text.bubble" : "speaker.wave.2.bubble")
-                    Text(state.textOnly ? "Text-Only" : "Spoken Replies")
-                        .padding([.leading, .trailing], 4)
-                        .font(.caption)
-                }
+                Label(state.textOnly ? "Text Only" : "Spoken Replies", systemImage: state.textOnly ? "text.bubble" : "speaker.wave.2.bubble")
+                    .labelStyle(.titleAndIcon)
             }
 
-            let ready = state.mode.nominal
+            let va = state.activationState == .voiceActivated
+            Button { [weak state] in
+                guard let state else { return }
+                if va {
+                    state.switchToPushButton()
+                } else {
+                    state.switchToVoiceActivated()
+                }
+            } label: {
+                Label(va ? "Voice Activated" : "Manual", systemImage: va ? "waveform.badge.microphone" : "mic")
+                    .labelStyle(.titleAndIcon)
+            }
+            .opacity(state.mode.showAlwaysOn ? 1 : 0.3)
+            .allowsHitTesting(state.mode.showAlwaysOn)
 
-            /*
-             Button {
-                 appPhase = .selection
-             } label: {
-                 HStack(spacing: 0) {
-                     Image(systemName: "square.grid.3x2")
-                     Text("Models")
-                         .padding([.leading, .trailing], 4)
-                         .font(.caption)
-                 }
-             }
-             .opacity(ready ? 1 : 0.3)
-             .allowsHitTesting(ready)
-              */
+            let ready = state.mode.nominal
 
             Button {
                 if state.mode.isWaiting || state.mode.isQuietListening || state.mode.isReplying {
                     state.reset()
                 }
             } label: {
-                HStack(spacing: 0) {
-                    Image(systemName: "clear")
-                    Text("Reset")
-                        .padding([.leading, .trailing], 4)
-                        .font(.caption)
-                }
+                Label("Reset", systemImage: "clear")
+                    .labelStyle(.titleAndIcon)
             }
             .keyboardShortcut(KeyEquivalent("k"), modifiers: .command)
             .opacity(ready ? 1 : 0.3)
             .allowsHitTesting(ready)
+
+            Button {
+                // TODO:
+            } label: {
+                Label("Models", systemImage: "square.grid.3x2")
+                    .labelStyle(.titleAndIcon)
+            }
+            .opacity(ready ? 1 : 0.3)
+            .allowsHitTesting(ready)
         }
+        .animation(.easeInOut, value: state.mode)
+        .animation(.easeInOut, value: state.attachedImage)
     }
 }
 

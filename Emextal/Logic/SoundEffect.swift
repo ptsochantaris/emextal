@@ -1,5 +1,5 @@
-import AVFoundation
-import Foundation
+internal import AVFoundation
+internal import Foundation
 
 nonisolated enum SoundEffect {
     private static let startCaf = Bundle.main.url(forResource: "MicStart", withExtension: "caf")!

@@ -1,7 +1,7 @@
-import Foundation
-import Ink
-import MLXLMCommon
-import WebKit
+internal import Foundation
+internal import Ink
+internal import MLXLMCommon
+internal import WebKit
 
 final actor MessageLog {
     nonisolated var unownedExecutor: UnownedSerialExecutor {

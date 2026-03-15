@@ -1,5 +1,5 @@
-import MLXLMCommon
-import SwiftUI
+internal import MLXLMCommon
+internal import SwiftUI
 
 struct ContentView: View {
     private let viewModel: ViewModel

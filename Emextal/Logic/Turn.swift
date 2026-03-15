@@ -1,6 +1,6 @@
-import Foundation
-import HTMLString
-import Ink
+internal import Foundation
+internal import HTMLString
+internal import Ink
 #if canImport(AppKit)
     import AppKit
 #endif
