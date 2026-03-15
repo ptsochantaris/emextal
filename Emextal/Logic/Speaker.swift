@@ -75,7 +75,7 @@ final actor Speaker {
 
     func boot() async throws {
         let model = try await Task {
-            try await SopranoModel.fromPretrained("mlx-community/Soprano-80M-8bit")
+            try await SopranoModel.fromPretrained("mlx-community/Soprano-1.1-80M-bf16")
         }.value
 
         loadedModel = model
@@ -123,7 +123,7 @@ final actor Speaker {
     }
 
     private let voiceParams = GenerateParameters(
-        maxTokens: 2400,
+        maxTokens: 1200,
         temperature: 0.7,
         topP: 0.95,
         repetitionPenalty: 1.3,
@@ -135,7 +135,7 @@ final actor Speaker {
     private func speak(_ text: String, using speechModel: SopranoModel) async throws {
         log("Rendering: \(text)")
 
-        let samples = try await speechModel.generate(text: text).asArray(Float.self)
+        let samples = try await speechModel.generate(text: text, parameters: voiceParams).asArray(Float.self)
 
         let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: Double(speechModel.sampleRate), channels: 1, interleaved: false)!
 
@@ -155,8 +155,8 @@ final actor Speaker {
         playingLatestBuffer = true
         Task {
             await speechPlayer.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack)
-            countInQueue -= 1
             try? await Task.sleep(for: .seconds(0.5))
+            countInQueue -= 1
             playingLatestBuffer = false
         }
     }

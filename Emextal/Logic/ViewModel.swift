@@ -107,6 +107,7 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
             let observer = loadProgress.observe(\.fractionCompleted, options: [.initial, .new]) { [weak self] _, change in
                 if let fraction = change.newValue {
                     Task { @MainActor in
+                        log("Progress: \(fraction)")
                         self?.mode = .loading(progress: fraction, status: statusComponents)
                     }
                 }
@@ -156,9 +157,8 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
 
             if let index = statusComponents.firstIndex(where: { $0.text == "Language Model" }) {
                 statusComponents[index] = .init(loaded: true, text: statusComponents[index].text)
+                mode = .loading(progress: loadProgress.fractionCompleted, status: statusComponents)
             }
-
-            mode = .loading(progress: 1.0, status: statusComponents)
 
             try? await Task.sleep(for: .seconds(1.0))
 
