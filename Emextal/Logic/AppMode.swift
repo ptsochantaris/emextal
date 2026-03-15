@@ -1,5 +1,5 @@
-internal import Foundation
-internal import MLXLMCommon
+import Foundation
+import MLXLMCommon
 
 enum AppMode: Equatable {
     case startup

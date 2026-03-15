@@ -1,4 +1,4 @@
-internal import Foundation
+import Foundation
 
 #if DEBUG
     import OSLog

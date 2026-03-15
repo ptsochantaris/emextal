@@ -1,5 +1,5 @@
-internal import AVFoundation
-internal import SwiftUI
+import AVFoundation
+import SwiftUI
 
 struct ConversationView: View {
     @Bindable var state: ViewModel

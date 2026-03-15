@@ -1,6 +1,6 @@
-internal import Foundation
-internal import SwiftUI
-internal import UniformTypeIdentifiers
+import Foundation
+import SwiftUI
+import UniformTypeIdentifiers
 
 struct ImageDrop: View {
     let state: ViewModel

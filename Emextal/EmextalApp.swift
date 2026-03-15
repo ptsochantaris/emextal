@@ -1,4 +1,4 @@
-internal import SwiftUI
+import SwiftUI
 
 #if canImport(AppKit)
     final class AppDelegate: NSObject, NSApplicationDelegate {

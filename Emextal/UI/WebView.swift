@@ -1,8 +1,8 @@
-internal import Foundation
-internal import Ink
-internal import SwiftUI
-internal import UniformTypeIdentifiers
-internal import WebKit
+import Foundation
+import Ink
+import SwiftUI
+import UniformTypeIdentifiers
+import WebKit
 
 #if canImport(AppKit)
     struct WebView: NSViewRepresentable {

@@ -1,4 +1,4 @@
-internal import Foundation
+import Foundation
 
 enum ActivationState {
     case button

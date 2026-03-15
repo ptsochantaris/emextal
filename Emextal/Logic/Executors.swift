@@ -1,4 +1,4 @@
-internal import Foundation
+import Foundation
 
 final class LowPriorityExecutor: SerialExecutor {
     static let sharedExecutor = LowPriorityExecutor()

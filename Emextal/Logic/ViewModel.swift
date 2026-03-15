@@ -1,12 +1,12 @@
-internal import AVFoundation
-internal import Foundation
-internal import MLX
-internal import MLXAudioCore
-internal import MLXAudioSTT
-internal import MLXLMCommon
-internal import MLXVLM
-internal import SwiftUI
-internal import WebKit
+import AVFoundation
+import Foundation
+import MLX
+import MLXAudioCore
+import MLXAudioSTT
+import MLXLMCommon
+import MLXVLM
+import SwiftUI
+import WebKit
 
 /// Only for reference passing
 extension ChatSession: @unchecked @retroactive Sendable {}

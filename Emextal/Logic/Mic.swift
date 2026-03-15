@@ -1,8 +1,8 @@
-internal import AVFoundation
-internal import Foundation
-internal import MLX
-internal import MLXAudioSTT
-internal import MLXAudioVAD
+import AVFoundation
+import Foundation
+import MLX
+import MLXAudioSTT
+import MLXAudioVAD
 
 extension AVAudioPCMBuffer: @unchecked @retroactive Sendable {}
 extension SortformerModel: @unchecked @retroactive Sendable {}

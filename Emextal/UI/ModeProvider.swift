@@ -1,5 +1,5 @@
-internal import Foundation
-internal import SwiftUI
+import Foundation
+import SwiftUI
 
 struct ModeView: View {
     let modeProvider: ViewModel

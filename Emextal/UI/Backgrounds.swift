@@ -1,5 +1,5 @@
-internal import Foundation
-internal import SwiftUI
+import Foundation
+import SwiftUI
 
 private let startTime = Date.now.addingTimeInterval(Double.random(in: -10 ..< 0))
 
