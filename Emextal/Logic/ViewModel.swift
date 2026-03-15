@@ -1,8 +1,5 @@
-internal import Hub
 import AVFoundation
-import CoreImage
 import Foundation
-import HTMLString
 import MLX
 import MLXAudioCore
 import MLXAudioSTT
@@ -13,6 +10,7 @@ import WebKit
 
 /// Only for reference passing
 extension ChatSession: @unchecked @retroactive Sendable {}
+extension Chat.Message: @unchecked @retroactive Sendable {}
 
 @Observable final class ViewModel {
     private let modelConfiguration = ModelConfiguration(
@@ -94,7 +92,9 @@ extension ChatSession: @unchecked @retroactive Sendable {}
         await mic.setModeDelegate(self)
 
         do {
-            try messageLog.setHistory(from: sessionUrl)
+            let logTask = Task {
+                try await messageLog.loadHistory(from: sessionUrl)
+            }
 
             var addedChild = false
             var statusComponents = ["Language Model", "Text-to-Speech", "Voice Recognition"].map { LoadingProgressDisplay.Status(loaded: false, text: $0) }
@@ -137,6 +137,8 @@ extension ChatSession: @unchecked @retroactive Sendable {}
                 try await mic.warmup()
 
                 loadProgress.completedUnitCount += 50
+
+                try await logTask.value
             }
 
             let model = try await VLMModelFactory.shared.loadContainer(configuration: modelConfiguration) { progress in
@@ -232,8 +234,8 @@ extension ChatSession: @unchecked @retroactive Sendable {}
         }
     }
 
-    private func appendText(_ text: String, session: ChatSession, first: inout Bool, image: NSImage?) {
-        messageLog.append(text: text, image: image)
+    private func appendText(_ text: String, session: ChatSession, first: inout Bool) {
+        messageLog.appendResponse(text: text)
         if first, let task = mode.task {
             mode = .replying(session: session, task: task)
             first = false
@@ -245,7 +247,7 @@ extension ChatSession: @unchecked @retroactive Sendable {}
 
         let trimmedText = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         let attached = attachedImage
-        messageLog.append(text: "\n#### \(trimmedText.addingUnicodeEntities())\n", image: attached)
+        messageLog.prompt(text: trimmedText, image: attached)
         if attached != nil {
             withAnimation {
                 attachedImage = nil
@@ -269,23 +271,18 @@ extension ChatSession: @unchecked @retroactive Sendable {}
             for try await item in session.streamResponse(to: trimmedText, images: images, videos: []) {
                 for char in item {
                     switch char {
-                    case ",", ":", "!", "?", ".", ")":
+                    case ",", ":", "!", "?", ".", ")", "\n":
                         charBuffer.append(char)
-                        await appendText(charBuffer, session: session, first: &first, image: nil)
+                        await appendText(charBuffer, session: session, first: &first)
                         charBuffer.removeAll(keepingCapacity: true)
-                        lineBuffer.append(char)
-
-                    case "\r":
-                        break
-
-                    case "\n":
-                        charBuffer.append(char)
-                        await appendText(charBuffer, session: session, first: &first, image: nil)
-                        charBuffer.removeAll(keepingCapacity: true)
-                        if await !textOnly {
-                            await speaker.queue(lineBuffer)
+                        if char == "\n" {
+                            if await !textOnly {
+                                await speaker.queue(lineBuffer)
+                            }
+                            lineBuffer.removeAll(keepingCapacity: true)
+                        } else {
+                            lineBuffer.append(char)
                         }
-                        lineBuffer.removeAll(keepingCapacity: true)
 
                     default:
                         charBuffer.append(char)
@@ -294,8 +291,7 @@ extension ChatSession: @unchecked @retroactive Sendable {}
                 }
             }
 
-            await appendText(charBuffer, session: session, first: &first, image: nil)
-            messageLog.commitNewText()
+            await appendText(charBuffer, session: session, first: &first)
 
             await responseEnd(lineBuffer: lineBuffer, session: session)
         }
@@ -314,6 +310,8 @@ extension ChatSession: @unchecked @retroactive Sendable {}
         if !textOnly, !lineBuffer.isEmpty {
             await speaker.queue(lineBuffer)
         }
+
+        messageLog.commitTurn()
 
         do {
             try await messageLog.save(to: sessionUrl)
