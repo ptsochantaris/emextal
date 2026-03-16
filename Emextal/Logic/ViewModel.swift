@@ -14,7 +14,8 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
 
 @Observable final class ViewModel {
     private let modelConfiguration = ModelConfiguration(
-        id: "mlx-community/Qwen3.5-27B-4bit"
+        // id: "mlx-community/Qwen3.5-27B-4bit"
+        id: "mlx-community/Qwen3.5-35B-A3B-4bit"
     )
 
     private let messageLog = MessageLog()
@@ -123,7 +124,7 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
 
             let micTask = Task {
                 try await mic.boot()
-                loadProgress.completedUnitCount += 200
+                loadProgress.completedUnitCount += 100
                 if let index = statusComponents.firstIndex(where: { $0.text == "Voice Recognition" }) {
                     statusComponents[index] = .init(loaded: true, text: statusComponents[index].text)
                 }
@@ -146,12 +147,14 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
                 try await logTask.value
             }
 
+            var actualProgress: Progress?
             let model = try await VLMModelFactory.shared.loadContainer(configuration: modelConfiguration) { progress in
                 Task { @MainActor in
                     if !addedChild {
-                        loadProgress.addChild(progress, withPendingUnitCount: 600)
+                        actualProgress = Progress(totalUnitCount: progress.totalUnitCount, parent: loadProgress, pendingUnitCount: 700)
                         addedChild = true
                     }
+                    actualProgress?.completedUnitCount = progress.completedUnitCount
                 }
             }
 
