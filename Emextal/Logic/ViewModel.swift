@@ -147,14 +147,12 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
                 try await logTask.value
             }
 
-            var actualProgress: Progress?
             let model = try await VLMModelFactory.shared.loadContainer(configuration: modelConfiguration) { progress in
                 Task { @MainActor in
                     if !addedChild {
-                        actualProgress = Progress(totalUnitCount: progress.totalUnitCount, parent: loadProgress, pendingUnitCount: 700)
+                        loadProgress.addChild(progress, withPendingUnitCount: 700)
                         addedChild = true
                     }
-                    actualProgress?.completedUnitCount = progress.completedUnitCount
                 }
             }
 
