@@ -6,7 +6,7 @@ extension MLXArray: @unchecked @retroactive Sendable {}
 
 final actor Recorder {
     nonisolated var unownedExecutor: UnownedSerialExecutor {
-        HighPriorityExecutor.sharedExecutor.asUnownedSerialExecutor()
+        unsafe HighPriorityExecutor.sharedExecutor.asUnownedSerialExecutor()
     }
 
     private let engine: AVAudioEngine
@@ -21,11 +21,11 @@ final actor Recorder {
 
     private let converter: AVAudioConverter
     private let convertedBuffer: AVAudioPCMBuffer
-    private let convertedAudioBuffer: UnsafeBufferPointer<Float32>
 
     private let sampleContinuation: AsyncStream<AVAudioPCMBuffer>.Continuation
 
     private var convertedContinuation: AsyncStream<MLXArray>.Continuation?
+    private let convertedBufferFrames: Int
 
     init(engine: AVAudioEngine) {
         self.engine = engine
@@ -38,9 +38,8 @@ final actor Recorder {
         converter = AVAudioConverter(from: inputFormat, to: outputFormat)!
 
         let sampleRate = AVAudioFrameCount(inputFormat.sampleRate)
-        let convertedBufferFrames = Int(outputFrames * micBufferSize / sampleRate)
+        convertedBufferFrames = Int(outputFrames * micBufferSize / sampleRate)
         convertedBuffer = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: AVAudioFrameCount(convertedBufferFrames))!
-        convertedAudioBuffer = UnsafeBufferPointer<Float32>(start: convertedBuffer.floatChannelData![0], count: convertedBufferFrames)
 
         let sampleQueue: AsyncStream<AVAudioPCMBuffer>
         (sampleQueue, sampleContinuation) = AsyncStream.makeStream(of: AVAudioPCMBuffer.self, bufferingPolicy: .unbounded)
@@ -87,9 +86,9 @@ final actor Recorder {
         var error: NSError?
         nonisolated(unsafe) var reported = AVAudioConverterInputStatus.haveData
 
-        converter.convert(to: convertedBuffer, error: &error) { _, outStatus in
-            outStatus.pointee = reported
-            reported = .noDataNow
+        unsafe converter.convert(to: convertedBuffer, error: &error) { _, outStatus in
+            unsafe outStatus.pointee = reported
+            unsafe reported = .noDataNow
             return incomingBuffer
         }
 
@@ -98,7 +97,11 @@ final actor Recorder {
             return
         }
 
-        let array = MLXArray(convertedAudioBuffer)
+        let convertedAudioBuffer = unsafe UnsafeBufferPointer<Float32>(
+            start: convertedBuffer.floatChannelData![0],
+            count: convertedBufferFrames
+        )
+        let array = unsafe MLXArray(convertedAudioBuffer)
         convertedContinuation?.yield(array)
     }
 }

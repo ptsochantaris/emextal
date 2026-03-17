@@ -9,7 +9,7 @@ let assistantHeight: CGFloat = 380
 
 nonisolated func log(_ message: @autoclosure () -> String) {
     #if DEBUG
-        os_log("%{public}@", message())
+        unsafe os_log("%{public}@", message())
     #endif
 }
 

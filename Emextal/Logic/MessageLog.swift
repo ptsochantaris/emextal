@@ -5,14 +5,14 @@ import WebKit
 
 final actor MessageLog {
     nonisolated var unownedExecutor: UnownedSerialExecutor {
-        LowPriorityExecutor.sharedExecutor.asUnownedSerialExecutor()
+        unsafe LowPriorityExecutor.sharedExecutor.asUnownedSerialExecutor()
     }
 
     private enum Change {
         case prompt(text: String, image: NSImage?),
              appendResponse(text: String),
              commitTurn,
-             save(to: URL, @Sendable (Error?) -> Void),
+             save(to: URL, @Sendable ((any Error)?) -> Void),
              isEmpty(@Sendable (Bool) -> Void),
              synchronize(@Sendable () -> Void),
              reset

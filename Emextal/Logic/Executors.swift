@@ -7,9 +7,9 @@ final class LowPriorityExecutor: SerialExecutor {
 
     func enqueue(_ job: consuming ExecutorJob) {
         let j = UnownedJob(job)
-        let e = asUnownedSerialExecutor()
+        let e = unsafe asUnownedSerialExecutor()
         ggmlQueue.async {
-            j.runSynchronously(on: e)
+            unsafe j.runSynchronously(on: e)
         }
     }
 
@@ -22,10 +22,10 @@ final class LowPriorityExecutor: SerialExecutor {
     static let shared = LowPriorityActor()
 
     private static let executor = LowPriorityExecutor()
-    static let sharedUnownedExecutor = executor.asUnownedSerialExecutor()
+    static let sharedUnownedExecutor = unsafe executor.asUnownedSerialExecutor()
 
     nonisolated var unownedExecutor: UnownedSerialExecutor {
-        Self.sharedUnownedExecutor
+        unsafe Self.sharedUnownedExecutor
     }
 
     deinit {
@@ -40,9 +40,9 @@ final class UtilityExecutor: SerialExecutor {
 
     func enqueue(_ job: consuming ExecutorJob) {
         let j = UnownedJob(job)
-        let e = asUnownedSerialExecutor()
+        let e = unsafe asUnownedSerialExecutor()
         ggmlQueue.async {
-            j.runSynchronously(on: e)
+            unsafe j.runSynchronously(on: e)
         }
     }
 
@@ -55,10 +55,10 @@ final class UtilityExecutor: SerialExecutor {
     static let shared = UtilityActor()
 
     private static let executor = UtilityExecutor()
-    static let sharedUnownedExecutor = executor.asUnownedSerialExecutor()
+    static let sharedUnownedExecutor = unsafe executor.asUnownedSerialExecutor()
 
     nonisolated var unownedExecutor: UnownedSerialExecutor {
-        Self.sharedUnownedExecutor
+        unsafe Self.sharedUnownedExecutor
     }
 
     deinit {
@@ -73,9 +73,9 @@ final class DefaultQueueExecutor: SerialExecutor {
 
     func enqueue(_ job: consuming ExecutorJob) {
         let j = UnownedJob(job)
-        let e = asUnownedSerialExecutor()
+        let e = unsafe asUnownedSerialExecutor()
         ggmlQueue.async {
-            j.runSynchronously(on: e)
+            unsafe j.runSynchronously(on: e)
         }
     }
 
@@ -88,10 +88,10 @@ final class DefaultQueueExecutor: SerialExecutor {
     static let shared = DefaultQueueActor()
 
     private static let executor = DefaultQueueExecutor()
-    static let sharedUnownedExecutor = executor.asUnownedSerialExecutor()
+    static let sharedUnownedExecutor = unsafe executor.asUnownedSerialExecutor()
 
     nonisolated var unownedExecutor: UnownedSerialExecutor {
-        Self.sharedUnownedExecutor
+        unsafe Self.sharedUnownedExecutor
     }
 
     deinit {
@@ -106,9 +106,9 @@ final class HighPriorityExecutor: SerialExecutor {
 
     func enqueue(_ job: consuming ExecutorJob) {
         let j = UnownedJob(job)
-        let e = asUnownedSerialExecutor()
+        let e = unsafe asUnownedSerialExecutor()
         ggmlQueue.async {
-            j.runSynchronously(on: e)
+            unsafe j.runSynchronously(on: e)
         }
     }
 
@@ -121,10 +121,10 @@ final class HighPriorityExecutor: SerialExecutor {
     static let shared = HighPriorityActor()
 
     private static let executor = HighPriorityExecutor()
-    static let sharedUnownedExecutor = executor.asUnownedSerialExecutor()
+    static let sharedUnownedExecutor = unsafe executor.asUnownedSerialExecutor()
 
     nonisolated var unownedExecutor: UnownedSerialExecutor {
-        Self.sharedUnownedExecutor
+        unsafe Self.sharedUnownedExecutor
     }
 
     deinit {

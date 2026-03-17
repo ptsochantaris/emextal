@@ -5,7 +5,7 @@ import MLXLMCommon
 
 final actor Speaker {
     nonisolated var unownedExecutor: UnownedSerialExecutor {
-        HighPriorityExecutor.sharedExecutor.asUnownedSerialExecutor()
+        unsafe HighPriorityExecutor.sharedExecutor.asUnownedSerialExecutor()
     }
 
     private let speechStream: AsyncStream<String>
@@ -143,9 +143,9 @@ final actor Speaker {
         let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount)!
         buffer.frameLength = frameCount
 
-        let channel = buffer.floatChannelData![0]
+        let channel = unsafe buffer.floatChannelData![0]
         for i in 0 ..< samples.count {
-            channel[i] = samples[i]
+            unsafe channel[i] = samples[i]
         }
 
         while playingLatestBuffer {

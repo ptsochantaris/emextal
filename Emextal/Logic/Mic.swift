@@ -10,28 +10,28 @@ extension Qwen3ASRModel: @unchecked @retroactive Sendable {}
 
 final actor Mic {
     nonisolated var unownedExecutor: UnownedSerialExecutor {
-        HighPriorityExecutor.sharedExecutor.asUnownedSerialExecutor()
+        unsafe HighPriorityExecutor.sharedExecutor.asUnownedSerialExecutor()
     }
 
     weak var modeDelegate: ViewModel?
 
     let phraseStream: AsyncStream<String>
 
-    // Accessed in mic Tap
-    nonisolated(unsafe) var ignoreMic = false
-    private nonisolated(unsafe) let engine: AVAudioEngine
-
+    private var ignoreMic = false
     private var transcriber: Qwen3ASRModel?
     private var detector: SortformerModel?
     private let phraseContinuation: AsyncStream<String>.Continuation
     private let recorder: Recorder
 
     init(engine: AVAudioEngine) {
-        self.engine = engine
-
-        recorder = Recorder(engine: self.engine)
+        nonisolated(unsafe) let engineRef = engine
+        unsafe recorder = Recorder(engine: engineRef)
 
         (phraseStream, phraseContinuation) = AsyncStream.makeStream(of: String.self, bufferingPolicy: .unbounded)
+    }
+
+    func setIgnoreMic(_ ignore: Bool) {
+        ignoreMic = ignore
     }
 
     func setModeDelegate(_ delegate: ViewModel) {

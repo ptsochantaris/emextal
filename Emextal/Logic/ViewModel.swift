@@ -34,7 +34,9 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
     var mode = AppMode.loading(progress: 0, status: []) {
         didSet {
             if oldValue != mode {
-                mic.ignoreMic = mode.shouldIgnoreMic
+                Task {
+                    await mic.setIgnoreMic(mode.shouldIgnoreMic)
+                }
             }
         }
     }
@@ -53,8 +55,8 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
 
     init() {
         nonisolated(unsafe) let engineRef = engine
-        speaker = Speaker(engine: engineRef)
-        mic = Mic(engine: engineRef)
+        unsafe speaker = Speaker(engine: engineRef)
+        unsafe mic = Mic(engine: engineRef)
 
         Task {
             micPermission = await AVCaptureDevice.requestAccess(for: .audio)
@@ -267,7 +269,7 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
 
             var first = true
             let images = [attached]
-                .compactMap { $0?.cgImage(forProposedRect: nil, context: nil, hints: nil) }
+                .compactMap { unsafe $0?.cgImage(forProposedRect: nil, context: nil, hints: nil) }
                 .map { CIImage(cgImage: $0) }
                 .map { UserInput.Image.ciImage($0) }
 

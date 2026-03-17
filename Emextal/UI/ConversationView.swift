@@ -125,14 +125,14 @@ extension NSImage {
     }
 
     private nonisolated func scale(outputSize: CGSize) -> NSImage? {
-        guard let cgImage = cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+        guard let cgImage = unsafe cgImage(forProposedRect: nil, context: nil, hints: nil) else {
             return nil
         }
 
         let pixelOutputWidth = Int(outputSize.width)
         let pixelOutputHeight = Int(outputSize.height)
 
-        let cgContext = CGContext(data: nil, width: pixelOutputWidth, height: pixelOutputHeight, bitsPerComponent: 8, bytesPerRow: pixelOutputWidth * 4, space: Self.sRGB, bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGImageByteOrderInfo.order32Little.rawValue)
+        let cgContext = unsafe CGContext(data: nil, width: pixelOutputWidth, height: pixelOutputHeight, bitsPerComponent: 8, bytesPerRow: pixelOutputWidth * 4, space: Self.sRGB, bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGImageByteOrderInfo.order32Little.rawValue)
 
         guard let cgContext else {
             return nil

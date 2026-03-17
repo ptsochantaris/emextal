@@ -10,10 +10,10 @@ enum AppMode: Equatable {
     case listening(state: MicState, session: ChatSession)
     case transcribing(session: ChatSession)
     case transcribingDone(session: ChatSession)
-    case processingPrompt(session: ChatSession, task: Task<Void, Error>)
-    case replying(session: ChatSession, task: Task<Void, Error>)
+    case processingPrompt(session: ChatSession, task: Task<Void, any Error>)
+    case replying(session: ChatSession, task: Task<Void, any Error>)
     case shutdown
-    case error(Error)
+    case error(any Error)
 
     var canRespond: Bool {
         switch self {
@@ -77,7 +77,7 @@ enum AppMode: Equatable {
         }
     }
 
-    var task: Task<Void, Error>? {
+    var task: Task<Void, any Error>? {
         switch self {
         case .booting,
              .error,
