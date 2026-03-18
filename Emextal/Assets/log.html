@@ -36,8 +36,10 @@
                 newElement.querySelectorAll("pre code").forEach(function(e){
                     hljs.highlightElement(e);
                 });
+                
                 const newDocHeight = document.body.scrollHeight;
-                const shouldScroll = lastDocHeight != newDocHeight;
+                const atBottom = (window.innerHeight + Math.round(window.scrollY)) >= newDocHeight;
+                const shouldScroll = atBottom && (lastDocHeight != newDocHeight);
                 if (shouldScroll) {
                     lastDocHeight = newDocHeight
                     window.scrollTo(0, newDocHeight);
