@@ -94,6 +94,9 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
     func playEffect(_ effect: SoundEffect) {
         speaker.playEffect(effect)
     }
+    
+    private var statusComponents = ["Language Model", "Text-to-Speech", "Voice Recognition"].map { LoadingProgressDisplay.Status(loaded: false, text: $0) }
+    private var addedChild = false
 
     private func boot() async {
         await mic.setModeDelegate(self)
@@ -102,16 +105,14 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
             let logTask = Task {
                 try await messageLog.loadHistory(from: sessionUrl)
             }
-
-            var addedChild = false
-            var statusComponents = ["Language Model", "Text-to-Speech", "Voice Recognition"].map { LoadingProgressDisplay.Status(loaded: false, text: $0) }
-
+            
             let loadProgress = Progress(totalUnitCount: 1000)
             let observer = loadProgress.observe(\.fractionCompleted, options: [.initial, .new]) { [weak self] _, change in
                 if let fraction = change.newValue {
-                    Task { @MainActor in
+                    Task { @MainActor [weak self] in
+                        guard let self else { return }
                         log("Progress: \(fraction)")
-                        self?.mode = .loading(progress: fraction, status: statusComponents)
+                        mode = .loading(progress: fraction, status: statusComponents)
                     }
                 }
             }
@@ -150,7 +151,8 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
             }
 
             let model = try await VLMModelFactory.shared.loadContainer(configuration: modelConfiguration) { progress in
-                Task { @MainActor in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
                     if !addedChild {
                         loadProgress.addChild(progress, withPendingUnitCount: 700)
                         addedChild = true
