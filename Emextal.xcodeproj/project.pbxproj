@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 100;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -32,7 +32,6 @@
 /* Begin PBXFrameworksBuildPhase section */
 		169527342F5B3F1400E04F44 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				169368252F5B41E100C9D403 /* MLXAudioCore in Frameworks */,
 				169368292F5B41E100C9D403 /* MLXAudioTTS in Frameworks */,
@@ -43,7 +42,6 @@
 				169368272F5B41E100C9D403 /* MLXAudioSTT in Frameworks */,
 				166C6B8A2F5CC0BE00BFEF31 /* HTMLString in Frameworks */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
@@ -84,8 +82,6 @@
 				169527352F5B3F1400E04F44 /* Resources */,
 			);
 			buildRules = (
-			);
-			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
 				169527392F5B3F1400E04F44 /* Emextal */,
@@ -135,7 +131,7 @@
 				166C6B882F5CC0BE00BFEF31 /* XCRemoteSwiftPackageReference "HTMLString" */,
 				16C305E02F64751C004DDEFE /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
 			);
-			preferredProjectObjectVersion = 77;
+			preferredProjectObjectVersion = 100;
 			productRefGroup = 169527382F5B3F1400E04F44 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -148,25 +144,21 @@
 /* Begin PBXResourcesBuildPhase section */
 		169527352F5B3F1400E04F44 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		169527332F5B3F1400E04F44 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		169527402F5B3F1500E04F44 /* Debug */ = {
+		169527402F5B3F1500E04F44 /* Debug configuration for PBXProject "Emextal" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -241,7 +233,7 @@
 			};
 			name = Debug;
 		};
-		169527412F5B3F1500E04F44 /* Release */ = {
+		169527412F5B3F1500E04F44 /* Release configuration for PBXProject "Emextal" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -311,7 +303,7 @@
 			};
 			name = Release;
 		};
-		169527432F5B3F1500E04F44 /* Debug */ = {
+		169527432F5B3F1500E04F44 /* Debug configuration for PBXNativeTarget "Emextal" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -372,7 +364,7 @@
 			};
 			name = Debug;
 		};
-		169527442F5B3F1500E04F44 /* Release */ = {
+		169527442F5B3F1500E04F44 /* Release configuration for PBXNativeTarget "Emextal" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -439,19 +431,17 @@
 		169527322F5B3F1400E04F44 /* Build configuration list for PBXProject "Emextal" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				169527402F5B3F1500E04F44 /* Debug */,
-				169527412F5B3F1500E04F44 /* Release */,
+				169527402F5B3F1500E04F44 /* Debug configuration for PBXProject "Emextal" */,
+				169527412F5B3F1500E04F44 /* Release configuration for PBXProject "Emextal" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		169527422F5B3F1500E04F44 /* Build configuration list for PBXNativeTarget "Emextal" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				169527432F5B3F1500E04F44 /* Debug */,
-				169527442F5B3F1500E04F44 /* Release */,
+				169527432F5B3F1500E04F44 /* Debug configuration for PBXNativeTarget "Emextal" */,
+				169527442F5B3F1500E04F44 /* Release configuration for PBXNativeTarget "Emextal" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
