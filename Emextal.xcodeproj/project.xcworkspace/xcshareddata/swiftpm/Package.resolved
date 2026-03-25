@@ -1,5 +1,5 @@
 {
-  "originHash" : "bc4f1f57798db2200d2741190385683a86279e0b0b41ac0b6db0e15d87fedb02",
+  "originHash" : "9ef5647a8e4e6f3f8481c338c9ad2d9a3f3496eca521bd16185c83c96baf6ee3",
   "pins" : [
     {
       "identity" : "eventsource",
@@ -53,6 +53,15 @@
       "state" : {
         "branch" : "main",
         "revision" : "edd42fcd947eea0b19665248acf2975a28ddf58b"
+      }
+    },
+    {
+      "identity" : "pop-timer",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ptsochantaris/pop-timer",
+      "state" : {
+        "revision" : "866789ba524adc477ad3eb0ad41c929f7092dac7",
+        "version" : "1.0.1"
       }
     },
     {

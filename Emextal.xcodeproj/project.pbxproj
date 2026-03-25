@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		161605B82F64DCF0005E783C /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = 161605B72F64DCF0005E783C /* MLXVLM */; };
+		1641590E2F7484E000852D12 /* PopTimer in Frameworks */ = {isa = PBXBuildFile; productRef = 1641590D2F7484E000852D12 /* PopTimer */; };
 		166C6B6E2F5CAC7C00BFEF31 /* Ink in Frameworks */ = {isa = PBXBuildFile; productRef = 166C6B6D2F5CAC7C00BFEF31 /* Ink */; };
 		166C6B8A2F5CC0BE00BFEF31 /* HTMLString in Frameworks */ = {isa = PBXBuildFile; productRef = 166C6B892F5CC0BE00BFEF31 /* HTMLString */; };
 		169368232F5B41E100C9D403 /* MLXAudioCodecs in Frameworks */ = {isa = PBXBuildFile; productRef = 169368222F5B41E100C9D403 /* MLXAudioCodecs */; };
@@ -39,6 +40,7 @@
 				1693682B2F5B41E100C9D403 /* MLXAudioVAD in Frameworks */,
 				166C6B6E2F5CAC7C00BFEF31 /* Ink in Frameworks */,
 				161605B82F64DCF0005E783C /* MLXVLM in Frameworks */,
+				1641590E2F7484E000852D12 /* PopTimer in Frameworks */,
 				169368272F5B41E100C9D403 /* MLXAudioSTT in Frameworks */,
 				166C6B8A2F5CC0BE00BFEF31 /* HTMLString in Frameworks */,
 			);
@@ -96,6 +98,7 @@
 				166C6B6D2F5CAC7C00BFEF31 /* Ink */,
 				166C6B892F5CC0BE00BFEF31 /* HTMLString */,
 				161605B72F64DCF0005E783C /* MLXVLM */,
+				1641590D2F7484E000852D12 /* PopTimer */,
 			);
 			productName = Emextal;
 			productReference = 169527372F5B3F1400E04F44 /* Emextal.app */;
@@ -130,6 +133,7 @@
 				166C6B6C2F5CAC7C00BFEF31 /* XCRemoteSwiftPackageReference "Ink" */,
 				166C6B882F5CC0BE00BFEF31 /* XCRemoteSwiftPackageReference "HTMLString" */,
 				16C305E02F64751C004DDEFE /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
+				1641590C2F7484E000852D12 /* XCRemoteSwiftPackageReference "pop-timer" */,
 			);
 			preferredProjectObjectVersion = 100;
 			productRefGroup = 169527382F5B3F1400E04F44 /* Products */;
@@ -447,6 +451,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		1641590C2F7484E000852D12 /* XCRemoteSwiftPackageReference "pop-timer" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ptsochantaris/pop-timer";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.1;
+			};
+		};
 		166C6B6C2F5CAC7C00BFEF31 /* XCRemoteSwiftPackageReference "Ink" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/JohnSundell/Ink";
@@ -486,6 +498,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 16C305E02F64751C004DDEFE /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
 			productName = MLXVLM;
+		};
+		1641590D2F7484E000852D12 /* PopTimer */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1641590C2F7484E000852D12 /* XCRemoteSwiftPackageReference "pop-timer" */;
+			productName = PopTimer;
 		};
 		166C6B6D2F5CAC7C00BFEF31 /* Ink */ = {
 			isa = XCSwiftPackageProductDependency;

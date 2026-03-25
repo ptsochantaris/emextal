@@ -10,7 +10,7 @@ import SwiftUI
 
 @main
 struct EmextalApp: App {
-    private let viewModel = ViewModel()
+    private let viewModel = ViewModel(model: Model(category: .qwen, variant: .qwen35regular))
 
     #if canImport(AppKit)
         @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate

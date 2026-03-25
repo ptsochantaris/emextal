@@ -13,11 +13,6 @@ extension ChatSession: @unchecked @retroactive Sendable {}
 extension Chat.Message: @unchecked @retroactive Sendable {}
 
 @Observable final class ViewModel {
-    private let modelConfiguration = ModelConfiguration(
-        // id: "mlx-community/Qwen3.5-27B-4bit"
-        id: "mlx-community/Qwen3.5-35B-A3B-4bit"
-    )
-
     private let messageLog = MessageLog()
     private let engine = AVAudioEngine()
     private let speaker: Speaker
@@ -53,7 +48,11 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
         }
     }
 
-    init() {
+    private let model: Model
+
+    init(model: Model) {
+        self.model = model
+
         nonisolated(unsafe) let engineRef = engine
         unsafe speaker = Speaker(engine: engineRef)
         unsafe mic = Mic(engine: engineRef)
@@ -68,7 +67,7 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
     }
 
     var displayName: String {
-        modelConfiguration.name
+        model.variant.displayName
     }
 
     var supportsImageInputs: Bool {
@@ -94,7 +93,7 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
     func playEffect(_ effect: SoundEffect) {
         speaker.playEffect(effect)
     }
-    
+
     private var statusComponents = ["Language Model", "Text-to-Speech", "Voice Recognition"].map { LoadingProgressDisplay.Status(loaded: false, text: $0) }
     private var addedChild = false
 
@@ -103,9 +102,9 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
 
         do {
             let logTask = Task {
-                try await messageLog.loadHistory(from: sessionUrl)
+                try await messageLog.loadHistory(from: model.modelHistoryPath)
             }
-            
+
             let loadProgress = Progress(totalUnitCount: 1000)
             let observer = loadProgress.observe(\.fractionCompleted, options: [.initial, .new]) { [weak self] _, change in
                 if let fraction = change.newValue {
@@ -150,7 +149,8 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
                 try await logTask.value
             }
 
-            let model = try await VLMModelFactory.shared.loadContainer(configuration: modelConfiguration) { progress in
+            let modelConfiguration = ModelConfiguration(id: model.variant.repoId)
+            let modelContainer = try await VLMModelFactory.shared.loadContainer(configuration: modelConfiguration) { progress in
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     if !addedChild {
@@ -169,17 +169,10 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
 
             try await warmupTask.value
 
-            /* Qwen 3.5:
-             Thinking mode for general tasks: temperature=1.0, top_p=0.95, top_k=20, min_p=0.0, presence_penalty=1.5, repetition_penalty=1.0
-             Thinking mode for precise coding tasks (e.g. WebDev): temperature=0.6, top_p=0.95, top_k=20, min_p=0.0, presence_penalty=0.0, repetition_penalty=1.0
-             Instruct (or non-thinking) mode for general tasks: temperature=0.7, top_p=0.8, top_k=20, min_p=0.0, presence_penalty=1.5, repetition_penalty=1.0
-             Instruct (or non-thinking) mode for reasoning tasks: temperature=1.0, top_p=0.95, top_k=20, min_p=0.0, presence_penalty=1.5, repetition_penalty=1.0
-             */
-
             let asHistory = await messageLog.asSessionHistory
 
             let session = ChatSession(
-                model,
+                modelContainer,
                 history: asHistory,
                 generateParameters: GenerateParameters(
                     temperature: 0.7,
@@ -306,13 +299,6 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
         mode = .processingPrompt(session: session, task: responseTask)
     }
 
-    private var sessionUrl: URL {
-        get throws {
-            let root = try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-            return root.appendingPathComponent("messageLog.json", conformingTo: .json)
-        }
-    }
-
     private func responseEnd(lineBuffer: String, session: ChatSession) async {
         if !textOnly, !lineBuffer.isEmpty {
             await speaker.queue(lineBuffer)
@@ -321,7 +307,7 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
         messageLog.commitTurn()
 
         do {
-            try await messageLog.save(to: sessionUrl)
+            try await messageLog.save(to: model.modelHistoryPath)
         } catch {
             log("Warning: Failed to save message log: \(error)")
         }
@@ -414,7 +400,7 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
             }
             // TODO: stop speaking
             messageLog.reset()
-            try? await messageLog.save(to: sessionUrl)
+            try? await messageLog.save(to: model.modelHistoryPath)
             if let session = mode.session {
                 await session.clear()
             }

@@ -112,11 +112,12 @@ final actor MessageLog {
         }
     }
 
-    func loadHistory(from url: URL?) {
-        history = if let url, let data = try? Data(contentsOf: url), let history = try? JSONDecoder().decode([Turn].self, from: data) {
-            history
+    func loadHistory(from url: URL?) throws {
+        if let url, FileManager.default.fileExists(atPath: url.path) {
+            let data = try Data(contentsOf: url)
+            history = try JSONDecoder().decode([Turn].self, from: data)
         } else {
-            [Turn]()
+            history = [Turn]()
         }
         displayedHistoryCount = history.count
     }
