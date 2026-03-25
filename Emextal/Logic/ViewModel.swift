@@ -48,7 +48,7 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
         }
     }
 
-    private let model: Model
+    let model: Model
 
     init(model: Model) {
         self.model = model
@@ -169,54 +169,63 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
 
             try await warmupTask.value
 
-            let asHistory = await messageLog.asSessionHistory
-
-            let session = ChatSession(
-                modelContainer,
-                history: asHistory,
-                generateParameters: GenerateParameters(
-                    temperature: 0.7,
-                    topP: 0.8,
-                    topK: 20,
-                    minP: 0,
-                    presencePenalty: 1.5,
-                    frequencyPenalty: 1
-                ),
-                additionalContext: ["enable_thinking": false]
-            )
-
-            mode = .waiting(session: session)
-
             withExtendedLifetime(observer) {
                 $0.invalidate()
             }
 
-            recognitionLoop = Task {
-                for await text in mic.phraseStream {
-                    receivedPhrase(text, in: session)
-                }
-            }
-
-            #if DEBUG
-                Task {
-                    let format = ByteCountFormatStyle(style: .memory, allowedUnits: .all, spellsOutZero: false, includesActualByteCount: false, locale: .autoupdatingCurrent)
-                    while !Task.isCancelled {
-                        try? await Task.sleep(for: .seconds(2))
-                        print("""
-
-                        Memory stats:
-                              Active: \(format.format(Int64(Memory.activeMemory))) (Peak: \(format.format(Int64(Memory.peakMemory))))
-                               Cache: \(format.format(Int64(Memory.cacheMemory))) (Limit: \(format.format(Int64(Memory.cacheLimit))))
-                               Total: \(format.format(Int64(Memory.activeMemory + Memory.cacheMemory))) / \(format.format(Int64(Memory.memoryLimit)))
-
-                        """)
-                    }
-                }
-            #endif
-
+            mode = .loaded(modelContainer: modelContainer)
         } catch {
             mode = .error(error)
         }
+    }
+
+    func start(modelContainer: ModelContainer) {
+        Task {
+            await _start(modelContainer: modelContainer)
+        }
+    }
+
+    private func _start(modelContainer: ModelContainer) async {
+        let asHistory = await messageLog.asSessionHistory
+
+        let session = ChatSession(
+            modelContainer,
+            history: asHistory,
+            generateParameters: GenerateParameters(
+                temperature: 0.7,
+                topP: 0.8,
+                topK: 20,
+                minP: 0,
+                presencePenalty: 1.5,
+                frequencyPenalty: 1
+            ),
+            additionalContext: ["enable_thinking": false]
+        )
+
+        mode = .waiting(session: session)
+
+        recognitionLoop = Task {
+            for await text in mic.phraseStream {
+                receivedPhrase(text, in: session)
+            }
+        }
+
+        #if DEBUG
+            Task {
+                let format = ByteCountFormatStyle(style: .memory, allowedUnits: .all, spellsOutZero: false, includesActualByteCount: false, locale: .autoupdatingCurrent)
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(2))
+                    print("""
+
+                    Memory stats:
+                          Active: \(format.format(Int64(Memory.activeMemory))) (Peak: \(format.format(Int64(Memory.peakMemory))))
+                           Cache: \(format.format(Int64(Memory.cacheMemory))) (Limit: \(format.format(Int64(Memory.cacheLimit))))
+                           Total: \(format.format(Int64(Memory.activeMemory + Memory.cacheMemory))) / \(format.format(Int64(Memory.memoryLimit)))
+
+                    """)
+                }
+            }
+        #endif
     }
 
     private func receivedPhrase(_ text: String, in session: ChatSession) {

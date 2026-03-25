@@ -11,7 +11,7 @@ struct ModeView: View {
             case .error:
                 EmptyView()
 
-            case .booting, .loading, .shutdown, .startup, .warmup:
+            case .booting, .loaded, .loading, .shutdown, .startup, .warmup:
                 Image(systemName: "hourglass.circle")
                     .resizable()
                     .aspectRatio(contentMode: .fit)

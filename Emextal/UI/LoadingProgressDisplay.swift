@@ -1,6 +1,21 @@
 import Foundation
 import SwiftUI
 
+struct LoadingRow: View {
+    let title: String
+    let done: Bool
+
+    var body: some View {
+        HStack {
+            Image(systemName: done ? "checkmark.circle" : "circle.dotted.circle")
+                .foregroundStyle(done ? .accent : .primary)
+                .contentTransition(.symbolEffect(.replace))
+            Text(title)
+        }
+        .font(.title2)
+    }
+}
+
 struct LoadingProgressDisplay: View {
     struct Status: Equatable, Identifiable {
         var id: String {
@@ -11,28 +26,16 @@ struct LoadingProgressDisplay: View {
         let text: String
     }
 
-    let title: String
     let progress: CGFloat
     let status: [Status]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(title)
-                .font(.title.bold())
-
-            VStack(alignment: .leading, spacing: 12) {
-                ForEach(status) { statusItem in
-                    HStack {
-                        Image(systemName: statusItem.loaded ? "checkmark.circle" : "circle.dotted.circle")
-                            .foregroundStyle(statusItem.loaded ? .accent : .primary)
-                            .contentTransition(.symbolEffect(.replace))
-                        Text(statusItem.text)
-                    }
-                }
-                .font(.title2)
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(status) { statusItem in
+                LoadingRow(title: statusItem.text, done: statusItem.loaded)
             }
-
-            ProgressView(value: progress)
         }
+
+        ProgressView(value: progress)
     }
 }

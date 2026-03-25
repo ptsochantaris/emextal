@@ -6,6 +6,7 @@ enum AppMode: Equatable {
     case booting
     case warmup
     case loading(progress: CGFloat, status: [LoadingProgressDisplay.Status])
+    case loaded(modelContainer: ModelContainer)
     case waiting(session: ChatSession)
     case listening(state: MicState, session: ChatSession)
     case transcribing(session: ChatSession)
@@ -19,7 +20,7 @@ enum AppMode: Equatable {
         switch self {
         case .transcribingDone, .waiting:
             true
-        case .booting, .error, .listening, .loading, .processingPrompt, .replying, .shutdown, .startup, .transcribing, .warmup:
+        case .booting, .error, .listening, .loaded, .loading, .processingPrompt, .replying, .shutdown, .startup, .transcribing, .warmup:
             false
         }
     }
@@ -28,8 +29,16 @@ enum AppMode: Equatable {
         switch self {
         case .listening, .waiting:
             false
-        case .booting, .error, .loading, .processingPrompt, .replying, .shutdown, .startup, .transcribing, .transcribingDone, .warmup:
+        case .booting, .error, .loaded, .loading, .processingPrompt, .replying, .shutdown, .startup, .transcribing, .transcribingDone, .warmup:
             true
+        }
+    }
+
+    var isLoaded: Bool {
+        if case .loaded = self {
+            true
+        } else {
+            false
         }
     }
 
@@ -61,6 +70,7 @@ enum AppMode: Equatable {
         switch self {
         case .booting,
              .error,
+             .loaded,
              .loading,
              .shutdown,
              .startup,
@@ -82,6 +92,7 @@ enum AppMode: Equatable {
         case .booting,
              .error,
              .listening,
+             .loaded,
              .loading,
              .shutdown,
              .startup,
@@ -114,6 +125,8 @@ enum AppMode: Equatable {
             p1 == p2 && s1 == s2
         case let (.listening(stateL, _), .listening(stateR, _)):
             stateL == stateR
+        case let (.loaded(containerL), .loaded(containerR)):
+            containerL === containerR
         default:
             false
         }
@@ -123,7 +136,7 @@ enum AppMode: Equatable {
         switch self {
         case .listening, .replying, .waiting:
             true
-        case .booting, .error, .loading, .processingPrompt, .shutdown, .startup, .transcribing, .transcribingDone, .warmup:
+        case .booting, .error, .loaded, .loading, .processingPrompt, .shutdown, .startup, .transcribing, .transcribingDone, .warmup:
             false
         }
     }
@@ -132,14 +145,14 @@ enum AppMode: Equatable {
         switch self {
         case .processingPrompt, .replying, .transcribing, .transcribingDone:
             true
-        case .booting, .error, .listening, .loading, .shutdown, .startup, .waiting, .warmup:
+        case .booting, .error, .listening, .loaded, .loading, .shutdown, .startup, .waiting, .warmup:
             false
         }
     }
 
     var showAlwaysOn: Bool {
         switch self {
-        case .booting, .error, .loading, .processingPrompt, .replying, .shutdown, .startup, .transcribing, .transcribingDone, .warmup:
+        case .booting, .error, .loaded, .loading, .processingPrompt, .replying, .shutdown, .startup, .transcribing, .transcribingDone, .warmup:
             false
         case .listening, .waiting:
             true
@@ -150,7 +163,7 @@ enum AppMode: Equatable {
         switch self {
         case .listening, .replying, .waiting:
             true
-        case .booting, .error, .loading, .processingPrompt, .shutdown, .startup, .transcribing, .transcribingDone, .warmup:
+        case .booting, .error, .loaded, .loading, .processingPrompt, .shutdown, .startup, .transcribing, .transcribingDone, .warmup:
             false
         }
     }

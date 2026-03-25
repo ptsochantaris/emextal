@@ -77,6 +77,10 @@ extension Model {
             1.5
         }
 
+        var acceptsSystemPrompt: Bool {
+            true
+        }
+
         var displayName: String {
             switch self {
             case .qwen35regular: "Qwen 3.5 Regular"

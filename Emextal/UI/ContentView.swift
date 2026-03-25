@@ -10,41 +10,99 @@ struct ContentView: View {
         self.viewModel = viewModel
     }
 
-    var body: some View {
-        NavigationStack {
+    private var shimmer: some View {
+        ShimmerBackground(show: .constant(true))
+            .aspectRatio(contentMode: .fill)
+            .ignoresSafeArea()
+    }
+
+    private var image: some View {
+        Image(.background)
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .ignoresSafeArea()
+    }
+
+    private var loadTop: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(viewModel.displayName)
+                .font(.title.bold())
+
             switch viewModel.mode {
             case let .loading(progress, status):
-                LoadingProgressDisplay(title: viewModel.displayName, progress: progress, status: status)
-                    .colorScheme(.dark)
-                    .padding(88)
-                    .navigationTitle("Loading \(viewModel.displayName)")
+                LoadingProgressDisplay(progress: progress, status: status)
+
+            case let .loaded(container):
+                HStack {
+                    LoadingRow(title: "Ready", done: true)
+                    Spacer()
+                    Button("Start") {
+                        withAnimation {
+                            viewModel.start(modelContainer: container)
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
 
             case let .error(error):
                 Text("**Loading failed:** \(String(describing: error))")
-                    .colorScheme(.dark)
-                    .padding(88)
-                    .navigationTitle("Loading Failed")
 
             default:
-                ConversationView(state: viewModel)
-                    .navigationTitle("Emextal – \(viewModel.displayName)")
+                EmptyView()
+            }
+
+            ParamsView(model: viewModel.model)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+        }
+        .padding(88)
+    }
+
+    @ViewBuilder
+    private var background: some View {
+        switch viewModel.mode {
+        case .loading:
+            shimmer
+
+        default:
+            image
+        }
+    }
+
+    private var title: String {
+        switch viewModel.mode {
+        case .loading:
+            "Loading \(viewModel.displayName)"
+
+        case .loaded:
+            viewModel.displayName
+
+        case .error:
+            "Loading Failed"
+
+        default:
+            "Emextal – \(viewModel.displayName)"
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                switch viewModel.mode {
+                case .error, .loaded, .loading:
+                    loadTop
+
+                default:
+                    ConversationView(state: viewModel)
+                }
+            }
+            .background {
+                background
             }
         }
+        .navigationTitle(title)
+        .animation(.easeInOut, value: viewModel.mode)
+        .colorScheme(.dark)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .toolbarTitleDisplayMode(.inline)
-        .background {
-            switch viewModel.mode {
-            case .loading:
-                ShimmerBackground(show: .constant(true))
-                    .aspectRatio(contentMode: .fill)
-                    .ignoresSafeArea()
-
-            default:
-                Image(.background)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .ignoresSafeArea()
-            }
-        }
     }
 }
