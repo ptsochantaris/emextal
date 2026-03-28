@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 struct ModeView: View {
-    let modeProvider: ViewModel
+    let modeProvider: Conversation
 
     var body: some View {
         let mode = modeProvider.mode

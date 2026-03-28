@@ -6,7 +6,7 @@ import WebKit
 
 #if canImport(AppKit)
     struct WebView: NSViewRepresentable {
-        let viewModel: ViewModel
+        let viewModel: Conversation
         func makeNSView(context: Context) -> WKWebView {
             context.coordinator.webView
         }
@@ -18,7 +18,7 @@ import WebKit
     }
 #else
     struct WebView: UIViewRepresentable {
-        let viewModel: ViewModel
+        let viewModel: Conversation
         func makeUIView(context: Context) -> WKWebView {
             context.coordinator.webView
         }
@@ -40,7 +40,7 @@ extension WebView {
             log("\(Self.self) deinit")
         }
 
-        init(viewModel: ViewModel) {
+        init(viewModel: Conversation) {
             log("Coordinator init")
 
             // Move to RW directory

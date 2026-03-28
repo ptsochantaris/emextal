@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct MemoryBar: View {
-    let state: ViewModel
+    let state: Conversation
 
     var body: some View {
         ZStack {

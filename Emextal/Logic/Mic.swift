@@ -9,7 +9,7 @@ final actor Mic {
         unsafe HighPriorityExecutor.sharedExecutor.asUnownedSerialExecutor()
     }
 
-    weak var modeDelegate: ViewModel?
+    weak var modeDelegate: Conversation?
 
     let phraseStream: AsyncStream<String>
 
@@ -30,7 +30,7 @@ final actor Mic {
         ignoreMic = ignore
     }
 
-    func setModeDelegate(_ delegate: ViewModel) {
+    func setModeDelegate(_ delegate: Conversation) {
         modeDelegate = delegate
     }
 

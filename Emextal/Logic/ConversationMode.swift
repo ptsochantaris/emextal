@@ -1,7 +1,7 @@
 import Foundation
 import MLXLMCommon
 
-enum AppMode: Equatable {
+enum ConversationMode: Equatable {
     case startup
     case booting
     case warmup

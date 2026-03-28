@@ -2,7 +2,7 @@ import AVFoundation
 import SwiftUI
 
 struct ConversationView: View {
-    @Bindable var state: ViewModel
+    @Bindable var conversation: Conversation
 
     @FocusState private var focusEntryField
 
@@ -17,9 +17,9 @@ struct ConversationView: View {
 
         HStack(spacing: spacing) {
             VStack(spacing: spacing) {
-                WebView(viewModel: state)
+                WebView(viewModel: conversation)
 
-                TextField("Hold \"↓\" to speak, or enter your message here", text: $state.prompt)
+                TextField("Hold \"↓\" to speak, or enter your message here", text: $conversation.prompt)
                     .textFieldStyle(.plain)
                     .onAppear { focusEntryField = true }
                 #if os(visionOS)
@@ -35,7 +35,7 @@ struct ConversationView: View {
                 #endif
                     .focused($focusEntryField)
                     .onSubmit {
-                        state.respondToTypedPrompt()
+                        conversation.respondToTypedPrompt()
                     }
                     .onGeometryChange(for: CGFloat.self) {
                         $0.size.height
@@ -45,9 +45,9 @@ struct ConversationView: View {
             }
 
             VStack(spacing: spacing) {
-                SideBar(state: state)
+                SideBar(state: conversation)
 
-                MemoryBar(state: state)
+                MemoryBar(state: conversation)
                     .frame(width: SideBar.width, height: inputHeight)
             }
         }
@@ -55,32 +55,32 @@ struct ConversationView: View {
         .colorScheme(.dark)
         .toolbar {
             Button {
-                state.textOnly.toggle()
+                conversation.textOnly.toggle()
             } label: {
-                Label(state.textOnly ? "Text Only" : "Spoken Replies", systemImage: state.textOnly ? "text.bubble" : "speaker.wave.2.bubble")
+                Label(conversation.textOnly ? "Text Only" : "Spoken Replies", systemImage: conversation.textOnly ? "text.bubble" : "speaker.wave.2.bubble")
                     .labelStyle(.titleAndIcon)
             }
 
-            let va = state.activationState == .voiceActivated
-            Button { [weak state] in
-                guard let state else { return }
+            let va = conversation.activationState == .voiceActivated
+            Button { [weak conversation] in
+                guard let conversation else { return }
                 if va {
-                    state.switchToPushButton()
+                    conversation.switchToPushButton()
                 } else {
-                    state.switchToVoiceActivated()
+                    conversation.switchToVoiceActivated()
                 }
             } label: {
                 Label(va ? "Voice Activated" : "Manual", systemImage: va ? "waveform.badge.microphone" : "mic")
                     .labelStyle(.titleAndIcon)
             }
-            .opacity(state.mode.showAlwaysOn ? 1 : 0.3)
-            .allowsHitTesting(state.mode.showAlwaysOn)
+            .opacity(conversation.mode.showAlwaysOn ? 1 : 0.3)
+            .allowsHitTesting(conversation.mode.showAlwaysOn)
 
-            let ready = state.mode.nominal
+            let ready = conversation.mode.nominal
 
             Button {
-                if state.mode.isWaiting || state.mode.isQuietListening || state.mode.isReplying {
-                    state.reset()
+                if conversation.mode.isWaiting || conversation.mode.isQuietListening || conversation.mode.isReplying {
+                    conversation.reset()
                 }
             } label: {
                 Label("Reset", systemImage: "clear")
@@ -99,8 +99,8 @@ struct ConversationView: View {
             .opacity(ready ? 1 : 0.3)
             .allowsHitTesting(ready)
         }
-        .animation(.easeInOut, value: state.mode)
-        .animation(.easeInOut, value: state.attachedImage)
+        .animation(.easeInOut, value: conversation.mode)
+        .animation(.easeInOut, value: conversation.attachedImage)
     }
 }
 

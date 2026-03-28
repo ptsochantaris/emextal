@@ -3,7 +3,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct ImageDrop: View {
-    let state: ViewModel
+    let state: Conversation
 
     @State private var busy = false
 
@@ -66,7 +66,7 @@ struct ImageDrop: View {
 }
 
 struct SideBar: View {
-    let state: ViewModel
+    let state: Conversation
 
     static let width: CGFloat = 140
 

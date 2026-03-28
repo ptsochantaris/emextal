@@ -8,7 +8,7 @@ import MLXVLM
 import SwiftUI
 import WebKit
 
-@Observable final class ViewModel {
+@Observable final class Conversation {
     private let messageLog = MessageLog()
     private let engine = AVAudioEngine()
     private let speaker: Speaker
@@ -23,7 +23,7 @@ import WebKit
     var textOnly = true
     let memoryStats = MemoryStats()
 
-    var mode = AppMode.loading(progress: 0, status: []) {
+    var mode = ConversationMode.loading(progress: 0, status: []) {
         didSet {
             if oldValue != mode {
                 Task {
@@ -75,11 +75,11 @@ import WebKit
         await messageLog.setWebView(webView)
     }
 
-    func getMode() -> AppMode {
+    func getMode() -> ConversationMode {
         mode
     }
 
-    func setMode(_ newMode: AppMode) {
+    func setMode(_ newMode: ConversationMode) {
         mode = newMode
     }
 

@@ -21,7 +21,7 @@ extension Notification.Name {
 
 @main
 struct EmextalApp: App {
-    private let viewModel = ViewModel(model: Model(category: .qwen, variant: .qwen35moe))
+    private let appState = AppState()
 
     #if canImport(AppKit)
         @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -29,12 +29,12 @@ struct EmextalApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView(viewModel: viewModel)
+            ContentView(appState: appState)
                 .onReceive(NotificationCenter.default.publisher(for: .shutdown)) { notification in
                     #if canImport(AppKit)
                         if let app = notification.object as? NSApplication {
                             Task {
-                                await viewModel.shutdown()
+                                await appState.shutdown()
                                 log("Shutdown complete, terminating.")
                                 app.reply(toApplicationShouldTerminate: true)
                             }
