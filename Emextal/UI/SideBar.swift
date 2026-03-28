@@ -67,8 +67,8 @@ struct ImageDrop: View {
 
 struct SideBar: View {
     let state: ViewModel
-    
-    static private let width: CGFloat = 140
+
+    static let width: CGFloat = 140
 
     var body: some View {
         VStack(spacing: 0) {

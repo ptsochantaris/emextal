@@ -55,6 +55,7 @@ struct ContentView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 20))
         }
         .padding(88)
+        .colorScheme(.dark)
     }
 
     @ViewBuilder
@@ -101,7 +102,6 @@ struct ContentView: View {
         }
         .navigationTitle(title)
         .animation(.easeInOut, value: viewModel.mode)
-        .colorScheme(.dark)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .toolbarTitleDisplayMode(.inline)
     }

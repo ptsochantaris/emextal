@@ -4,10 +4,6 @@ import MLX
 import MLXAudioSTT
 import MLXAudioVAD
 
-extension AVAudioPCMBuffer: @unchecked @retroactive Sendable {}
-extension SortformerModel: @unchecked @retroactive Sendable {}
-extension Qwen3ASRModel: @unchecked @retroactive Sendable {}
-
 final actor Mic {
     nonisolated var unownedExecutor: UnownedSerialExecutor {
         unsafe HighPriorityExecutor.sharedExecutor.asUnownedSerialExecutor()
@@ -40,9 +36,13 @@ final actor Mic {
 
     func warmup() async throws {
         #if os(macOS)
+            guard let detect = FinalWrapper(detector).data else {
+                return
+            }
+
             let blank = MLXArray.zeros([100_000])
             log("Speaker detection warmup...")
-            _ = try await detector?.generate(audio: blank)
+            _ = try await detect.generate(audio: blank)
             log("Speaker detection warmup done")
 
             log("Transcriber warmup...")
@@ -52,7 +52,7 @@ final actor Mic {
     }
 
     func boot() async throws {
-        async let detectorTask = try await SortformerModel.fromPretrained("mlx-community/diar_streaming_sortformer_4spk-v2.1-fp16")
+        async let detectorTask = SortformerModel.fromPretrained("mlx-community/diar_streaming_sortformer_4spk-v2.1-fp16")
         transcriber = try await Qwen3ASRModel.fromPretrained("mlx-community/Qwen3-ASR-1.7B-4bit")
         detector = try await detectorTask
     }
@@ -80,7 +80,7 @@ final actor Mic {
 
         log("Manual recording")
 
-        if let session = await delegate.getSession() {
+        if let session = await delegate.getSession().data {
             await delegate.setMode(.listening(state: .talking, session: session))
         }
 
@@ -92,7 +92,7 @@ final actor Mic {
 
             // depending on the UI to call stop()
             for try await chunk in sequence {
-                audioChain.append(chunk)
+                audioChain.append(chunk.data)
             }
 
             if audioChain.isEmpty {
@@ -100,7 +100,7 @@ final actor Mic {
             } else {
                 log("Manual recording done, parsing")
                 await delegate.playEffect(.endListening)
-                if let session = await delegate.getSession() {
+                if let session = await delegate.getSession().data {
                     await delegate.setMode(.transcribing(session: session))
                 }
 
@@ -118,36 +118,37 @@ final actor Mic {
             return
         }
 
-        if let session = await delegate.getSession() {
+        if let session = await delegate.getSession().data {
             await delegate.setMode(.listening(state: .quiet, session: session))
         }
 
         log("VAD recording")
 
         Task {
-            var state = detector.initStreamingState()
+            let detect = FinalWrapper(detector).data
+            var state = detect.initStreamingState()
             let stream = await recorder.start(dropFirstChunk: false)
             var audioChain = [MLXArray]()
 
             for try await chunk in stream {
-                let (result, newState) = try await detector.feed(chunk: chunk, state: state, threshold: 0.5, minDuration: 0.3)
+                let (result, newState) = try await detect.feed(chunk: chunk.data, state: state, threshold: 0.5, minDuration: 0.3)
                 state = newState
 
                 if result.numSpeakers > 0 {
                     if audioChain.isEmpty {
                         log("Speaking started")
-                        if let session = await delegate.getSession() {
+                        if let session = await delegate.getSession().data {
                             await delegate.setMode(.listening(state: .talking, session: session))
                         }
                     }
-                    audioChain.append(chunk)
+                    audioChain.append(chunk.data)
 
                 } else if !audioChain.isEmpty {
                     log("Speaking done, parsing")
 
                     await recorder.stop()
 
-                    if let session = await delegate.getSession() {
+                    if let session = await delegate.getSession().data {
                         await delegate.setMode(.transcribing(session: session))
                     }
 
@@ -164,7 +165,7 @@ final actor Mic {
     }
 
     private func resetToWaiting() async {
-        if let delegate = modeDelegate, let session = await delegate.getSession() {
+        if let delegate = modeDelegate, let session = await delegate.getSession().data {
             await delegate.setMode(.waiting(session: session))
         }
     }

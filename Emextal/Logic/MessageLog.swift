@@ -20,13 +20,17 @@ final actor MessageLog {
 
     private weak var webView: WKWebView?
 
-    var asSessionHistory: [Chat.Message] {
+    private func synchronize() async {
+        await withCheckedContinuation { continuation in
+            changeContinuation.yield(.synchronize {
+                continuation.resume()
+            })
+        }
+    }
+
+    var asSessionHistory: FinalWrapper<[Chat.Message]> {
         get async {
-            await withCheckedContinuation { continuation in
-                changeContinuation.yield(.synchronize {
-                    continuation.resume()
-                })
-            }
+            await synchronize()
 
             var result = [Chat.Message]()
             result.reserveCapacity(history.count * 2)
@@ -38,7 +42,7 @@ final actor MessageLog {
                     Chat.Message(role: .assistant, content: item.text, images: [], videos: [])
                 )
             }
-            return result
+            return FinalWrapper(result)
         }
     }
 

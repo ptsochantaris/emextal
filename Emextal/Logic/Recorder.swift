@@ -2,8 +2,6 @@ import AVFoundation
 import Foundation
 import MLX
 
-extension MLXArray: @unchecked @retroactive Sendable {}
-
 final actor Recorder {
     nonisolated var unownedExecutor: UnownedSerialExecutor {
         unsafe HighPriorityExecutor.sharedExecutor.asUnownedSerialExecutor()
@@ -22,9 +20,9 @@ final actor Recorder {
     private let converter: AVAudioConverter
     private let convertedBuffer: AVAudioPCMBuffer
 
-    private let sampleContinuation: AsyncStream<AVAudioPCMBuffer>.Continuation
+    private let sampleContinuation: AsyncStream<FinalWrapper<AVAudioPCMBuffer>>.Continuation
 
-    private var convertedContinuation: AsyncStream<MLXArray>.Continuation?
+    private var convertedContinuation: AsyncStream<FinalWrapper<MLXArray>>.Continuation?
     private let convertedBufferFrames: Int
 
     init(engine: AVAudioEngine) {
@@ -41,8 +39,8 @@ final actor Recorder {
         convertedBufferFrames = Int(outputFrames * micBufferSize / sampleRate)
         convertedBuffer = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: AVAudioFrameCount(convertedBufferFrames))!
 
-        let sampleQueue: AsyncStream<AVAudioPCMBuffer>
-        (sampleQueue, sampleContinuation) = AsyncStream.makeStream(of: AVAudioPCMBuffer.self, bufferingPolicy: .unbounded)
+        let sampleQueue: AsyncStream<FinalWrapper<AVAudioPCMBuffer>>
+        (sampleQueue, sampleContinuation) = AsyncStream.makeStream(of: FinalWrapper<AVAudioPCMBuffer>.self, bufferingPolicy: .unbounded)
 
         Task {
             for await buffer in sampleQueue {
@@ -52,11 +50,11 @@ final actor Recorder {
         }
     }
 
-    func start(dropFirstChunk: Bool) -> AsyncStream<MLXArray> {
+    func start(dropFirstChunk: Bool) -> AsyncStream<FinalWrapper<MLXArray>> {
         log("Adding mic tap")
         let continuation = sampleContinuation
-        let convertedSequence: AsyncStream<MLXArray>
-        (convertedSequence, convertedContinuation) = AsyncStream.makeStream(of: MLXArray.self, bufferingPolicy: .unbounded)
+        let convertedSequence: AsyncStream<FinalWrapper<MLXArray>>
+        (convertedSequence, convertedContinuation) = AsyncStream.makeStream(of: FinalWrapper<MLXArray>.self, bufferingPolicy: .unbounded)
 
         var dropFirstChunk = dropFirstChunk
         inputNode.installTap(onBus: 0, bufferSize: micBufferSize, format: inputFormat) { incomingBuffer, _ in
@@ -64,7 +62,8 @@ final actor Recorder {
                 dropFirstChunk = false
                 return
             }
-            continuation.yield(incomingBuffer)
+            let buffer = FinalWrapper(incomingBuffer)
+            continuation.yield(buffer)
         }
 
         return convertedSequence
@@ -82,14 +81,14 @@ final actor Recorder {
         sampleContinuation.finish()
     }
 
-    private func processBuffer(_ incomingBuffer: AVAudioPCMBuffer) {
+    private func processBuffer(_ incomingBuffer: FinalWrapper<AVAudioPCMBuffer>) {
         var error: NSError?
         nonisolated(unsafe) var reported = AVAudioConverterInputStatus.haveData
 
         unsafe converter.convert(to: convertedBuffer, error: &error) { _, outStatus in
             unsafe outStatus.pointee = reported
             unsafe reported = .noDataNow
-            return incomingBuffer
+            return incomingBuffer.data
         }
 
         if let error {
@@ -102,6 +101,7 @@ final actor Recorder {
             count: convertedBufferFrames
         )
         let array = unsafe MLXArray(convertedAudioBuffer)
-        convertedContinuation?.yield(array)
+        let chunk = FinalWrapper(array)
+        convertedContinuation?.yield(chunk)
     }
 }

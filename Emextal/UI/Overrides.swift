@@ -178,6 +178,6 @@ struct ParamsView: View {
         }
         .font(.callout)
         .padding(16)
-        .background(.white.opacity(0.1))
+        .background(.primary.opacity(0.1))
     }
 }

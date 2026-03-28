@@ -6,6 +6,8 @@ struct ConversationView: View {
 
     @FocusState private var focusEntryField
 
+    @State private var inputHeight: CGFloat = 0
+
     var body: some View {
         #if os(visionOS)
             let spacing: CGFloat = 18
@@ -13,25 +15,10 @@ struct ConversationView: View {
             let spacing: CGFloat = 8
         #endif
 
-        VStack(spacing: 0) {
-            HStack(spacing: spacing) {
+        HStack(spacing: spacing) {
+            VStack(spacing: spacing) {
                 WebView(viewModel: state)
 
-                SideBar(state: state)
-                #if os(visionOS)
-                    .padding(.top, 0)
-                    .padding(.bottom, spacing - 1)
-                #elseif os(iOS)
-                    .padding(.top, 0)
-                    .padding(.bottom, spacing)
-                #else
-                    .padding(.top, 8)
-                    .padding(.bottom, spacing)
-                #endif
-            }
-            .padding(.horizontal, spacing)
-
-            HStack(alignment: .bottom) {
                 TextField("Hold \"↓\" to speak, or enter your message here", text: $state.prompt)
                     .textFieldStyle(.plain)
                     .onAppear { focusEntryField = true }
@@ -45,15 +32,26 @@ struct ConversationView: View {
                         Capsule()
                             .foregroundStyle(.material)
                     }
-                    .padding(.bottom, 8)
-                    .padding(.horizontal, spacing)
                 #endif
                     .focused($focusEntryField)
                     .onSubmit {
                         state.respondToTypedPrompt()
                     }
+                    .onGeometryChange(for: CGFloat.self) {
+                        $0.size.height
+                    } action: { newValue in
+                        inputHeight = newValue
+                    }
+            }
+
+            VStack(spacing: spacing) {
+                SideBar(state: state)
+
+                MemoryBar(state: state)
+                    .frame(width: SideBar.width, height: inputHeight)
             }
         }
+        .padding(spacing)
         .colorScheme(.dark)
         .toolbar {
             Button {

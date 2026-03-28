@@ -1,6 +1,5 @@
 import AVFoundation
 import Foundation
-import MLX
 import MLXAudioCore
 import MLXAudioSTT
 import MLXLLM
@@ -8,10 +7,6 @@ import MLXLMCommon
 import MLXVLM
 import SwiftUI
 import WebKit
-
-/// Only for reference passing
-extension ChatSession: @unchecked @retroactive Sendable {}
-extension Chat.Message: @unchecked @retroactive Sendable {}
 
 @Observable final class ViewModel {
     private let messageLog = MessageLog()
@@ -26,6 +21,16 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
     var prompt = ""
     var attachedImage: NSImage?
     var textOnly = true
+    var memoryStats = MemoryStats() {
+        didSet {
+            print("""
+            Memory stats:
+                  Active: \(memoryStats.active) / \(memoryStats.activePeak) -> \(memoryStats.activePercent)
+                   Cache: \(memoryStats.cache) -> \(memoryStats.cachePercent)
+                   Total: \(memoryStats.total) / \(memoryStats.totalLimit) -> \(memoryStats.activePercent + memoryStats.cachePercent)
+            """)
+        }
+    }
 
     var mode = AppMode.loading(progress: 0, status: []) {
         didSet {
@@ -87,8 +92,8 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
         mode = newMode
     }
 
-    func getSession() -> ChatSession? {
-        mode.session
+    func getSession() -> FinalWrapper<ChatSession?> {
+        FinalWrapper(mode.session)
     }
 
     func playEffect(_ effect: SoundEffect) {
@@ -152,8 +157,8 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
 
             let modelConfiguration = ModelConfiguration(id: model.variant.repoId)
             let modelContainer: ModelContainer
-            let progressHandler = { @Sendable [weak self] (progress: Progress) -> Void in
-                Task { @MainActor [weak self] in
+            let progressHandler = { @Sendable [weak self] (progress: Progress) in
+                _ = Task { @MainActor [weak self] in
                     guard let self else { return }
                     if !addedChild {
                         loadProgress.addChild(progress, withPendingUnitCount: 700)
@@ -199,7 +204,7 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
 
         let session = ChatSession(
             modelContainer,
-            history: asHistory,
+            history: asHistory.data,
             generateParameters: model.params.mlx,
             additionalContext: model.additionalContext
         )
@@ -212,22 +217,12 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
             }
         }
 
-        #if DEBUG
-            Task {
-                let format = ByteCountFormatStyle(style: .memory, allowedUnits: .all, spellsOutZero: false, includesActualByteCount: false, locale: .autoupdatingCurrent)
-                while !Task.isCancelled {
-                    try? await Task.sleep(for: .seconds(2))
-                    print("""
-
-                    Memory stats:
-                          Active: \(format.format(Int64(Memory.activeMemory))) (Peak: \(format.format(Int64(Memory.peakMemory))))
-                           Cache: \(format.format(Int64(Memory.cacheMemory))) (Limit: \(format.format(Int64(Memory.cacheLimit))))
-                           Total: \(format.format(Int64(Memory.activeMemory + Memory.cacheMemory))) / \(format.format(Int64(Memory.memoryLimit)))
-
-                    """)
-                }
+        Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(2))
+                memoryStats = MemoryStats()
             }
-        #endif
+        }
     }
 
     private func receivedPhrase(_ text: String, in session: ChatSession) {
@@ -255,8 +250,10 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
         }
     }
 
-    private func respond(session: ChatSession) {
+    private func respond(session safeSession: ChatSession) {
         guard mode.canRespond else { return }
+
+        let session = FinalWrapper(safeSession)
 
         let trimmedText = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         let attached = attachedImage
@@ -279,12 +276,12 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
                 .map { CIImage(cgImage: $0) }
                 .map { UserInput.Image.ciImage($0) }
 
-            for try await item in session.streamResponse(to: trimmedText, images: images, videos: []) {
+            for try await item in session.data.streamResponse(to: trimmedText, images: images, videos: []) {
                 for char in item {
                     switch char {
                     case ",", ":", "!", "?", ".", ")", "\n":
                         charBuffer.append(char)
-                        await appendText(charBuffer, session: session, first: &first)
+                        await appendText(charBuffer, session: session.data, first: &first)
                         charBuffer.removeAll(keepingCapacity: true)
                         if char == "\n" {
                             if await !textOnly {
@@ -302,12 +299,12 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
                 }
             }
 
-            await appendText(charBuffer, session: session, first: &first)
+            await appendText(charBuffer, session: session.data, first: &first)
 
-            await responseEnd(lineBuffer: lineBuffer, session: session)
+            await responseEnd(lineBuffer: lineBuffer, session: session.data)
         }
 
-        mode = .processingPrompt(session: session, task: responseTask)
+        mode = .processingPrompt(session: session.data, task: responseTask)
     }
 
     private func responseEnd(lineBuffer: String, session: ChatSession) async {
@@ -371,7 +368,7 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
             try? await task.value
         }
 
-        if let session = mode.session {
+        if let session = FinalWrapper(mode.session).data {
             await session.clear()
         }
 
@@ -412,7 +409,7 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
             // TODO: stop speaking
             messageLog.reset()
             try? await messageLog.save(to: model.modelHistoryPath)
-            if let session = mode.session {
+            if let session = FinalWrapper(mode.session).data {
                 await session.clear()
             }
         }
