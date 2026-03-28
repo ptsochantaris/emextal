@@ -21,16 +21,7 @@ import WebKit
     var prompt = ""
     var attachedImage: NSImage?
     var textOnly = true
-    var memoryStats = MemoryStats() {
-        didSet {
-            print("""
-            Memory stats:
-                  Active: \(memoryStats.active) / \(memoryStats.activePeak) -> \(memoryStats.activePercent)
-                   Cache: \(memoryStats.cache) -> \(memoryStats.cachePercent)
-                   Total: \(memoryStats.total) / \(memoryStats.totalLimit) -> \(memoryStats.activePercent + memoryStats.cachePercent)
-            """)
-        }
-    }
+    let memoryStats = MemoryStats()
 
     var mode = AppMode.loading(progress: 0, status: []) {
         didSet {
@@ -116,7 +107,6 @@ import WebKit
                 if let fraction = change.newValue {
                     Task { @MainActor [weak self] in
                         guard let self else { return }
-                        log("Progress: \(fraction)")
                         mode = .loading(progress: fraction, status: statusComponents)
                     }
                 }
@@ -214,13 +204,6 @@ import WebKit
         recognitionLoop = Task {
             for await text in mic.phraseStream {
                 receivedPhrase(text, in: session)
-            }
-        }
-
-        Task {
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(2))
-                memoryStats = MemoryStats()
             }
         }
     }
@@ -369,6 +352,7 @@ import WebKit
         }
 
         if let session = FinalWrapper(mode.session).data {
+            await session.synchronize()
             await session.clear()
         }
 

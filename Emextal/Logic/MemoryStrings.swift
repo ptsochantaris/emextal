@@ -1,20 +1,21 @@
 import Foundation
 import MLX
 
-struct MemoryStats {
-    let active: String
-    let activePeak: String
+@Observable
+final class MemoryStats {
+    var active = ""
+    var activePeak = ""
 
-    let cache: String
-    let cacheLimit: String
+    var cache = ""
+    var cacheLimit = ""
 
-    let total: String
-    let totalLimit: String
+    var total = ""
+    var totalLimit = ""
 
-    let activePercent: CGFloat
-    let cachePercent: CGFloat
+    var activePercent: CGFloat = 0
+    var cachePercent: CGFloat = 0
 
-    init() {
+    private func update() {
         active = memoryFormatter.format(Int64(Memory.activeMemory))
         activePeak = memoryFormatter.format(Int64(Memory.peakMemory))
 
@@ -30,5 +31,18 @@ struct MemoryStats {
         let limit = CGFloat(limit64)
         activePercent = CGFloat(Memory.activeMemory) / limit
         cachePercent = CGFloat(Memory.cacheMemory) / limit
+    }
+
+    init() {
+        Task { [weak self] in
+            while !Task.isCancelled {
+                self?.update()
+                try? await Task.sleep(for: .seconds(2))
+            }
+        }
+    }
+
+    deinit {
+        log("\(Self.self) deinit")
     }
 }
