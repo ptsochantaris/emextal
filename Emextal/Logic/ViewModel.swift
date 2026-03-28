@@ -152,7 +152,7 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
 
             let modelConfiguration = ModelConfiguration(id: model.variant.repoId)
             let modelContainer: ModelContainer
-            let progressHandler = { @Sendable [weak self] (progress: Progress) in
+            let progressHandler = { @Sendable [weak self] (progress: Progress) -> Void in
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     if !addedChild {
