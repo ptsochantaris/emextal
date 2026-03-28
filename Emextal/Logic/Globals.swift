@@ -4,9 +4,6 @@ import Foundation
     import OSLog
 #endif
 
-let assistantWidth: CGFloat = 140
-let assistantHeight: CGFloat = 380
-
 nonisolated func log(_ message: @autoclosure () -> String) {
     #if DEBUG
         unsafe os_log("%{public}@", message())

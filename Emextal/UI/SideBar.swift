@@ -67,6 +67,8 @@ struct ImageDrop: View {
 
 struct SideBar: View {
     let state: ViewModel
+    
+    static private let width: CGFloat = 140
 
     var body: some View {
         VStack(spacing: 0) {
@@ -92,14 +94,14 @@ struct SideBar: View {
                 .padding(.bottom, 4)
                 .padding([.leading, .trailing])
                 .foregroundColor(.widgetForeground.opacity(state.mode.isWaiting ? 0.7 : 0.8))
-                .frame(height: assistantWidth) // make it square
+                .frame(height: Self.width) // make it square
         }
         .foregroundColor(.widgetForeground)
         .background {
             Rectangle()
                 .foregroundStyle(.material)
         }
-        .frame(width: assistantWidth)
+        .frame(width: Self.width)
         .cornerRadius(21)
     }
 }
