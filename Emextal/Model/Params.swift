@@ -1,4 +1,5 @@
 import Foundation
+import MLXLMCommon
 
 extension Model {
     struct ParamsHolder: Codable {
@@ -42,6 +43,21 @@ extension Model {
             self.repeatPenatly = repeatPenatly
             self.frequencyPenatly = frequencyPenatly
             self.presentPenatly = presentPenatly
+        }
+
+        var mlx: GenerateParameters {
+            .init(
+                temperature: temperature,
+                topP: topP,
+                topK: topK,
+                minP: minP,
+                repetitionPenalty: repeatPenatly,
+                repetitionContextSize: 20,
+                presencePenalty: presentPenatly,
+                presenceContextSize: 20,
+                frequencyPenalty: frequencyPenatly,
+                frequencyContextSize: 20
+            )
         }
     }
 }

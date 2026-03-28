@@ -45,6 +45,10 @@ final class Model: Hashable, Identifiable, Sendable {
         }
     }
 
+    var additionalContext: [String: any Sendable] {
+        variant.additionalContext
+    }
+
     var modelHistoryPath: URL {
         let modelDir = Self.modelsDir
         let fm = FileManager.default

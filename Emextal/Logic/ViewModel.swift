@@ -3,6 +3,7 @@ import Foundation
 import MLX
 import MLXAudioCore
 import MLXAudioSTT
+import MLXLLM
 import MLXLMCommon
 import MLXVLM
 import SwiftUI
@@ -71,7 +72,7 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
     }
 
     var supportsImageInputs: Bool {
-        true
+        model.variant.architecture.supportsImageInputs
     }
 
     func setWebView(_ webView: WKWebView) async {
@@ -150,7 +151,8 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
             }
 
             let modelConfiguration = ModelConfiguration(id: model.variant.repoId)
-            let modelContainer = try await VLMModelFactory.shared.loadContainer(configuration: modelConfiguration) { progress in
+            let modelContainer: ModelContainer
+            let progressHandler = { @Sendable [weak self] (progress: Progress) in
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     if !addedChild {
@@ -158,6 +160,13 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
                         addedChild = true
                     }
                 }
+            }
+
+            switch model.variant.architecture {
+            case .llm:
+                modelContainer = try await LLMModelFactory.shared.loadContainer(configuration: modelConfiguration, progressHandler: progressHandler)
+            case .vlm:
+                modelContainer = try await VLMModelFactory.shared.loadContainer(configuration: modelConfiguration, progressHandler: progressHandler)
             }
 
             if let index = statusComponents.firstIndex(where: { $0.text == "Language Model" }) {
@@ -191,15 +200,8 @@ extension Chat.Message: @unchecked @retroactive Sendable {}
         let session = ChatSession(
             modelContainer,
             history: asHistory,
-            generateParameters: GenerateParameters(
-                temperature: 0.7,
-                topP: 0.8,
-                topK: 20,
-                minP: 0,
-                presencePenalty: 1.5,
-                frequencyPenalty: 1
-            ),
-            additionalContext: ["enable_thinking": false]
+            generateParameters: model.params.mlx,
+            additionalContext: model.additionalContext
         )
 
         mode = .waiting(session: session)
