@@ -1,4 +1,5 @@
 import Foundation
+import Hub
 import PopTimer
 
 @MainActor
@@ -14,6 +15,59 @@ final class Model: Hashable, Identifiable, Sendable {
         didSet {
             saveTimer?.push()
         }
+    }
+
+    func isInstalled() throws -> Bool {
+        // let repo = Hub.Repo(id: variant.repoId)
+        guard let repoDestination = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?.appending(path: "models/\(variant.repoId)") else {
+            return false
+        }
+
+        if !FileManager.default.fileExists(atPath: repoDestination.path) {
+            return false
+        }
+
+        guard
+            let enumerator = FileManager.default.enumerator(
+                at: repoDestination,
+                includingPropertiesForKeys: [.isRegularFileKey, .isHiddenKey],
+                options: [.skipsHiddenFiles]
+            )
+        else {
+            return false
+        }
+
+        var fileUrls = [URL]()
+
+        for case let fileURL as URL in enumerator {
+            let resourceValues = try fileURL.resourceValues(forKeys: [.isRegularFileKey, .isHiddenKey])
+            if resourceValues.isRegularFile == true, resourceValues.isHidden != true {
+                fileUrls.append(fileURL)
+            }
+        }
+
+        if fileUrls.isEmpty {
+            return false
+        }
+
+        let repoMetadataDestination = repoDestination.appending(path: ".cache/huggingface/download")
+
+        for fileUrl in fileUrls {
+            let metadataPath = URL(
+                fileURLWithPath: fileUrl.path.replacingOccurrences(
+                    of: repoDestination.path,
+                    with: repoMetadataDestination.path
+                ) + ".metadata"
+            )
+
+            let localMetadata = try HubApi.shared.readDownloadMetadata(metadataPath: metadataPath)
+
+            guard localMetadata != nil else {
+                return false
+            }
+        }
+
+        return true
     }
 
     static let appDocumentsUrl: URL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -50,7 +104,11 @@ final class Model: Hashable, Identifiable, Sendable {
     }
 
     var status: String? {
-        variant == .qwen35regular ? "START HERE" : nil
+        if (try? isInstalled()) == true {
+            "INSTALLED"
+        } else {
+            variant == .qwen35regular ? "START HERE" : nil
+        }
     }
 
     var modelHistoryPath: URL {
