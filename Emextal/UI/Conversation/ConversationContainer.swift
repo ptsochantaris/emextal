@@ -35,7 +35,6 @@ struct ConversationContainer: View {
                 .clipShape(RoundedRectangle(cornerRadius: 20))
         }
         .padding(88)
-        .colorScheme(.dark)
     }
 
     var body: some View {

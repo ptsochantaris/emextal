@@ -24,6 +24,9 @@ struct SelectionGrid: View {
                 }
                 .padding([.top, .bottom])
             }
+            .onTapGesture {
+                selected = nil
+            }
             .scrollIndicators(.hidden)
             .onAppear {
                 if let variant = selected?.variant, let section = Registry.category(for: variant) {

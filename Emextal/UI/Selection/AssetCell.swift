@@ -84,9 +84,7 @@ struct AssetCell: View {
             }
         }
         .onTapGesture {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                selected = model
-            }
+            selected = model
         }
     }
 }
