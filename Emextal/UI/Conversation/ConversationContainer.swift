@@ -60,15 +60,10 @@ struct ConversationContainer: View {
     private var background: some View {
         switch conversation.mode {
         case .loading:
-            ShimmerBackground(show: .constant(true))
-                .aspectRatio(contentMode: .fill)
-                .ignoresSafeArea()
+            ActiveBackground()
 
         default:
-            Image(.background)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .ignoresSafeArea()
+            PlainBackground()
         }
     }
 }

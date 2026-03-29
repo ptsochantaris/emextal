@@ -2,6 +2,8 @@ import Foundation
 import MLX
 
 extension Model {
+    static let gb: Int64 = 1024 * 1024 * 1024
+
     enum Architecture {
         case llm, vlm
 
@@ -31,10 +33,23 @@ extension Model {
             }
         }
 
-        var memoryEstimate: Int64 {
-            let gb: Int64 = 1024 * 1024 * 1024
+        var originalRepoUrl: URL {
+            URL(string: "https://huggingface.com/\(repoId)")!
+        }
 
-            return switch self {
+        var sizeDescription: String {
+            switch self {
+            case .qwen3coderNext:
+                "44.8 GB"
+            case .qwen35regular:
+                "16.1 GB"
+            case .qwen35moe:
+                "20.4 GB"
+            }
+        }
+
+        var memoryEstimate: Int64 {
+            switch self {
             case .qwen3coderNext:
                 44 * gb
             case .qwen35regular:
@@ -61,6 +76,10 @@ extension Model {
             switch self {
             case .qwen3coderNext, .qwen35moe, .qwen35regular: "A consistently well regarded all-round model by users and benchmarks."
             }
+        }
+
+        var warningBeforeStart: Bool {
+            (memoryEstimate + Model.gb) > Memory.memoryLimit
         }
 
         // temperature=0.7, top_p=0.8, top_k=20, min_p=0.0, presence_penalty=1.5, repetition_penalty=1.0

@@ -49,6 +49,10 @@ final class Model: Hashable, Identifiable, Sendable {
         variant.additionalContext
     }
 
+    var status: String? {
+        variant == .qwen35regular ? "START HERE" : nil
+    }
+
     var modelHistoryPath: URL {
         let modelDir = Self.modelsDir
         let fm = FileManager.default

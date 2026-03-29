@@ -52,3 +52,20 @@ struct ShimmerBackground: View {
         }
     }
 }
+
+struct PlainBackground: View {
+    var body: some View {
+        Image(.background)
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .ignoresSafeArea()
+    }
+}
+
+struct ActiveBackground: View {
+    var body: some View {
+        ShimmerBackground(show: .constant(true))
+            .aspectRatio(contentMode: .fill)
+            .ignoresSafeArea()
+    }
+}
