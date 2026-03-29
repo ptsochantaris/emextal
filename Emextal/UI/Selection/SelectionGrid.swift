@@ -35,5 +35,6 @@ struct SelectionGrid: View {
             }
         }
         .background(PlainBackground())
+        .colorScheme(.dark)
     }
 }

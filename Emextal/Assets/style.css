@@ -77,3 +77,17 @@ img {
     margin-bottom: -3pt;
     border-radius: 10pt;
 }
+
+table, th, td {
+  border: 1px solid #dddddd;
+  padding: 4pt;
+}
+
+hr {
+    border: 1px solid #dddddd;
+    border-collapse: collapse;
+}
+
+table {
+  border-collapse: collapse;
+}

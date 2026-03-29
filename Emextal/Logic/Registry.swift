@@ -6,7 +6,8 @@ enum Registry {
     static let allModels: [Model] = [
         .init(category: .qwen, variant: .qwen35regular),
         .init(category: .qwen, variant: .qwen35moe),
-        .init(category: .qwen, variant: .qwen3coderNext)
+        .init(category: .qwen, variant: .qwen3coderNext),
+        .init(category: .qwen, variant: .qwen35opus)
     ]
 
     static func variants(for category: Model.Category) -> [Model] {

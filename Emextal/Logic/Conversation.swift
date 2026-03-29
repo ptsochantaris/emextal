@@ -96,9 +96,9 @@ import WebKit
     }
 
     private var statusComponents = [
-        "Language Model",
         "Text-to-Speech",
         "Voice Recognition",
+        "Language Model",
         "Ready"
     ].map { LoadingProgressDisplay.Status(loaded: false, text: $0) }
 
@@ -257,7 +257,7 @@ import WebKit
         prompt = ""
 
         let responseTask = Task { @DefaultQueueActor in
-            var charBuffer = ""
+            var charBuffer = await model.variant.injectThinkingTag ? "<think>" : ""
             charBuffer.reserveCapacity(1024)
 
             var lineBuffer = ""

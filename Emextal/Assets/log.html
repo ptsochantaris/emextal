@@ -38,7 +38,7 @@
                 });
                 
                 const newDocHeight = document.body.scrollHeight;
-                const atBottom = (window.innerHeight + Math.round(window.scrollY)) >= newDocHeight;
+                const atBottom = (window.innerHeight + Math.round(window.scrollY) + 40) >= newDocHeight;
                 const shouldScroll = atBottom && (lastDocHeight != newDocHeight);
                 if (shouldScroll) {
                     lastDocHeight = newDocHeight

@@ -52,6 +52,7 @@ struct ConversationView: View {
             }
         }
         .padding(spacing)
+        .colorScheme(.dark)
         .toolbar {
             Button {
                 conversation.textOnly.toggle()

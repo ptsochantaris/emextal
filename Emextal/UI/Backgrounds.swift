@@ -35,7 +35,7 @@ struct ShimmerBackground: View {
 
     var body: some View {
         GeometryReader { _ in
-            TimelineView(.animation(minimumInterval: 0.05, paused: !show)) {
+            TimelineView(.animation(minimumInterval: 0.06, paused: !show)) {
                 let elapsedTime = startTime.distance(to: $0.date)
                 Rectangle()
                     .visualEffect { content, proxy in

@@ -43,6 +43,7 @@ struct ConversationContainer: View {
                 switch conversation.mode {
                 case .error, .loaded, .loading:
                     loadTop(conversation: conversation)
+                        .colorScheme(.dark)
 
                 default:
                     ConversationView(conversation: conversation)

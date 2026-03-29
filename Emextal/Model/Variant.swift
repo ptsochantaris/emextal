@@ -18,7 +18,8 @@ extension Model {
     enum Variant: Identifiable {
         case qwen35regular,
              qwen35moe,
-             qwen3coderNext
+             qwen3coderNext,
+             qwen35opus
 
         var recommended: Bool {
             self == .qwen35moe
@@ -28,7 +29,7 @@ extension Model {
             switch self {
             case .qwen3coderNext:
                 ""
-            case .qwen35moe, .qwen35regular:
+            case .qwen35moe, .qwen35regular, .qwen35opus:
                 "You are a helpful AI chatbot"
             }
         }
@@ -45,6 +46,8 @@ extension Model {
                 "16.1 GB"
             case .qwen35moe:
                 "20.4 GB"
+            case .qwen35opus:
+                "15.1 GB"
             }
         }
 
@@ -55,6 +58,8 @@ extension Model {
             case .qwen35regular:
                 21 * gb // TODO:
             case .qwen35moe:
+                21 * gb // TODO:
+            case .qwen35opus:
                 21 * gb // TODO:
             }
         }
@@ -75,6 +80,7 @@ extension Model {
         var aboutText: String {
             switch self {
             case .qwen3coderNext, .qwen35moe, .qwen35regular: "A consistently well regarded all-round model by users and benchmarks."
+            case .qwen35opus: "An analytical logic model trained on the Opus dataset."
             }
         }
 
@@ -82,13 +88,11 @@ extension Model {
             (memoryEstimate + Model.gb) > Memory.memoryLimit
         }
 
-        // temperature=0.7, top_p=0.8, top_k=20, min_p=0.0, presence_penalty=1.5, repetition_penalty=1.0
-
         private var defaultTopK: Int {
             switch self {
             case .qwen3coderNext:
                 40
-            case .qwen35moe, .qwen35regular:
+            case .qwen35moe, .qwen35regular, .qwen35opus:
                 20
             }
         }
@@ -97,7 +101,7 @@ extension Model {
             switch self {
             case .qwen3coderNext:
                 0.95
-            case .qwen35moe, .qwen35regular:
+            case .qwen35moe, .qwen35regular, .qwen35opus:
                 0.8
             }
         }
@@ -110,7 +114,7 @@ extension Model {
             switch self {
             case .qwen3coderNext:
                 1.0
-            case .qwen35moe, .qwen35regular:
+            case .qwen35moe, .qwen35regular, .qwen35opus:
                 0.7
             }
         }
@@ -123,7 +127,7 @@ extension Model {
             switch self {
             case .qwen3coderNext:
                 0.0
-            case .qwen35moe, .qwen35regular:
+            case .qwen35moe, .qwen35regular, .qwen35opus:
                 0.7
             }
         }
@@ -132,17 +136,26 @@ extension Model {
             switch self {
             case .qwen3coderNext:
                 1.0
-            case .qwen35moe, .qwen35regular:
+            case .qwen35moe, .qwen35regular, .qwen35opus:
                 1.5
             }
         }
 
         var architecture: Architecture {
             switch self {
-            case .qwen3coderNext:
+            case .qwen3coderNext, .qwen35opus:
                 .llm
             case .qwen35moe, .qwen35regular:
                 .vlm
+            }
+        }
+
+        var injectThinkingTag: Bool {
+            switch self {
+            case .qwen35opus:
+                true
+            case .qwen3coderNext, .qwen35moe, .qwen35regular:
+                false
             }
         }
 
@@ -150,7 +163,7 @@ extension Model {
             switch self {
             case .qwen3coderNext:
                 false
-            case .qwen35moe, .qwen35regular:
+            case .qwen35moe, .qwen35regular, .qwen35opus:
                 true
             }
         }
@@ -159,6 +172,8 @@ extension Model {
             switch self {
             case .qwen35moe, .qwen35regular:
                 ["enable_thinking": false]
+            case .qwen35opus:
+                ["enable_thinking": true]
             case .qwen3coderNext:
                 [:]
             }
@@ -169,12 +184,13 @@ extension Model {
             case .qwen35regular: "Qwen 3.5 Regular"
             case .qwen35moe: "Qwen 3.5 (MoE)"
             case .qwen3coderNext: "Qwen 3 Coder Next"
+            case .qwen35opus: "Qwen 3.5 Opus Distilled"
             }
         }
 
         var detail: String {
             switch self {
-            case .qwen35regular: "35b params MoE"
+            case .qwen35regular, .qwen35opus: "35b params MoE"
             case .qwen35moe: "27b params"
             case .qwen3coderNext: "80b params"
             }
@@ -182,6 +198,7 @@ extension Model {
 
         var repoId: String {
             switch self {
+            case .qwen35opus: "mlx-community/Qwen3.5-27B-Claude-4.6-Opus-Distilled-MLX-4bit"
             case .qwen35regular: "mlx-community/Qwen3.5-27B-4bit"
             case .qwen35moe: "mlx-community/Qwen3.5-35B-A3B-4bit"
             case .qwen3coderNext: "mlx-community/Qwen3-Coder-Next-4bit"
@@ -190,6 +207,7 @@ extension Model {
 
         var id: String {
             switch self {
+            case .qwen35opus: "3AF730C4-E787-42CE-86C2-87C1B7A66CF2"
             case .qwen35regular: "A16F9CE6-CC01-4EBC-9444-EC07E80FCA5C"
             case .qwen35moe: "231FF4EE-ECD2-45A1-87B5-79084B0ECFBF"
             case .qwen3coderNext: "A6D0B2BC-7C5E-4692-8ABA-8779D57665AC"
