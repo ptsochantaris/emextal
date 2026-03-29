@@ -29,7 +29,7 @@ extension Model {
             switch self {
             case .qwen3coderNext:
                 ""
-            case .qwen35moe, .qwen35regular, .qwen35opus:
+            case .qwen35moe, .qwen35opus, .qwen35regular:
                 "You are a helpful AI chatbot"
             }
         }
@@ -56,11 +56,11 @@ extension Model {
             case .qwen3coderNext:
                 44 * gb
             case .qwen35regular:
-                21 * gb // TODO:
+                20 * gb
             case .qwen35moe:
-                21 * gb // TODO:
+                20 * gb
             case .qwen35opus:
-                21 * gb // TODO:
+                17 * gb
             }
         }
 
@@ -92,7 +92,7 @@ extension Model {
             switch self {
             case .qwen3coderNext:
                 40
-            case .qwen35moe, .qwen35regular, .qwen35opus:
+            case .qwen35moe, .qwen35opus, .qwen35regular:
                 20
             }
         }
@@ -101,7 +101,7 @@ extension Model {
             switch self {
             case .qwen3coderNext:
                 0.95
-            case .qwen35moe, .qwen35regular, .qwen35opus:
+            case .qwen35moe, .qwen35opus, .qwen35regular:
                 0.8
             }
         }
@@ -114,7 +114,7 @@ extension Model {
             switch self {
             case .qwen3coderNext:
                 1.0
-            case .qwen35moe, .qwen35regular, .qwen35opus:
+            case .qwen35moe, .qwen35opus, .qwen35regular:
                 0.7
             }
         }
@@ -127,7 +127,7 @@ extension Model {
             switch self {
             case .qwen3coderNext:
                 0.0
-            case .qwen35moe, .qwen35regular, .qwen35opus:
+            case .qwen35moe, .qwen35opus, .qwen35regular:
                 0.7
             }
         }
@@ -136,7 +136,7 @@ extension Model {
             switch self {
             case .qwen3coderNext:
                 1.0
-            case .qwen35moe, .qwen35regular, .qwen35opus:
+            case .qwen35moe, .qwen35opus, .qwen35regular:
                 1.5
             }
         }
@@ -163,7 +163,7 @@ extension Model {
             switch self {
             case .qwen3coderNext:
                 false
-            case .qwen35moe, .qwen35regular, .qwen35opus:
+            case .qwen35moe, .qwen35opus, .qwen35regular:
                 true
             }
         }
@@ -190,7 +190,7 @@ extension Model {
 
         var detail: String {
             switch self {
-            case .qwen35regular, .qwen35opus: "35b params MoE"
+            case .qwen35opus, .qwen35regular: "35b params MoE"
             case .qwen35moe: "27b params"
             case .qwen3coderNext: "80b params"
             }
@@ -198,9 +198,9 @@ extension Model {
 
         var repoId: String {
             switch self {
-            case .qwen35opus: "mlx-community/Qwen3.5-27B-Claude-4.6-Opus-Distilled-MLX-4bit"
-            case .qwen35regular: "mlx-community/Qwen3.5-27B-4bit"
-            case .qwen35moe: "mlx-community/Qwen3.5-35B-A3B-4bit"
+            case .qwen35opus: "Jackrong/MLX-Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-v2-4bit"
+            case .qwen35regular: "Brooooooklyn/Qwen3.5-27B-unsloth-mlx"
+            case .qwen35moe: "Brooooooklyn/Qwen3.5-35B-A3B-unsloth-mlx"
             case .qwen3coderNext: "mlx-community/Qwen3-Coder-Next-4bit"
             }
         }

@@ -124,7 +124,7 @@ import WebKit
 
             let speakerTask = Task {
                 try await speaker.boot()
-                loadProgress.completedUnitCount += 100
+                loadProgress.completedUnitCount += 50
                 if let index = statusComponents.firstIndex(where: { $0.text == "Text-to-Speech" }) {
                     statusComponents[index] = .init(loaded: true, text: statusComponents[index].text)
                 }
@@ -132,7 +132,7 @@ import WebKit
 
             let micTask = Task {
                 try await mic.boot()
-                loadProgress.completedUnitCount += 100
+                loadProgress.completedUnitCount += 50
                 if let index = statusComponents.firstIndex(where: { $0.text == "Voice Recognition" }) {
                     statusComponents[index] = .init(loaded: true, text: statusComponents[index].text)
                 }
@@ -161,7 +161,7 @@ import WebKit
                 _ = Task { @MainActor [weak self] in
                     guard let self else { return }
                     if !addedChild {
-                        loadProgress.addChild(progress, withPendingUnitCount: 700)
+                        loadProgress.addChild(progress, withPendingUnitCount: 800)
                         addedChild = true
                     }
                 }

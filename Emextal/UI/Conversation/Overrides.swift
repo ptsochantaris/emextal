@@ -81,7 +81,7 @@ struct ParamsView: View {
                         Text("System Prompt")
                             .padding(.top, 3)
 
-                        Text("(applies when creating, or after resetting, a conversation)")
+                        Text("Applied when creating, or after resetting, a conversation")
                             .foregroundStyle(.secondary)
                             .font(.caption2)
                     } else {
@@ -91,7 +91,7 @@ struct ParamsView: View {
 
                             Spacer()
 
-                            Text("(applies when creating, or after resetting, a conversation)")
+                            Text("Applied when creating, or after resetting, a conversation")
                                 .foregroundStyle(.secondary)
                                 .font(.caption2)
                         }
