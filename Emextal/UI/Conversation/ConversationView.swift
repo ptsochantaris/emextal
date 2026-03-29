@@ -91,7 +91,10 @@ struct ConversationView: View {
             .allowsHitTesting(ready)
 
             Button {
-                // TODO:
+                NotificationCenter.default.post(name: .endModel, object: nil)
+                Task {
+                    await conversation.shutdown()
+                }
             } label: {
                 Label("Models", systemImage: "square.grid.3x2")
                     .labelStyle(.titleAndIcon)

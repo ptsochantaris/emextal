@@ -42,6 +42,10 @@ final actor Speaker {
         }
     }
 
+    deinit {
+        log("\(Self.self) deinit")
+    }
+
     nonisolated func playEffect(_ effect: SoundEffect) {
         effectContinuation.yield(effect)
     }
@@ -57,10 +61,6 @@ final actor Speaker {
     func shutdown() {
         effectContinuation.finish()
         spechContinuation.finish()
-    }
-
-    deinit {
-        log("\(Self.self) deinit")
     }
 
     func warmup() async throws {

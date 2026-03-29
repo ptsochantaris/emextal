@@ -8,6 +8,10 @@ final class AppState {
         mode = .conversation(conversation)
     }
 
+    func endConversation() {
+        mode = .menu
+    }
+
     func shutdown() async {
         await mode.conversation?.shutdown()
     }

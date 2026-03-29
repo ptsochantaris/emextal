@@ -26,6 +26,10 @@ final actor Mic {
         (phraseStream, phraseContinuation) = AsyncStream.makeStream(of: String.self, bufferingPolicy: .unbounded)
     }
 
+    deinit {
+        log("\(Self.self) deinit")
+    }
+
     func setIgnoreMic(_ ignore: Bool) {
         ignoreMic = ignore
     }
@@ -65,10 +69,6 @@ final actor Mic {
         await stop()
         await recorder.shutdown()
         phraseContinuation.finish()
-    }
-
-    isolated deinit {
-        log("\(Self.self) deinit")
     }
 
     func startManual() async {

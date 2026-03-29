@@ -63,6 +63,10 @@ import WebKit
         }
     }
 
+    deinit {
+        log("\(Self.self) deinit")
+    }
+
     var displayName: String {
         model.variant.displayName
     }
@@ -91,7 +95,13 @@ import WebKit
         speaker.playEffect(effect)
     }
 
-    private var statusComponents = ["Language Model", "Text-to-Speech", "Voice Recognition"].map { LoadingProgressDisplay.Status(loaded: false, text: $0) }
+    private var statusComponents = [
+        "Language Model",
+        "Text-to-Speech",
+        "Voice Recognition",
+        "Ready"
+    ].map { LoadingProgressDisplay.Status(loaded: false, text: $0) }
+
     private var addedChild = false
 
     private func boot() async {

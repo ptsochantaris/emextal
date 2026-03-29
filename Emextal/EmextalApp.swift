@@ -3,6 +3,7 @@ import SwiftUI
 extension Notification.Name {
     static let shutdown = Notification.Name("Shutdown")
     static let startModel = Notification.Name("StartModel")
+    static let endModel = Notification.Name("EndModel")
 }
 
 #if canImport(AppKit)
@@ -35,6 +36,9 @@ struct EmextalApp: App {
                     if let model = notification.object as? Model {
                         appState.go(conversation: .init(model: model))
                     }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .endModel)) { _ in
+                    appState.endConversation()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .shutdown)) { notification in
                     #if canImport(AppKit)

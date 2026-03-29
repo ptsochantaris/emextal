@@ -78,6 +78,7 @@ struct AssetCell: View {
                             .frame(width: 36, height: 42)
                     }
                     .buttonStyle(.plain)
+                    .padding(.top, 7)
                 }
                 .foregroundStyle(.accent)
             }
