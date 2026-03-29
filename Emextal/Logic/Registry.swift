@@ -1,15 +1,14 @@
 enum Registry {
-    static let allCategories: [Model.Category] = [
-        .qwen, .openAi, .nvidia
-    ]
-
     static let allModels: [Model] = [
         .init(category: .qwen, variant: .qwen35regular),
         .init(category: .qwen, variant: .qwen35moe),
         .init(category: .qwen, variant: .qwen3coderNext),
         .init(category: .qwen, variant: .qwen35opus),
+        .init(category: .apple, variant: .sage),
+        .init(category: .gemma, variant: .gemmaLm),
         .init(category: .openAi, variant: .gptOss),
-        .init(category: .nvidia, variant: .nemotronCascade)
+        .init(category: .nvidia, variant: .nemotronCascade),
+        .init(category: .experimental, variant: .smol)
     ]
 
     static func variants(for category: Model.Category) -> [Model] {

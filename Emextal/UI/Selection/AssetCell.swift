@@ -86,5 +86,12 @@ struct AssetCell: View {
         .onTapGesture {
             selected = model
         }
+        .contextMenu {
+            if model.isInstalled {
+                Button("Delete") {
+                    NotificationCenter.default.post(name: .deleteModel, object: model)
+                }
+            }
+        }
     }
 }

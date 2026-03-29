@@ -15,7 +15,7 @@ struct SelectionGrid: View {
                         .padding([.leading, .trailing], 64)
                         .frame(maxWidth: .infinity)
 
-                    ForEach(Registry.allCategories) { category in
+                    ForEach(Model.Category.allCases) { category in
                         let models = Registry.variants(for: category)
                         if !models.isEmpty {
                             SectionCarousel(category: category, modelList: models, selected: $selected)

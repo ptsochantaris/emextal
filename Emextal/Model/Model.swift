@@ -9,6 +9,8 @@ final class Model: Hashable, Identifiable, Sendable {
     let category: Category
     let variant: Variant
 
+    var status: String?
+
     private var saveTimer: PopTimer?
 
     var params: Params {
@@ -17,18 +19,21 @@ final class Model: Hashable, Identifiable, Sendable {
         }
     }
 
-    func isInstalled() throws -> Bool {
-        // let repo = Hub.Repo(id: variant.repoId)
-        guard let repoDestination = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?.appending(path: "models/\(variant.repoId)") else {
+    var isInstalled = false
+
+    private func updateInstalled() throws -> Bool {
+        let fm = FileManager.default
+
+        guard let repoDestination = fm.urls(for: .cachesDirectory, in: .userDomainMask).first?.appending(path: "models/\(variant.repoId)") else {
             return false
         }
 
-        if !FileManager.default.fileExists(atPath: repoDestination.path) {
+        guard fm.fileExists(atPath: repoDestination.path) else {
             return false
         }
 
         guard
-            let enumerator = FileManager.default.enumerator(
+            let enumerator = fm.enumerator(
                 at: repoDestination,
                 includingPropertiesForKeys: [.isRegularFileKey, .isHiddenKey],
                 options: [.skipsHiddenFiles]
@@ -70,6 +75,22 @@ final class Model: Hashable, Identifiable, Sendable {
         return true
     }
 
+    func delete() {
+        let fm = FileManager.default
+
+        guard let repoDestination = fm.urls(for: .cachesDirectory, in: .userDomainMask).first?.appending(path: "models/\(variant.repoId)") else {
+            return
+        }
+
+        guard fm.fileExists(atPath: repoDestination.path) else {
+            return
+        }
+
+        try? fm.removeItem(at: repoDestination)
+
+        updateStatus()
+    }
+
     static let appDocumentsUrl: URL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
 
     static let modelsDir = appDocumentsUrl.appendingPathComponent("models", conformingTo: .directory)
@@ -94,6 +115,8 @@ final class Model: Hashable, Identifiable, Sendable {
             params = variant.defaultParams
         }
 
+        updateStatus()
+
         saveTimer = PopTimer(timeInterval: 0.1) { [weak self] in
             self?.save()
         }
@@ -103,8 +126,9 @@ final class Model: Hashable, Identifiable, Sendable {
         variant.additionalContext
     }
 
-    var status: String? {
-        if (try? isInstalled()) == true {
+    func updateStatus() {
+        isInstalled = (try? updateInstalled()) == true
+        status = if isInstalled {
             "INSTALLED"
         } else {
             variant == .qwen35regular ? "START HERE" : nil
