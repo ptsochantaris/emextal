@@ -24,11 +24,10 @@ final class Model: Hashable, Identifiable, Sendable {
     private func updateInstalled() throws -> Bool {
         let fm = FileManager.default
 
-        guard let repoDestination = fm.urls(for: .cachesDirectory, in: .userDomainMask).first?.appending(path: "models/\(variant.repoId)") else {
-            return false
-        }
-
-        guard fm.fileExists(atPath: repoDestination.path) else {
+        guard
+            let repoDestination = fm.urls(for: .cachesDirectory, in: .userDomainMask).first?.appending(path: "models/\(variant.repoId)"),
+            fm.fileExists(atPath: repoDestination.path)
+        else {
             return false
         }
 
@@ -78,11 +77,10 @@ final class Model: Hashable, Identifiable, Sendable {
     func delete() {
         let fm = FileManager.default
 
-        guard let repoDestination = fm.urls(for: .cachesDirectory, in: .userDomainMask).first?.appending(path: "models/\(variant.repoId)") else {
-            return
-        }
-
-        guard fm.fileExists(atPath: repoDestination.path) else {
+        guard
+            let repoDestination = fm.urls(for: .cachesDirectory, in: .userDomainMask).first?.appending(path: "models/\(variant.repoId)"),
+            fm.fileExists(atPath: repoDestination.path)
+        else {
             return
         }
 

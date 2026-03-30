@@ -98,7 +98,6 @@ struct ParamsView: View {
                     }
 
                     TextField("System Prompt", text: $model.params.systemPrompt, axis: .vertical)
-                        .frame(minHeight: 44)
                         .textFieldStyle(PlainTextFieldStyle())
                         .padding([.top, .bottom], 4)
                         .padding([.leading, .trailing], 7)
@@ -168,6 +167,9 @@ struct ParamsView: View {
             }
 
             HStack {
+                Button("Back") {
+                    NotificationCenter.default.post(name: .endModel, object: model)
+                }
                 Spacer()
                 Button("Reset to Defaults") {
                     withAnimation {

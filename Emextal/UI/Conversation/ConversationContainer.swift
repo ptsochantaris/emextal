@@ -11,6 +11,7 @@ struct ConversationContainer: View {
             switch conversation.mode {
             case let .loading(progress, status):
                 LoadingProgressDisplay(progress: progress, status: status)
+                    .padding(.horizontal)
 
             case let .loaded(container):
                 HStack {
