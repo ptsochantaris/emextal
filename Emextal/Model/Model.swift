@@ -77,14 +77,15 @@ final class Model: Hashable, Identifiable, Sendable {
     func delete() {
         let fm = FileManager.default
 
-        guard
-            let repoDestination = fm.urls(for: .cachesDirectory, in: .userDomainMask).first?.appending(path: "models/\(variant.repoId)"),
-            fm.fileExists(atPath: repoDestination.path)
-        else {
-            return
+        if let repoDestination = fm.urls(for: .cachesDirectory, in: .userDomainMask).first?.appending(path: "models/\(variant.repoId)"),
+           fm.fileExists(atPath: repoDestination.path) {
+            try? fm.removeItem(at: repoDestination)
         }
 
-        try? fm.removeItem(at: repoDestination)
+        if let repoDestination = fm.urls(for: .cachesDirectory, in: .userDomainMask).first?.appending(path: "huggingface/hub/models--\(variant.repoId.replacingOccurrences(of: "/", with: "--"))"),
+           fm.fileExists(atPath: repoDestination.path) {
+            try? fm.removeItem(at: repoDestination)
+        }
 
         updateStatus()
     }

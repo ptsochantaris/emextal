@@ -96,13 +96,20 @@ import WebKit
     }
 
     private var statusComponents = [
-        "Text-to-Speech",
-        "Voice Recognition",
-        "Language Model",
-        "Ready"
-    ].map { LoadingProgressDisplay.Status(loaded: false, text: $0) }
+        LoadingProgressDisplay.Status(phase: .loading, text: "Text-to-Speech"),
+        LoadingProgressDisplay.Status(phase: .loading, text: "Voice Recognition"),
+        LoadingProgressDisplay.Status(phase: .loading, text: "Language Model"),
+        LoadingProgressDisplay.Status(phase: .waiting, text: "Ready")
+    ]
 
     private var addedChild = false
+
+    private func setStatus(_ text: String, to _: LoadingProgressDisplay.Status.Phase, loadProgress: Progress) {
+        if let index = statusComponents.firstIndex(where: { $0.text == text }) {
+            statusComponents[index] = .init(phase: .done, text: statusComponents[index].text)
+            mode = .loading(progress: loadProgress.fractionCompleted, status: statusComponents)
+        }
+    }
 
     private func boot() async {
         await mic.setModeDelegate(self)
@@ -125,17 +132,13 @@ import WebKit
             let speakerTask = Task {
                 try await speaker.boot()
                 loadProgress.completedUnitCount += 50
-                if let index = statusComponents.firstIndex(where: { $0.text == "Text-to-Speech" }) {
-                    statusComponents[index] = .init(loaded: true, text: statusComponents[index].text)
-                }
+                setStatus("Text-to-Speech", to: .warmup, loadProgress: loadProgress)
             }
 
             let micTask = Task {
                 try await mic.boot()
                 loadProgress.completedUnitCount += 50
-                if let index = statusComponents.firstIndex(where: { $0.text == "Voice Recognition" }) {
-                    statusComponents[index] = .init(loaded: true, text: statusComponents[index].text)
-                }
+                setStatus("Voice Recognition", to: .warmup, loadProgress: loadProgress)
             }
 
             let warmupTask = Task {
@@ -148,7 +151,10 @@ import WebKit
                 loadProgress.completedUnitCount += 50
 
                 try await speaker.warmup()
+                setStatus("Text-to-Speech", to: .done, loadProgress: loadProgress)
+
                 try await mic.warmup()
+                setStatus("Voice Recognition", to: .done, loadProgress: loadProgress)
 
                 loadProgress.completedUnitCount += 50
 
@@ -174,10 +180,7 @@ import WebKit
                 modelContainer = try await VLMModelFactory.shared.loadContainer(configuration: modelConfiguration, progressHandler: progressHandler)
             }
 
-            if let index = statusComponents.firstIndex(where: { $0.text == "Language Model" }) {
-                statusComponents[index] = .init(loaded: true, text: statusComponents[index].text)
-                mode = .loading(progress: loadProgress.fractionCompleted, status: statusComponents)
-            }
+            setStatus("Language Model", to: .done, loadProgress: loadProgress)
 
             try? await Task.sleep(for: .seconds(1.0))
 

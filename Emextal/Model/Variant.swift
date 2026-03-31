@@ -62,7 +62,7 @@ extension Model {
         }
 
         var originalRepoUrl: URL {
-            URL(string: "https://huggingface.com/\(repoId)")!
+            URL(string: "https://huggingface.co/\(repoId)")!
         }
 
         var sizeDescription: String {

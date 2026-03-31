@@ -15,7 +15,7 @@ struct ConversationContainer: View {
 
             case let .loaded(container):
                 HStack {
-                    LoadingRow(title: "Ready", done: true)
+                    LoadingRow(title: "Ready", phase: .done)
                     Spacer()
                     Button("Start") {
                         withAnimation {

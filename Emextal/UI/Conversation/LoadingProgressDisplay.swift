@@ -3,13 +3,31 @@ import SwiftUI
 
 struct LoadingRow: View {
     let title: String
-    let done: Bool
+    let phase: LoadingProgressDisplay.Status.Phase
 
     var body: some View {
         HStack {
-            Image(systemName: done ? "checkmark.circle" : "circle.dotted.circle")
-                .foregroundStyle(done ? .accent : .primary)
-                .contentTransition(.symbolEffect(.replace))
+            Group {
+                switch phase {
+                case .waiting:
+                    Image(systemName: "circle.dotted.circle")
+                        .foregroundStyle(.primary)
+
+                case .loading:
+                    Image(systemName: "arrowshape.down.circle")
+                        .foregroundStyle(.primary)
+
+                case .warmup:
+                    Image(systemName: "circle")
+                        .foregroundStyle(.accent)
+
+                case .done:
+                    Image(systemName: "checkmark.circle")
+                        .foregroundStyle(.accent)
+                }
+            }
+            .contentTransition(.symbolEffect(.replace))
+
             Text(title)
         }
         .font(.title2)
@@ -18,11 +36,15 @@ struct LoadingRow: View {
 
 struct LoadingProgressDisplay: View {
     struct Status: Equatable, Identifiable {
+        enum Phase {
+            case waiting, loading, warmup, done
+        }
+
         var id: String {
             text
         }
 
-        let loaded: Bool
+        let phase: Phase
         let text: String
     }
 
@@ -32,7 +54,7 @@ struct LoadingProgressDisplay: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             ForEach(status) { statusItem in
-                LoadingRow(title: statusItem.text, done: statusItem.loaded)
+                LoadingRow(title: statusItem.text, phase: statusItem.phase)
             }
         }
 
