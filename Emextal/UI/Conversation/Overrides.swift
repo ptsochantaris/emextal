@@ -98,9 +98,10 @@ struct ParamsView: View {
                     }
 
                     TextField("System Prompt", text: $model.params.systemPrompt, axis: .vertical)
-                        .textFieldStyle(PlainTextFieldStyle())
+                        .textFieldStyle(.plain)
                         .padding([.top, .bottom], 4)
                         .padding([.leading, .trailing], 7)
+                        .fixedSize(horizontal: false, vertical: true)
                         .background {
                             RoundedRectangle(cornerSize: CGSize(width: 8, height: 8), style: .continuous)
                                 .stroke(.secondary)
@@ -137,6 +138,10 @@ struct ParamsView: View {
                         FloatRow(descriptor: Model.Params.Descriptors.frequencyPenatly, value: $model.params.frequencyPenatly)
                         FloatRow(descriptor: Model.Params.Descriptors.presentPenatly, value: $model.params.presentPenatly)
                     }
+
+                    if model.params.supportsQuantisation {
+                        Toggle("Enable reasoning mode", isOn: $model.params.enableThinking)
+                    }
                 }
 
             } else {
@@ -171,6 +176,10 @@ struct ParamsView: View {
                     NotificationCenter.default.post(name: .endModel, object: model)
                 }
                 Spacer()
+                if model.variant.supportsThinking {
+                    Toggle("Enable reasoning mode", isOn: $model.params.enableThinking)
+                    Spacer()
+                }
                 Button("Reset to Defaults") {
                     withAnimation {
                         model.resetToDefaults()

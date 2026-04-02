@@ -178,6 +178,28 @@ extension Model {
             }
         }
 
+        private var supportsQuantisation: Bool {
+            switch self {
+            case .gemmaLm:
+                false
+            case .deepseek, .devstral, .gptOss, .llama, .mistral, .nemotronCascade, .qwen3coderNext, .qwen35moe, .qwen35opus, .qwen35regular, .sage, .smol:
+                true
+            }
+        }
+
+        var supportsThinking: Bool {
+            switch self {
+            case .smol:
+                true
+            case .deepseek, .devstral, .gemmaLm, .gptOss, .llama, .mistral, .nemotronCascade, .qwen3coderNext, .qwen35moe, .qwen35opus, .qwen35regular, .sage:
+                false
+            }
+        }
+
+        private var defaultEnableThinking: Bool {
+            false
+        }
+
         private var defaultPresentPenalty: Float {
             switch self {
             case .devstral, .nemotronCascade, .qwen3coderNext:
@@ -211,21 +233,6 @@ extension Model {
                 false
             case .deepseek, .devstral, .gemmaLm, .gptOss, .llama, .mistral, .nemotronCascade, .qwen35moe, .qwen35opus, .qwen35regular, .sage, .smol:
                 true
-            }
-        }
-
-        // TODO: separate param storage per variant
-
-        // TODO: - put enable_thinking in options if the model is eligible for the thinking param
-
-        var additionalContext: [String: any Sendable] {
-            switch self {
-            case .nemotronCascade, .qwen35moe, .qwen35regular:
-                ["enable_thinking": false]
-            case .qwen35opus:
-                ["enable_thinking": true]
-            case .deepseek, .devstral, .gemmaLm, .gptOss, .llama, .mistral, .qwen3coderNext, .sage, .smol:
-                [:]
             }
         }
 
@@ -283,14 +290,18 @@ extension Model {
         }
 
         var defaultParams: Params {
-            Params(topK: defaultTopK,
-                   topP: defaultTopP,
-                   minP: defaultMinP,
-                   systemPrompt: defaultPrompt,
-                   temperature: defaultTemperature,
-                   repeatPenatly: defaultRepeatPenatly,
-                   frequencyPenatly: defaultFrequencyPenalty,
-                   presentPenatly: defaultPresentPenalty)
+            Params(
+                topK: defaultTopK,
+                topP: defaultTopP,
+                minP: defaultMinP,
+                systemPrompt: defaultPrompt,
+                temperature: defaultTemperature,
+                repeatPenatly: defaultRepeatPenatly,
+                frequencyPenatly: defaultFrequencyPenalty,
+                presentPenatly: defaultPresentPenalty,
+                enableThinking: defaultEnableThinking,
+                supportsQuantisation: supportsQuantisation
+            )
         }
     }
 }

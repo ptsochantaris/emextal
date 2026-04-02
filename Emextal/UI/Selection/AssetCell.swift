@@ -90,6 +90,7 @@ struct AssetCell: View {
             if model.isInstalled {
                 Button("Delete") {
                     NotificationCenter.default.post(name: .deleteModel, object: model)
+                    selected = nil
                 }
             }
         }

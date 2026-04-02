@@ -122,7 +122,11 @@ final class Model: Hashable, Identifiable, Sendable {
     }
 
     var additionalContext: [String: any Sendable] {
-        variant.additionalContext
+        if variant.supportsThinking {
+            ["enable_thinking": params.enableThinking]
+        } else {
+            [:]
+        }
     }
 
     func updateStatus() {

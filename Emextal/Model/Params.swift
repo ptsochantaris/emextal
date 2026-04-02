@@ -33,34 +33,34 @@ extension Model {
         var repeatPenatly: Float
         var frequencyPenatly: Float
         var presentPenatly: Float
-
-        init(topK: Int = 0, topP: Float = 0, minP: Float = 0, systemPrompt: String = "", temperature: Float = 0, repeatPenatly: Float = 0, frequencyPenatly: Float = 0, presentPenatly: Float = 0) {
-            self.topK = topK
-            self.topP = topP
-            self.minP = minP
-            self.systemPrompt = systemPrompt
-            self.temperature = temperature
-            self.repeatPenatly = repeatPenatly
-            self.frequencyPenatly = frequencyPenatly
-            self.presentPenatly = presentPenatly
-        }
+        var enableThinking: Bool
+        let supportsQuantisation: Bool
 
         var mlx: GenerateParameters {
-            .init(
-                kvBits: 8,
-                kvGroupSize: 64,
-                quantizedKVStart: 0,
-                temperature: temperature,
-                topP: topP,
-                topK: topK,
-                minP: minP,
-                repetitionPenalty: repeatPenatly,
-                repetitionContextSize: 20,
-                presencePenalty: presentPenatly,
-                presenceContextSize: 20,
-                frequencyPenalty: frequencyPenatly,
-                frequencyContextSize: 20,
-            )
+            if supportsQuantisation {
+                .init(
+                    kvBits: 8,
+                    kvGroupSize: 64,
+                    quantizedKVStart: 0,
+                    temperature: temperature,
+                    topP: topP,
+                    topK: topK,
+                    minP: minP,
+                    repetitionPenalty: repeatPenatly, repetitionContextSize: 20,
+                    presencePenalty: presentPenatly, presenceContextSize: 20,
+                    frequencyPenalty: frequencyPenatly, frequencyContextSize: 20
+                )
+            } else {
+                .init(
+                    temperature: temperature,
+                    topP: topP,
+                    topK: topK,
+                    minP: minP,
+                    repetitionPenalty: repeatPenatly, repetitionContextSize: 20,
+                    presencePenalty: presentPenatly, presenceContextSize: 20,
+                    frequencyPenalty: frequencyPenatly, frequencyContextSize: 20
+                )
+            }
         }
     }
 }

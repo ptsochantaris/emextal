@@ -206,7 +206,9 @@ import WebKit
 
             setStatus("Language Model", to: .done, loadProgress: loadProgress)
 
-            try? await Task.sleep(for: .seconds(0.3))
+            try? await Task.sleep(for: .seconds(0.2))
+
+            model.updateStatus()
 
             try await warmupTask.value
 
