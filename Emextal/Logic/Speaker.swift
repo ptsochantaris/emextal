@@ -58,6 +58,10 @@ final actor Speaker {
         effectPlayer.stop()
     }
 
+    func stopSpeaking() {
+        // TODO
+    }
+
     func shutdown() {
         effectContinuation.finish()
         spechContinuation.finish()

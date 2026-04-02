@@ -87,12 +87,36 @@ import WebKit
         mode = newMode
     }
 
-    func getSession() -> FinalWrapper<ChatSession?> {
-        FinalWrapper(mode.session)
-    }
-
     func playEffect(_ effect: SoundEffect) {
         speaker.playEffect(effect)
+    }
+
+    func setListeningTalkingMode() {
+        guard let session = mode.session else {
+            return
+        }
+        setMode(.listening(state: .talking, session: session))
+    }
+
+    func setTranscribingMode() {
+        guard let session = mode.session else {
+            return
+        }
+        setMode(.transcribing(session: session))
+    }
+
+    func setListeningQuietMode() {
+        guard let session = mode.session else {
+            return
+        }
+        setMode(.listening(state: .quiet, session: session))
+    }
+
+    func setWaitingMode() {
+        guard let session = mode.session else {
+            return
+        }
+        setMode(.waiting(session: session))
     }
 
     private var statusComponents = [
@@ -403,7 +427,7 @@ import WebKit
                 task.cancel()
                 try? await task.value
             }
-            // TODO: stop speaking
+            await speaker.stopSpeaking()
             messageLog.reset()
             try? await messageLog.save(to: model.modelHistoryPath)
             if let session = FinalWrapper(mode.session).data {

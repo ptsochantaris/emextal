@@ -80,9 +80,7 @@ final actor Mic {
 
         log("Manual recording")
 
-        if let session = await delegate.getSession().data {
-            await delegate.setMode(.listening(state: .talking, session: session))
-        }
+        await delegate.setListeningTalkingMode()
 
         Task {
             let sequence = await recorder.start(dropFirstChunk: false)
@@ -96,13 +94,11 @@ final actor Mic {
             }
 
             if audioChain.isEmpty {
-                await resetToWaiting()
+                await delegate.setWaitingMode()
             } else {
                 log("Manual recording done, parsing")
                 await delegate.playEffect(.endListening)
-                if let session = await delegate.getSession().data {
-                    await delegate.setMode(.transcribing(session: session))
-                }
+                await delegate.setTranscribingMode()
 
                 let block = concatenated(audioChain)
                 let text = transcriber.generate(audio: block).text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -118,9 +114,7 @@ final actor Mic {
             return
         }
 
-        if let session = await delegate.getSession().data {
-            await delegate.setMode(.listening(state: .quiet, session: session))
-        }
+        await delegate.setListeningQuietMode()
 
         log("VAD recording")
 
@@ -137,9 +131,7 @@ final actor Mic {
                 if result.numSpeakers > 0 {
                     if audioChain.isEmpty {
                         log("Speaking started")
-                        if let session = await delegate.getSession().data {
-                            await delegate.setMode(.listening(state: .talking, session: session))
-                        }
+                        await delegate.setListeningTalkingMode()
                     }
                     audioChain.append(chunk.data)
 
@@ -148,9 +140,7 @@ final actor Mic {
 
                     await recorder.stop()
 
-                    if let session = await delegate.getSession().data {
-                        await delegate.setMode(.transcribing(session: session))
-                    }
+                    await delegate.setTranscribingMode()
 
                     let block = concatenated(audioChain)
                     audioChain.removeAll(keepingCapacity: true)
@@ -161,12 +151,6 @@ final actor Mic {
             }
 
             log("VAD stream ended")
-        }
-    }
-
-    private func resetToWaiting() async {
-        if let delegate = modeDelegate, let session = await delegate.getSession().data {
-            await delegate.setMode(.waiting(session: session))
         }
     }
 }
