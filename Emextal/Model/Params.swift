@@ -47,6 +47,9 @@ extension Model {
 
         var mlx: GenerateParameters {
             .init(
+                kvBits: 8,
+                kvGroupSize: 64,
+                quantizedKVStart: 0,
                 temperature: temperature,
                 topP: topP,
                 topK: topK,
@@ -56,7 +59,7 @@ extension Model {
                 presencePenalty: presentPenatly,
                 presenceContextSize: 20,
                 frequencyPenalty: frequencyPenatly,
-                frequencyContextSize: 20
+                frequencyContextSize: 20,
             )
         }
     }
