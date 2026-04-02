@@ -176,7 +176,7 @@ struct ParamsView: View {
                     NotificationCenter.default.post(name: .endModel, object: model)
                 }
                 Spacer()
-                if model.variant.supportsThinking {
+                if model.variant.supportsThinkingSwitch {
                     Toggle("Enable reasoning mode", isOn: $model.params.enableThinking)
                     Spacer()
                 }

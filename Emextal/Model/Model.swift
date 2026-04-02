@@ -122,7 +122,7 @@ final class Model: Hashable, Identifiable, Sendable {
     }
 
     var additionalContext: [String: any Sendable] {
-        if variant.supportsThinking {
+        if variant.supportsThinkingSwitch {
             ["enable_thinking": params.enableThinking]
         } else {
             [:]

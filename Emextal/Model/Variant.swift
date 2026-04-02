@@ -34,7 +34,7 @@ extension Model {
             switch self {
             case .qwen35opus: "Jackrong/MLX-Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-v2-4bit"
             case .qwen35regular: "Brooooooklyn/Qwen3.5-27B-unsloth-mlx"
-            case .qwen35moe: "Brooooooklyn/Qwen3.5-35B-A3B-unsloth-mlx"
+            case .qwen35moe: "Brooooooklyn/Qwen3.5-35B-A3B-UD-Q4_K_XL-mlx"
             case .qwen3coderNext: "mlx-community/Qwen3-Coder-Next-4bit"
             case .gptOss: "mlx-community/gpt-oss-20b-MXFP4-Q8"
             case .nemotronCascade: "mlx-community/Nemotron-Cascade-2-30B-A3B-4bit"
@@ -187,11 +187,11 @@ extension Model {
             }
         }
 
-        var supportsThinking: Bool {
+        var supportsThinkingSwitch: Bool {
             switch self {
-            case .smol:
+            case .qwen35regular, .smol, .qwen35moe:
                 true
-            case .deepseek, .devstral, .gemmaLm, .gptOss, .llama, .mistral, .nemotronCascade, .qwen3coderNext, .qwen35moe, .qwen35opus, .qwen35regular, .sage:
+            case .deepseek, .devstral, .gemmaLm, .gptOss, .llama, .mistral, .nemotronCascade, .qwen3coderNext, .sage, .qwen35opus:
                 false
             }
         }
