@@ -189,9 +189,9 @@ extension Model {
 
         var supportsThinkingSwitch: Bool {
             switch self {
-            case .qwen35regular, .smol, .qwen35moe:
+            case .qwen35moe, .qwen35regular, .smol:
                 true
-            case .deepseek, .devstral, .gemmaLm, .gptOss, .llama, .mistral, .nemotronCascade, .qwen3coderNext, .sage, .qwen35opus:
+            case .deepseek, .devstral, .gemmaLm, .gptOss, .llama, .mistral, .nemotronCascade, .qwen3coderNext, .qwen35opus, .sage:
                 false
             }
         }

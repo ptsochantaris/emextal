@@ -11,14 +11,12 @@ final actor Speaker {
     private let speechStream: AsyncStream<String>
     private let spechContinuation: AsyncStream<String>.Continuation
 
-    private let engine: AVAudioEngine
     private let speechPlayer = AVAudioPlayerNode()
 
     private let effectPlayer = AVAudioPlayerNode()
     private let effectContinuation: AsyncStream<SoundEffect>.Continuation
 
     init(engine: AVAudioEngine) {
-        self.engine = engine
         (speechStream, spechContinuation) = AsyncStream.makeStream(of: String.self, bufferingPolicy: .unbounded)
 
         engine.attach(speechPlayer)
@@ -59,43 +57,59 @@ final actor Speaker {
     }
 
     func stopSpeaking() {
-        // TODO:
+        active = UUID()
+        countInQueue = 0
+        playingLatestBuffer = false
+        if speechPlayer.isPlaying {
+            speechPlayer.stop()
+        }
     }
 
     func shutdown() {
+        stopSpeaking()
         effectContinuation.finish()
         spechContinuation.finish()
     }
-
-    func warmup() async throws {
-        #if os(macOS)
-            log("Speech model warmup...")
-            _ = try await loadedModel?.generate(text: "This is a warmup!")
-            log("Speech model warmup done")
-        #endif
-    }
-
-    private var loadedModel: SopranoModel?
 
     func boot() async throws {
         let model = try await Task {
             try await SopranoModel.fromPretrained("mlx-community/Soprano-1.1-80M-bf16")
         }.value
 
-        loadedModel = model
-
         let stream = speechStream
 
         Task { [weak self] in
+            log("Speech queue starting")
             do {
+                #if os(macOS)
+                    log("Speech model warmup...")
+                    _ = try? await model.generate(text: "This is a warmup!")
+                    log("Speech model warmup done")
+                #endif
+
+                await self?.bootDone()
+
                 for await line in stream {
                     guard let self else { return }
-                    try await speak(line, using: model)
+                    guard let active = await active else { continue }
+                    try await speak(line, using: model, startedInActive: active)
                 }
             } catch {
                 log("Speech generation failed: \(error)")
             }
             log("Speech queue done")
+        }
+    }
+
+    private var active: UUID?
+
+    private func bootDone() {
+        active = UUID()
+    }
+
+    func waitForBoot() async {
+        while active == nil {
+            try? await Task.sleep(for: .seconds(0.1))
         }
     }
 
@@ -136,7 +150,9 @@ final actor Speaker {
 
     private var playingLatestBuffer = false
 
-    private func speak(_ text: String, using speechModel: SopranoModel) async throws {
+    private func speak(_ text: String, using speechModel: SopranoModel, startedInActive: UUID) async throws {
+        guard startedInActive == active else { return }
+
         log("Rendering: \(text)")
 
         let samples = try await speechModel.generate(text: text, parameters: voiceParams).asArray(Float.self)
@@ -156,12 +172,23 @@ final actor Speaker {
             try? await Task.sleep(for: .seconds(0.2))
         }
 
+        guard startedInActive == active else { return }
+
         playingLatestBuffer = true
+
         Task {
+            defer {
+                playingLatestBuffer = false
+            }
+
+            guard startedInActive == active else { return }
+
+            log("Playing: \(text)")
             await speechPlayer.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack)
             try? await Task.sleep(for: .seconds(0.5))
-            countInQueue -= 1
-            playingLatestBuffer = false
+            if countInQueue > 0 {
+                countInQueue -= 1
+            }
         }
     }
 }

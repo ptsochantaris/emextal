@@ -1,4 +1,3 @@
-import AVFoundation
 import Foundation
 import MLX
 import MLXAudioSTT
@@ -19,10 +18,8 @@ final actor Mic {
     private let phraseContinuation: AsyncStream<String>.Continuation
     private let recorder: Recorder
 
-    init(engine: AVAudioEngine) {
-        nonisolated(unsafe) let engineRef = engine
-        unsafe recorder = Recorder(engine: engineRef)
-
+    init(recorder: Recorder) {
+        self.recorder = recorder
         (phraseStream, phraseContinuation) = AsyncStream.makeStream(of: String.self, bufferingPolicy: .unbounded)
     }
 
@@ -38,7 +35,7 @@ final actor Mic {
         modeDelegate = delegate
     }
 
-    func warmup() async throws {
+    private func warmup() async {
         #if os(macOS)
             guard let detect = FinalWrapper(detector).data else {
                 return
@@ -46,7 +43,7 @@ final actor Mic {
 
             let blank = MLXArray.zeros([100_000])
             log("Speaker detection warmup...")
-            _ = try await detect.generate(audio: blank)
+            _ = try? await detect.generate(audio: blank)
             log("Speaker detection warmup done")
 
             log("Transcriber warmup...")
@@ -55,10 +52,20 @@ final actor Mic {
         #endif
     }
 
+    private var bootDone = false
+
     func boot() async throws {
         async let detectorTask = SortformerModel.fromPretrained("mlx-community/diar_streaming_sortformer_4spk-v2.1-fp16")
         transcriber = try await Qwen3ASRModel.fromPretrained("mlx-community/Qwen3-ASR-1.7B-4bit")
         detector = try await detectorTask
+        await warmup()
+        bootDone = true
+    }
+
+    func waitForBoot() async {
+        while !bootDone {
+            try? await Task.sleep(for: .seconds(0.1))
+        }
     }
 
     func stop() async {

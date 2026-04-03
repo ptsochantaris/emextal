@@ -1,3 +1,4 @@
+import AVFoundation
 import SwiftUI
 
 @Observable
@@ -18,12 +19,36 @@ final class AppState {
     }
 
     init() {
+        nonisolated(unsafe) let engine = AVAudioEngine()
+
+        unsafe engine.inputNode.volume = 1.0
+
+        nonisolated(unsafe) let inputNode = unsafe engine.inputNode
+        let recorder = Recorder(inputNode: unsafe inputNode)
+
+        let speaker = Speaker(engine: unsafe engine)
+
+        let mic = Mic(recorder: recorder)
+
+        Task {
+            do {
+                unsafe try engine.start()
+                async let speakerBoot = speaker.boot()
+                async let micBoot = mic.boot()
+                try await speakerBoot
+                try await micBoot
+            } catch {
+                log("Audio engine start failed: \(error)")
+            }
+        }
+
         let center = NotificationCenter.default
+
         Task { [weak self] in
             for await notification in center.notifications(named: .startModel) {
                 guard let self else { return }
                 if let model = notification.object as? Model {
-                    mode = .conversation(.init(model: model))
+                    mode = .conversation(.init(model: model, speaker: speaker, mic: mic))
                 }
             }
         }

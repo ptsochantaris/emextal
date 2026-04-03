@@ -7,8 +7,6 @@ final actor Recorder {
         unsafe HighPriorityExecutor.sharedExecutor.asUnownedSerialExecutor()
     }
 
-    private let engine: AVAudioEngine
-
     private let transcriptionSampleRate = 16000
     private let micBufferSize: UInt32 = 16384
     private let outputFormat: AVAudioFormat
@@ -25,13 +23,12 @@ final actor Recorder {
     private var convertedContinuation: AsyncStream<FinalWrapper<MLXArray>>.Continuation?
     private let convertedBufferFrames: Int
 
-    init(engine: AVAudioEngine) {
-        self.engine = engine
+    init(inputNode: AVAudioInputNode) {
+        self.inputNode = inputNode
 
         outputFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: Double(transcriptionSampleRate), channels: 1, interleaved: true)!
         outputFrames = AVAudioFrameCount(outputFormat.sampleRate)
 
-        inputNode = engine.inputNode
         inputFormat = inputNode.outputFormat(forBus: 0)
         converter = AVAudioConverter(from: inputFormat, to: outputFormat)!
 
@@ -65,14 +62,16 @@ final actor Recorder {
             let buffer = FinalWrapper(incomingBuffer)
             continuation.yield(buffer)
         }
-
         return convertedSequence
     }
 
     func stop() {
+        guard let continuation = convertedContinuation else {
+            return
+        }
         log("Removing mic tap")
         inputNode.removeTap(onBus: 0)
-        convertedContinuation?.finish()
+        continuation.finish()
         convertedContinuation = nil
     }
 

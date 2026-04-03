@@ -10,7 +10,6 @@ import WebKit
 
 @Observable final class Conversation {
     private let messageLog = MessageLog()
-    private let engine = AVAudioEngine()
     private let speaker: Speaker
     private let mic: Mic
 
@@ -47,12 +46,10 @@ import WebKit
 
     let model: Model
 
-    init(model: Model) {
+    init(model: Model, speaker: Speaker, mic: Mic) {
         self.model = model
-
-        nonisolated(unsafe) let engineRef = engine
-        unsafe speaker = Speaker(engine: engineRef)
-        unsafe mic = Mic(engine: engineRef)
+        self.speaker = speaker
+        self.mic = mic
 
         Task {
             micPermission = await AVCaptureDevice.requestAccess(for: .audio)
@@ -153,34 +150,14 @@ import WebKit
                 }
             }
 
-            let speakerTask = Task {
-                try await speaker.boot()
-                loadProgress.completedUnitCount += 50
-                setStatus("Text-to-Speech", to: .warmup, loadProgress: loadProgress)
-            }
-
-            let micTask = Task {
-                try await mic.boot()
-                loadProgress.completedUnitCount += 50
-                setStatus("Voice Recognition", to: .warmup, loadProgress: loadProgress)
-            }
-
             let warmupTask = Task {
-                try await speakerTask.value
-                try await micTask.value
-
-                engine.inputNode.volume = 1.0
-                try engine.start()
-
-                loadProgress.completedUnitCount += 50
-
-                try await speaker.warmup()
+                await speaker.waitForBoot()
+                loadProgress.completedUnitCount += 100
                 setStatus("Text-to-Speech", to: .done, loadProgress: loadProgress)
 
-                try await mic.warmup()
+                await mic.waitForBoot()
+                loadProgress.completedUnitCount += 100
                 setStatus("Voice Recognition", to: .done, loadProgress: loadProgress)
-
-                loadProgress.completedUnitCount += 50
 
                 try await logTask.value
             }
@@ -385,6 +362,9 @@ import WebKit
     }
 
     func shutdown() async {
+        await speaker.stopSpeaking()
+        await mic.stop()
+
         if let task = mode.task {
             task.cancel()
             try? await task.value
@@ -396,8 +376,6 @@ import WebKit
         }
 
         messageLog.shutdown()
-        await mic.shutdown()
-        await speaker.shutdown()
 
         mode = .shutdown
     }
@@ -425,11 +403,11 @@ import WebKit
 
     func reset() {
         Task {
+            await speaker.stopSpeaking()
             if let task = mode.task {
                 task.cancel()
                 try? await task.value
             }
-            await speaker.stopSpeaking()
             messageLog.reset()
             try? await messageLog.save(to: model.modelHistoryPath)
             if let session = FinalWrapper(mode.session).data {
