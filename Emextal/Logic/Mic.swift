@@ -35,7 +35,13 @@ final actor Mic {
         modeDelegate = delegate
     }
 
-    private func warmup() async {
+    private var bootDone = false
+
+    func boot() async throws {
+        async let detectorTask = SortformerModel.fromPretrained("mlx-community/diar_streaming_sortformer_4spk-v2.1-fp16")
+        transcriber = try await Qwen3ASRModel.fromPretrained("mlx-community/Qwen3-ASR-1.7B-4bit")
+        detector = try await detectorTask
+
         #if os(macOS)
             guard let detect = FinalWrapper(detector).data() else {
                 return
@@ -50,15 +56,7 @@ final actor Mic {
             _ = transcriber?.generate(audio: blank)
             log("Transcriber warmup done")
         #endif
-    }
 
-    private var bootDone = false
-
-    func boot() async throws {
-        async let detectorTask = SortformerModel.fromPretrained("mlx-community/diar_streaming_sortformer_4spk-v2.1-fp16")
-        transcriber = try await Qwen3ASRModel.fromPretrained("mlx-community/Qwen3-ASR-1.7B-4bit")
-        detector = try await detectorTask
-        await warmup()
         bootDone = true
     }
 

@@ -13,6 +13,9 @@ struct ContentView: View {
             case .menu:
                 SelectionGrid(selected: $selectedModel)
 
+            case let .error(title, error):
+                ErrorView(title: title, error: error)
+
             case let .conversation(conversation):
                 ConversationContainer(conversation: conversation)
             }

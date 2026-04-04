@@ -38,7 +38,7 @@ final class AppState {
                 try await speakerBoot
                 try await micBoot
             } catch {
-                log("Audio engine start failed: \(error)")
+                mode = .error(title: "Audio engine start failed", error: error)
             }
         }
 

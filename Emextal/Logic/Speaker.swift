@@ -72,23 +72,21 @@ final actor Speaker {
     }
 
     func boot() async throws {
-        let model = try await Task {
-            try await SopranoModel.fromPretrained("mlx-community/Soprano-1.1-80M-bf16")
-        }.value
+        let model = try await SopranoModel.fromPretrained("mlx-community/Soprano-1.1-80M-bf16")
 
         let stream = speechStream
+
+        #if os(macOS)
+            log("Speech model warmup...")
+            _ = try? await model.generate(text: "This is a warmup!")
+            log("Speech model warmup done")
+        #endif
+
+        active = UUID()
 
         Task { [weak self] in
             log("Speech queue starting")
             do {
-                #if os(macOS)
-                    log("Speech model warmup...")
-                    _ = try? await model.generate(text: "This is a warmup!")
-                    log("Speech model warmup done")
-                #endif
-
-                await self?.bootDone()
-
                 for await line in stream {
                     guard let self else { return }
                     guard let active = await active else { continue }
@@ -102,10 +100,6 @@ final actor Speaker {
     }
 
     private var active: UUID?
-
-    private func bootDone() {
-        active = UUID()
-    }
 
     func waitForBoot() async {
         while active == nil {
