@@ -14,6 +14,7 @@ struct SectionCarousel: View {
 
                     ForEach(modelList) {
                         AssetCell(model: $0, selected: $selected)
+                            .id($0.id)
                     }
                     #if canImport(AppKit)
                     .aspectRatio(1.2, contentMode: .fit)
@@ -27,7 +28,7 @@ struct SectionCarousel: View {
             }
             .background(.white.opacity(0.3).blendMode(.softLight))
             .onAppear {
-                horizontalScrollReader.scrollTo(selected?.variant.id)
+                horizontalScrollReader.scrollTo(selected?.id, anchor: .center)
             }
         }
     }

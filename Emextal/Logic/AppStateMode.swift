@@ -5,7 +5,7 @@ enum AppStateMode: Equatable {
 
     static func == (lhs: AppStateMode, rhs: AppStateMode) -> Bool {
         switch (lhs, rhs) {
-        case (.conversation, .conversation), (.menu, .menu), (.error, .error):
+        case (.conversation, .conversation), (.error, .error), (.menu, .menu):
             true
         default:
             false
@@ -16,7 +16,7 @@ enum AppStateMode: Equatable {
         switch self {
         case let .conversation(conversation):
             conversation
-        case .menu, .error:
+        case .error, .menu:
             nil
         }
     }

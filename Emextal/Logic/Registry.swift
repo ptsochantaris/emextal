@@ -4,8 +4,9 @@ enum Registry {
         .init(category: .qwen, variant: .qwen35moe),
         .init(category: .qwen, variant: .qwen3coderNext),
         .init(category: .qwen, variant: .qwen35opus),
-        .init(category: .apple, variant: .sage),
+        .init(category: .gemma, variant: .gemma4),
         .init(category: .gemma, variant: .gemmaLm),
+        .init(category: .openAi, variant: .gptOssLarge),
         .init(category: .openAi, variant: .gptOss),
         .init(category: .nvidia, variant: .nemotronCascade),
         .init(category: .experimental, variant: .smol)

@@ -1,17 +1,15 @@
 import SwiftUI
 
 struct ContentView: View {
-    let appState: AppState
+    @Bindable private(set) var appState: AppState
 
     @FocusState private var promptFocused
-
-    @State private var selectedModel: Model?
 
     var body: some View {
         ZStack {
             switch appState.mode {
             case .menu:
-                SelectionGrid(selected: $selectedModel)
+                SelectionGrid(selected: $appState.selectedModel)
 
             case let .error(title, error):
                 ErrorView(title: title, error: error)
@@ -20,7 +18,7 @@ struct ContentView: View {
                 ConversationContainer(conversation: conversation)
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: selectedModel)
+        .animation(.easeInOut(duration: 0.2), value: appState.selectedModel)
         .animation(.easeInOut, value: appState.mode)
         .navigationTitle(appState.title)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

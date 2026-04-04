@@ -30,7 +30,7 @@ struct SelectionGrid: View {
             .scrollIndicators(.hidden)
             .onAppear {
                 if let variant = selected?.variant, let section = Registry.category(for: variant) {
-                    verticalScrollReader.scrollTo(section.id)
+                    verticalScrollReader.scrollTo(section.id, anchor: .center)
                 }
             }
         }

@@ -37,7 +37,11 @@ extension Model {
         let supportsQuantisation: Bool
 
         var mlx: GenerateParameters {
-            if supportsQuantisation {
+            let repeatResolved = repeatPenatly == Descriptors.repeatPenatly.disabled ? nil : repeatPenatly
+            let frequencyResolved = frequencyPenatly == Descriptors.frequencyPenatly.disabled ? nil : frequencyPenatly
+            let presenceResolved = presentPenatly == Descriptors.presentPenatly.disabled ? nil : presentPenatly
+
+            return if supportsQuantisation {
                 .init(
                     kvBits: 8,
                     kvGroupSize: 64,
@@ -46,9 +50,9 @@ extension Model {
                     topP: topP,
                     topK: topK,
                     minP: minP,
-                    repetitionPenalty: repeatPenatly, repetitionContextSize: 20,
-                    presencePenalty: presentPenatly, presenceContextSize: 20,
-                    frequencyPenalty: frequencyPenatly, frequencyContextSize: 20
+                    repetitionPenalty: repeatResolved, repetitionContextSize: 64,
+                    presencePenalty: presenceResolved, presenceContextSize: 64,
+                    frequencyPenalty: frequencyResolved, frequencyContextSize: 64
                 )
             } else {
                 .init(
@@ -56,9 +60,9 @@ extension Model {
                     topP: topP,
                     topK: topK,
                     minP: minP,
-                    repetitionPenalty: repeatPenatly, repetitionContextSize: 20,
-                    presencePenalty: presentPenatly, presenceContextSize: 20,
-                    frequencyPenalty: frequencyPenatly, frequencyContextSize: 20
+                    repetitionPenalty: repeatResolved, repetitionContextSize: 64,
+                    presencePenalty: presenceResolved, presenceContextSize: 64,
+                    frequencyPenalty: frequencyResolved, frequencyContextSize: 64
                 )
             }
         }

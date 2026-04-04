@@ -17,8 +17,13 @@ import WebKit
 
     var prompt = ""
     var attachedImage: NSImage?
-    var textOnly = true
     let memoryStats = MemoryStats()
+
+    var textOnly = Persisted.textOnly {
+        didSet {
+            Persisted.textOnly = textOnly
+        }
+    }
 
     var mode = ConversationMode.loading(progress: 0, status: []) {
         didSet {
@@ -258,9 +263,11 @@ import WebKit
         }
         prompt = ""
 
+        let tokenIngestion = TokenIngestion(initialBuffer: model.variant.injectThinkingTag ? "<think>" : "")
+
+        let textProcessor = TextProcessor(harmony: model.variant.usesHarmony ? .idle : .notApplicable)
+
         let responseTask = Task {
-            var charBuffer = model.variant.injectThinkingTag ? "<think>" : ""
-            charBuffer.reserveCapacity(1024)
 
             var lineBuffer = ""
             lineBuffer.reserveCapacity(1024)
@@ -271,30 +278,45 @@ import WebKit
                 .map { CIImage(cgImage: $0) }
                 .map { UserInput.Image.ciImage($0) }
 
-            for try await item in session.streamResponse(to: trimmedText, images: images, videos: []) {
-                for char in item {
-                    switch char {
-                    case ",", ":", "!", "?", ".", ")", "\n":
-                        charBuffer.append(char)
-                        appendText(charBuffer, session: session, first: &first)
-                        charBuffer.removeAll(keepingCapacity: true)
-                        if char == "\n" {
-                            if !textOnly {
-                                await speaker.queue(lineBuffer)
-                            }
-                            lineBuffer.removeAll(keepingCapacity: true)
-                        } else {
-                            lineBuffer.append(char)
-                        }
-
-                    default:
-                        charBuffer.append(char)
-                        lineBuffer.append(char)
-                    }
+            let tokenTask = Task {
+                defer {
+                    tokenIngestion.done()
+                }
+                for try await item in session.streamResponse(to: trimmedText, images: images, videos: []) {
+                    tokenIngestion.ingest(text: item)
                 }
             }
 
-            appendText(charBuffer, session: session, first: &first)
+            let processorTask = Task {
+                defer {
+                    textProcessor.done()
+                }
+                for await item in tokenIngestion.output {
+                    textProcessor.ingest(token: item)
+                }
+            }
+
+            for await token in textProcessor.output {
+                switch token {
+                case let .text(item):
+                    appendText(item, session: session, first: &first)
+                    if item.last == "\n" {
+                        if !textOnly {
+                            await speaker.queue(lineBuffer)
+                        }
+                        lineBuffer.removeAll(keepingCapacity: true)
+                    } else {
+                        lineBuffer.append(item)
+                    }
+
+                case let .tag(token):
+                    appendText(token, session: session, first: &first)
+                    lineBuffer.append(token)
+                }
+            }
+
+            _ = await processorTask.value
+            _ = try await tokenTask.value
 
             await responseEnd(lineBuffer: lineBuffer, session: session)
         }

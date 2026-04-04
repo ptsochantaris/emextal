@@ -3,6 +3,12 @@ import SwiftUI
 
 @Observable
 final class AppState {
+    var selectedModel: Model? {
+        didSet {
+            Persisted.lastSelectedModelId = selectedModel?.id
+        }
+    }
+
     private(set) var mode = AppStateMode.menu
 
     var title: String {
@@ -18,8 +24,12 @@ final class AppState {
         }
     }
 
+    private nonisolated(unsafe) let engine = AVAudioEngine()
+
     init() {
-        nonisolated(unsafe) let engine = AVAudioEngine()
+        if let id = Persisted.lastSelectedModelId {
+            selectedModel = Registry.allModels.first(where: { $0.id == id })
+        }
 
         unsafe engine.inputNode.volume = 1.0
 
