@@ -37,7 +37,7 @@ final actor Mic {
 
     private func warmup() async {
         #if os(macOS)
-            guard let detect = FinalWrapper(detector).data else {
+            guard let detect = FinalWrapper(detector).data() else {
                 return
             }
 
@@ -97,7 +97,7 @@ final actor Mic {
 
             // depending on the UI to call stop()
             for try await chunk in sequence {
-                audioChain.append(chunk.data)
+                audioChain.append(chunk.data())
             }
 
             if audioChain.isEmpty {
@@ -126,13 +126,13 @@ final actor Mic {
         log("VAD recording")
 
         Task {
-            let detect = FinalWrapper(detector).data
+            let detect = FinalWrapper(detector).data()
             var state = detect.initStreamingState()
             let stream = await recorder.start(dropFirstChunk: false)
             var audioChain = [MLXArray]()
 
             for try await chunk in stream {
-                let (result, newState) = try await detect.feed(chunk: chunk.data, state: state, threshold: 0.5, minDuration: 0.3)
+                let (result, newState) = try await detect.feed(chunk: chunk.data(), state: state, threshold: 0.5, minDuration: 0.3)
                 state = newState
 
                 if result.numSpeakers > 0 {
@@ -140,7 +140,7 @@ final actor Mic {
                         log("Speaking started")
                         await delegate.setListeningTalkingMode()
                     }
-                    audioChain.append(chunk.data)
+                    audioChain.append(chunk.data())
 
                 } else if !audioChain.isEmpty {
                     log("Speaking done, parsing")

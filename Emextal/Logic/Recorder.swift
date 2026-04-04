@@ -87,7 +87,7 @@ final actor Recorder {
         unsafe converter.convert(to: convertedBuffer, error: &error) { _, outStatus in
             unsafe outStatus.pointee = reported
             unsafe reported = .noDataNow
-            return incomingBuffer.data
+            return incomingBuffer.data()
         }
 
         if let error {

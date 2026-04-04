@@ -3,11 +3,11 @@
 nonisolated struct FinalWrapper<T> {
     private nonisolated(unsafe) let value: T
 
-    init(_ value: T) {
-        unsafe self.value = value
+    init(_ value: consuming T) {
+        unsafe self.value = consume value
     }
 
-    var data: T {
+    consuming func data() -> T {
         unsafe value
     }
 }

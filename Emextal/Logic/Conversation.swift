@@ -1,7 +1,5 @@
 import AVFoundation
 import Foundation
-import MLXAudioCore
-import MLXAudioSTT
 import MLXLLM
 import MLXLMCommon
 import MLXVLM
@@ -210,7 +208,7 @@ import WebKit
 
         let session = ChatSession(
             modelContainer,
-            history: asHistory.data,
+            history: asHistory.data(),
             generateParameters: model.params.mlx,
             additionalContext: model.additionalContext
         )
@@ -249,10 +247,8 @@ import WebKit
         }
     }
 
-    private func respond(session safeSession: ChatSession) {
+    private func respond(session: ChatSession) {
         guard mode.canRespond else { return }
-
-        let session = FinalWrapper(safeSession)
 
         let trimmedText = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         let attached = attachedImage
@@ -262,8 +258,8 @@ import WebKit
         }
         prompt = ""
 
-        let responseTask = Task { @DefaultQueueActor in
-            var charBuffer = await model.variant.injectThinkingTag ? "<think>" : ""
+        let responseTask = Task {
+            var charBuffer = model.variant.injectThinkingTag ? "<think>" : ""
             charBuffer.reserveCapacity(1024)
 
             var lineBuffer = ""
@@ -275,15 +271,15 @@ import WebKit
                 .map { CIImage(cgImage: $0) }
                 .map { UserInput.Image.ciImage($0) }
 
-            for try await item in session.data.streamResponse(to: trimmedText, images: images, videos: []) {
+            for try await item in session.streamResponse(to: trimmedText, images: images, videos: []) {
                 for char in item {
                     switch char {
                     case ",", ":", "!", "?", ".", ")", "\n":
                         charBuffer.append(char)
-                        await appendText(charBuffer, session: session.data, first: &first)
+                        appendText(charBuffer, session: session, first: &first)
                         charBuffer.removeAll(keepingCapacity: true)
                         if char == "\n" {
-                            if await !textOnly {
+                            if !textOnly {
                                 await speaker.queue(lineBuffer)
                             }
                             lineBuffer.removeAll(keepingCapacity: true)
@@ -298,12 +294,12 @@ import WebKit
                 }
             }
 
-            await appendText(charBuffer, session: session.data, first: &first)
+            appendText(charBuffer, session: session, first: &first)
 
-            await responseEnd(lineBuffer: lineBuffer, session: session.data)
+            await responseEnd(lineBuffer: lineBuffer, session: session)
         }
 
-        mode = .processingPrompt(session: session.data, task: responseTask)
+        mode = .processingPrompt(session: session, task: responseTask)
     }
 
     private func responseEnd(lineBuffer: String, session: ChatSession) async {
@@ -370,7 +366,7 @@ import WebKit
             try? await task.value
         }
 
-        if let session = FinalWrapper(mode.session).data {
+        if let session = FinalWrapper(mode.session).data() {
             await session.synchronize()
             await session.clear()
         }
@@ -410,7 +406,7 @@ import WebKit
             }
             messageLog.reset()
             try? await messageLog.save(to: model.modelHistoryPath)
-            if let session = FinalWrapper(mode.session).data {
+            if let session = FinalWrapper(mode.session).data() {
                 await session.clear()
             }
         }
