@@ -72,7 +72,9 @@ final actor Speaker {
     }
 
     func boot() async throws {
-        let model = try await SopranoModel.fromPretrained("mlx-community/Soprano-1.1-80M-bf16")
+        let ttsId = "mlx-community/Soprano-1.1-80M-bf16"
+        let model = try await SopranoModel.fromPretrained(ttsId, cache: Model.audioCache)
+        Model.clearAudioCache(for: ttsId)
 
         let stream = speechStream
 

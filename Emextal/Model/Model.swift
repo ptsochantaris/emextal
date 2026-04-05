@@ -4,6 +4,7 @@ import MLXLLM
 import MLXLMCommon
 import MLXVLM
 import PopTimer
+import HuggingFace
 
 @Observable
 final class Model: Hashable, Identifiable, Sendable {
@@ -24,10 +25,10 @@ final class Model: Hashable, Identifiable, Sendable {
     var isInstalled = false
 
     private func updateInstalled() throws -> Bool {
-        let fm = FileManager.default
+        let repoDestination = modelDirectory
 
+        let fm = FileManager.default
         guard
-            let repoDestination = fm.urls(for: .cachesDirectory, in: .userDomainMask).first?.appending(path: "models/\(variant.repoId)"),
             fm.fileExists(atPath: repoDestination.path)
         else {
             return false
@@ -100,27 +101,38 @@ final class Model: Hashable, Identifiable, Sendable {
         case .vlm: VLMModelFactory.shared
         }
 
-        let context = try await factory.load(configuration: modelConfiguration, progressHandler: progressHandler)
+        let hub = HubApi(cache: nil, useBackgroundSession: false)
+        let context = try await factory.load(hub: hub, configuration: modelConfiguration, progressHandler: progressHandler)
         modelContainer = ModelContainer(context: context)
     }
 
     func delete() {
+        let repoDestination = modelDirectory
+
         let fm = FileManager.default
-
-        if let repoDestination = fm.urls(for: .cachesDirectory, in: .userDomainMask).first?.appending(path: "models/\(variant.repoId)"),
-           fm.fileExists(atPath: repoDestination.path) {
-            try? fm.removeItem(at: repoDestination)
-        }
-
-        if let repoDestination = fm.urls(for: .cachesDirectory, in: .userDomainMask).first?.appending(path: "huggingface/hub/models--\(variant.repoId.replacingOccurrences(of: "/", with: "--"))"),
-           fm.fileExists(atPath: repoDestination.path) {
+        if fm.fileExists(atPath: repoDestination.path) {
             try? fm.removeItem(at: repoDestination)
         }
 
         updateStatus()
     }
 
-    static let appDocumentsUrl: URL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+    nonisolated static let appDocumentsUrl: URL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+
+    nonisolated static let audioCache: HubCache = HubCache(cacheDirectory: appDocumentsUrl.appendingPathComponent("huggingface/models", conformingTo: .directory))
+
+    nonisolated static func clearAudioCache(for id: String) {
+        let repoId = Repo.ID(stringLiteral: id)
+        let url = audioCache.repoDirectory(repo: repoId, kind: .model)
+        let fm = FileManager.default
+        if fm.fileExists(atPath: url.path) {
+            try? fm.removeItem(at: url)
+        }
+    }
+
+    var modelDirectory: URL {
+        Self.appDocumentsUrl.appendingPathComponent("huggingface/models/\(variant.repoId)", isDirectory: true)
+    }
 
     static let modelsDir = appDocumentsUrl.appendingPathComponent("models", conformingTo: .directory)
 
