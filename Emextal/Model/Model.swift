@@ -1,10 +1,11 @@
 import Foundation
 import Hub
+import HuggingFace
+import MLX
 import MLXLLM
 import MLXLMCommon
 import MLXVLM
 import PopTimer
-import HuggingFace
 
 @Observable
 final class Model: Hashable, Identifiable, Sendable {
@@ -119,7 +120,7 @@ final class Model: Hashable, Identifiable, Sendable {
 
     nonisolated static let appDocumentsUrl: URL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
 
-    nonisolated static let audioCache: HubCache = HubCache(cacheDirectory: appDocumentsUrl.appendingPathComponent("huggingface/models", conformingTo: .directory))
+    nonisolated static let audioCache = HubCache(cacheDirectory: appDocumentsUrl.appendingPathComponent("huggingface/models", conformingTo: .directory))
 
     nonisolated static func clearAudioCache(for id: String) {
         let repoId = Repo.ID(stringLiteral: id)
@@ -221,5 +222,10 @@ final class Model: Hashable, Identifiable, Sendable {
 
     var memoryEstimate: (used: String, max: String, system: String) {
         variant.memoryStrings
+    }
+
+    var shouldWarnAboutMemory: Bool {
+        let limit = Int64(Double(Memory.memoryLimit) * 0.9)
+        return variant.memoryEstimate > limit
     }
 }

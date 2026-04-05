@@ -23,5 +23,10 @@ struct ContentView: View {
         .navigationTitle(appState.title)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .toolbarTitleDisplayMode(.inline)
+        .confirmationDialog("This model will not fit into memory, are you sure?", isPresented: $appState.memoryWarning) {
+            Button("Load Model", role: .destructive) {
+                NotificationCenter.default.post(name: .startModelWithoutConfirming, object: nil)
+            }
+        }
     }
 }

@@ -11,6 +11,8 @@ final class AppState {
 
     private(set) var mode = AppStateMode.menu
 
+    var memoryWarning = false
+
     var title: String {
         guard let conversation = mode.conversation else {
             return "Emextal"
@@ -55,11 +57,19 @@ final class AppState {
         let center = NotificationCenter.default
 
         Task { [weak self] in
-            for await notification in center.notifications(named: .startModel) {
-                guard let self else { return }
-                if let model = notification.object as? Model {
-                    mode = .conversation(.init(model: model, speaker: speaker, mic: mic))
+            for await _ in center.notifications(named: .startModel) {
+                guard let self, let selectedModel else { return }
+                if selectedModel.shouldWarnAboutMemory {
+                    memoryWarning = true
+                } else {
+                    NotificationCenter.default.post(name: .startModelWithoutConfirming, object: nil)
                 }
+            }
+        }
+        Task { [weak self] in
+            for await _ in center.notifications(named: .startModelWithoutConfirming) {
+                guard let self, let selectedModel else { return }
+                mode = .conversation(.init(model: selectedModel, speaker: speaker, mic: mic))
             }
         }
         Task {

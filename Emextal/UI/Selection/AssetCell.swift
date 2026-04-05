@@ -6,6 +6,8 @@ struct AssetCell: View {
 
     @Environment(\.openURL) var openUrl
 
+    @State private var confirmDelete = false
+
     var body: some View {
         ZStack(alignment: .top) {
             PickerEntryBackground()
@@ -41,14 +43,25 @@ struct AssetCell: View {
 
                 HStack {
                     if let info = model.status {
-                        Text(info)
-                            .font(.caption2)
-                            .padding(4)
-                            .padding(.horizontal, 4)
-                            .background {
-                                Capsule()
-                                    .foregroundStyle(.material)
+                        HStack {
+                            Text(info)
+
+                            if model.isInstalled {
+                                Button(role: .destructive) {
+                                    confirmDelete = true
+                                } label: {
+                                    Image(systemName: "xmark")
+                                }
+                                .buttonStyle(.plain)
                             }
+                        }
+                        .font(.caption2)
+                        .padding(4)
+                        .padding(.horizontal, 4)
+                        .background {
+                            Capsule()
+                                .foregroundStyle(.material)
+                        }
                     }
 
                     Spacer()
@@ -86,12 +99,12 @@ struct AssetCell: View {
         .onTapGesture {
             selected = model
         }
-        .contextMenu {
-            if model.isInstalled {
-                Button("Delete") {
-                    NotificationCenter.default.post(name: .deleteModel, object: model)
-                    selected = nil
-                }
+        .confirmationDialog("Delete \(model.variant.displayName)?",
+                            isPresented: $confirmDelete,
+                            titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                NotificationCenter.default.post(name: .deleteModel, object: model)
+                selected = nil
             }
         }
     }
