@@ -1,8 +1,10 @@
 import Foundation
 import Hub
+import MLXLLM
+import MLXLMCommon
+import MLXVLM
 import PopTimer
 
-@MainActor
 @Observable
 final class Model: Hashable, Identifiable, Sendable {
     let id: String
@@ -72,6 +74,33 @@ final class Model: Hashable, Identifiable, Sendable {
         }
 
         return true
+    }
+
+    var modelContainer: ModelContainer?
+
+    func install(parentProgress: Progress, progressCount: Int64) async throws {
+        nonisolated(unsafe) var addedChild = false
+
+        let modelConfiguration = ModelConfiguration(id: variant.repoId)
+        let progressHandler = { @Sendable (progress: Progress) in
+            _ = Task { @MainActor in
+                if unsafe !addedChild {
+                    parentProgress.addChild(progress, withPendingUnitCount: progressCount)
+                    unsafe addedChild = true
+                }
+            }
+        }
+
+        defer {
+            updateStatus()
+        }
+
+        modelContainer = switch variant.architecture {
+        case .llm:
+            try await LLMModelFactory.shared.loadContainer(configuration: modelConfiguration, progressHandler: progressHandler)
+        case .vlm:
+            try await VLMModelFactory.shared.loadContainer(configuration: modelConfiguration, progressHandler: progressHandler)
+        }
     }
 
     func delete() {

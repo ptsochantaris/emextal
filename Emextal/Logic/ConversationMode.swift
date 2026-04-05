@@ -6,7 +6,7 @@ enum ConversationMode: Equatable {
     case booting
     case warmup
     case loading(progress: CGFloat, status: [LoadingProgressDisplay.Status])
-    case loaded(modelContainer: ModelContainer)
+    case loaded
     case waiting(session: ChatSession)
     case listening(state: MicState, session: ChatSession)
     case transcribing(session: ChatSession)
@@ -125,8 +125,8 @@ enum ConversationMode: Equatable {
             p1 == p2 && s1 == s2
         case let (.listening(stateL, _), .listening(stateR, _)):
             stateL == stateR
-        case let (.loaded(containerL), .loaded(containerR)):
-            containerL === containerR
+        case (.loaded, .loaded):
+            true
         default:
             false
         }

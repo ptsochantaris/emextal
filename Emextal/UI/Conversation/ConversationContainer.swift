@@ -13,14 +13,12 @@ struct ConversationContainer: View {
                 LoadingProgressDisplay(progress: progress, status: status)
                     .padding(.horizontal)
 
-            case let .loaded(container):
+            case .loaded:
                 HStack {
                     LoadingRow(title: "Ready", phase: .done)
                     Spacer()
                     Button("Start") {
-                        withAnimation {
-                            conversation.start(modelContainer: container)
-                        }
+                        conversation.start()
                     }
                     .buttonStyle(.borderedProminent)
                 }

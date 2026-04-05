@@ -1,8 +1,6 @@
 import AVFoundation
 import Foundation
-import MLXLLM
 import MLXLMCommon
-import MLXVLM
 import SwiftUI
 import WebKit
 
@@ -126,8 +124,6 @@ import WebKit
         LoadingProgressDisplay.Status(phase: .waiting, text: "Ready")
     ]
 
-    private var addedChild = false
-
     private func setStatus(_ text: String, to _: LoadingProgressDisplay.Status.Phase, loadProgress: Progress) {
         if let index = statusComponents.firstIndex(where: { $0.text == text }) {
             statusComponents[index] = .init(phase: .done, text: statusComponents[index].text)
@@ -165,30 +161,11 @@ import WebKit
                 try await logTask.value
             }
 
-            let modelConfiguration = ModelConfiguration(id: model.variant.repoId)
-            let modelContainer: ModelContainer
-            let progressHandler = { @Sendable [weak self] (progress: Progress) in
-                _ = Task { @MainActor [weak self] in
-                    guard let self else { return }
-                    if !addedChild {
-                        loadProgress.addChild(progress, withPendingUnitCount: 800)
-                        addedChild = true
-                    }
-                }
-            }
-
-            switch model.variant.architecture {
-            case .llm:
-                modelContainer = try await LLMModelFactory.shared.loadContainer(configuration: modelConfiguration, progressHandler: progressHandler)
-            case .vlm:
-                modelContainer = try await VLMModelFactory.shared.loadContainer(configuration: modelConfiguration, progressHandler: progressHandler)
-            }
+            try await model.install(parentProgress: loadProgress, progressCount: 800)
 
             setStatus("Language Model", to: .done, loadProgress: loadProgress)
 
-            try? await Task.sleep(for: .seconds(0.2))
-
-            model.updateStatus()
+            try? await Task.sleep(for: .seconds(0.1))
 
             try await warmupTask.value
 
@@ -196,19 +173,24 @@ import WebKit
                 $0.invalidate()
             }
 
-            mode = .loaded(modelContainer: modelContainer)
+            mode = .loaded
         } catch {
             mode = .error(error)
         }
     }
 
-    func start(modelContainer: ModelContainer) {
+    func start() {
         Task {
-            await _start(modelContainer: modelContainer)
+            await mainLoop()
         }
     }
 
-    private func _start(modelContainer: ModelContainer) async {
+    private func mainLoop() async {
+        guard let modelContainer = model.modelContainer else {
+            log("Warning: The model is not installed.")
+            return
+        }
+
         let asHistory = await messageLog.asSessionHistory
 
         let session = ChatSession(
