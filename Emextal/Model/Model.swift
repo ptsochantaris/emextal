@@ -95,12 +95,13 @@ final class Model: Hashable, Identifiable, Sendable {
             updateStatus()
         }
 
-        modelContainer = switch variant.architecture {
-        case .llm:
-            try await LLMModelFactory.shared.loadContainer(configuration: modelConfiguration, progressHandler: progressHandler)
-        case .vlm:
-            try await VLMModelFactory.shared.loadContainer(configuration: modelConfiguration, progressHandler: progressHandler)
+        let factory: any ModelFactory = switch variant.architecture {
+        case .llm: LLMModelFactory.shared
+        case .vlm: VLMModelFactory.shared
         }
+
+        let context = try await factory.load(configuration: modelConfiguration, progressHandler: progressHandler)
+        modelContainer = ModelContainer(context: context)
     }
 
     func delete() {
