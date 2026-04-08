@@ -142,10 +142,10 @@ final actor Speaker {
 
     private let voiceParams = GenerateParameters(
         maxTokens: 1200,
-        temperature: 0.7,
+        temperature: 0.75,
         topP: 0.95,
         repetitionPenalty: 1.3,
-        repetitionContextSize: 30
+        repetitionContextSize: 64
     )
 
     private var playingLatestBuffer = false

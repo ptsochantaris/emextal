@@ -7,16 +7,17 @@ struct ErrorView: View {
 
     var body: some View {
         ZStack {
-            VStack(alignment: .leading) {
+            PlainBackground()
+
+            VStack(alignment: .leading, spacing: 10) {
                 Text(title)
                     .font(.title)
 
                 Text(String(describing: error))
             }
             .multilineTextAlignment(.leading)
-        }
-        .background {
-            PlainBackground()
+            .padding(88)
+            .foregroundStyle(.white)
         }
     }
 }
