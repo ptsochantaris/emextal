@@ -116,8 +116,12 @@ final actor Speaker {
     }
 
     func queue(_ text: String) {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines.union(.init(charactersIn: "*<>"))).replacingOccurrences(of: "**", with: "")
-        if trimmed.isEmpty {
+        let trimmed = text
+            .trimmingCharacters(in: .whitespacesAndNewlines.union(.init(charactersIn: "*<>-()")))
+            .replacingOccurrences(of: "**", with: "")
+            .replacingOccurrences(of: "...", with: "…")
+            .filter { !$0.isSymbol }
+        if trimmed.count <= 1 {
             return
         }
 

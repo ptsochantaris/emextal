@@ -251,8 +251,8 @@ import WebKit
 
         let responseTask = Task {
 
-            var lineBuffer = ""
-            lineBuffer.reserveCapacity(1024)
+            var speechBuffer = ""
+            speechBuffer.reserveCapacity(1024)
 
             var first = true
             let images = [attached]
@@ -282,33 +282,34 @@ import WebKit
                 switch token {
                 case let .text(item):
                     appendText(item, session: session, first: &first)
-                    if item.last == "\n" {
+                    speechBuffer.append(item)
+                    switch speechBuffer.last {
+                    case ":", "!", "?", ".", ")", "\n":
                         if !textOnly {
-                            await speaker.queue(lineBuffer)
+                            await speaker.queue(speechBuffer)
                         }
-                        lineBuffer.removeAll(keepingCapacity: true)
-                    } else {
-                        lineBuffer.append(item)
+                        speechBuffer.removeAll(keepingCapacity: true)
+                    default: break
                     }
 
                 case let .tag(token):
                     appendText(token, session: session, first: &first)
-                    lineBuffer.append(token)
+                    speechBuffer.append(token)
                 }
             }
 
             _ = await processorTask.value
             _ = try await tokenTask.value
 
-            await responseEnd(lineBuffer: lineBuffer, session: session)
+            await responseEnd(speechBuffer: speechBuffer, session: session)
         }
 
         mode = .processingPrompt(session: session, task: responseTask)
     }
 
-    private func responseEnd(lineBuffer: String, session: ChatSession) async {
-        if !textOnly, !lineBuffer.isEmpty {
-            await speaker.queue(lineBuffer)
+    private func responseEnd(speechBuffer: String, session: ChatSession) async {
+        if !textOnly, !speechBuffer.isEmpty {
+            await speaker.queue(speechBuffer)
         }
 
         messageLog.commitTurn()
