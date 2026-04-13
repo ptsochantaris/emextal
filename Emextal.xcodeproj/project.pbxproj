@@ -474,7 +474,6 @@
 				minimumVersion = 0.9.0;
 			};
 			traits = (
-				Xet,
 			);
 		};
 		166C6B6C2F5CAC7C00BFEF31 /* XCRemoteSwiftPackageReference "Ink" */ = {
