@@ -140,7 +140,6 @@
 				166C6B882F5CC0BE00BFEF31 /* XCRemoteSwiftPackageReference "HTMLString" */,
 				1641590C2F7484E000852D12 /* XCRemoteSwiftPackageReference "pop-timer" */,
 				16B87D662F7F0FB9001723B6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
-				1650FE6D2F86C49800BA1298 /* XCRemoteSwiftPackageReference "swift-huggingface" */,
 			);
 			preferredProjectObjectVersion = 100;
 			productRefGroup = 169527382F5B3F1400E04F44 /* Products */;
@@ -465,16 +464,6 @@
 				kind = upToNextMajorVersion;
 				minimumVersion = 1.0.1;
 			};
-		};
-		1650FE6D2F86C49800BA1298 /* XCRemoteSwiftPackageReference "swift-huggingface" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/huggingface/swift-huggingface.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.9.0;
-			};
-			traits = (
-			);
 		};
 		166C6B6C2F5CAC7C00BFEF31 /* XCRemoteSwiftPackageReference "Ink" */ = {
 			isa = XCRemoteSwiftPackageReference;
