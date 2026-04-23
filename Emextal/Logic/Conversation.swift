@@ -140,28 +140,38 @@ import WebKit
             }
 
             let loadProgress = Progress(totalUnitCount: 1000)
+            nonisolated(unsafe) var lastFraction: Double = 0
             let observer = loadProgress.observe(\.fractionCompleted, options: [.initial, .new]) { [weak self] _, change in
                 if let fraction = change.newValue {
                     Task { @MainActor [weak self] in
                         guard let self else { return }
-                        mode = .loading(progress: fraction, status: statusComponents)
+                        if unsafe fraction > lastFraction {
+                            unsafe lastFraction = fraction
+                            mode = .loading(progress: fraction, status: statusComponents)
+                        }
                     }
                 }
             }
 
             let warmupTask = Task {
-                await speaker.waitForBoot()
-                loadProgress.completedUnitCount += 100
-                setStatus("Text-to-Speech", to: .done, loadProgress: loadProgress)
+                let t1 = Task {
+                    loadProgress.addChild(speaker.loadingProgress, withPendingUnitCount: 150)
+                    await speaker.waitForBoot()
+                    setStatus("Text-to-Speech", to: .done, loadProgress: loadProgress)
+                }
 
-                await mic.waitForBoot()
-                loadProgress.completedUnitCount += 100
-                setStatus("Voice Recognition", to: .done, loadProgress: loadProgress)
+                let t2 = Task {
+                    loadProgress.addChild(mic.loadingProgress, withPendingUnitCount: 150)
+                    await mic.waitForBoot()
+                    setStatus("Voice Recognition", to: .done, loadProgress: loadProgress)
+                }
 
                 try await logTask.value
+                await t1.value
+                await t2.value
             }
 
-            try await model.install(parentProgress: loadProgress, progressCount: 800)
+            try await model.install(parentProgress: loadProgress, progressCount: 700)
 
             setStatus("Language Model", to: .done, loadProgress: loadProgress)
 

@@ -58,6 +58,6 @@ struct LoadingProgressDisplay: View {
             }
         }
 
-        ProgressView(value: progress)
+        ProgressView(value: max(0, min(1, progress)))
     }
 }

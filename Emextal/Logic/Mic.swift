@@ -37,16 +37,20 @@ final actor Mic {
 
     private var bootDone = false
 
+    let loadingProgress = Progress(totalUnitCount: 1000)
+
     func boot() async throws {
         let detectorId = "mlx-community/diar_streaming_sortformer_4spk-v2.1-fp16"
-        async let detectorTask = SortformerModel.fromPretrained(detectorId, cache: Model.audioCache)
+        async let detectorLocation = Model.installModel(id: detectorId, parentProgress: loadingProgress, progressCount: 400)
 
         let transcriberId = "mlx-community/Qwen3-ASR-1.7B-4bit"
-        transcriber = try await Qwen3ASRModel.fromPretrained(transcriberId, cache: Model.audioCache)
-        Model.clearAudioCache(for: transcriberId)
+        async let transcriberLocation = Model.installModel(id: transcriberId, parentProgress: loadingProgress, progressCount: 400)
 
-        detector = try await detectorTask
-        Model.clearAudioCache(for: detectorId)
+        transcriber = try await Qwen3ASRModel.fromModelDirectory(transcriberLocation)
+        loadingProgress.completedUnitCount += 100
+
+        detector = try await SortformerModel.fromModelDirectory(detectorLocation)
+        loadingProgress.completedUnitCount += 100
 
         #if os(macOS)
             guard let detect = FinalWrapper(detector).data() else {

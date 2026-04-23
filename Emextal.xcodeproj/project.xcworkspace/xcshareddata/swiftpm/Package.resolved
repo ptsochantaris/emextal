@@ -1,5 +1,5 @@
 {
-  "originHash" : "9ef5647a8e4e6f3f8481c338c9ad2d9a3f3496eca521bd16185c83c96baf6ee3",
+  "originHash" : "100e0b3aa7aec0b0e539432fd633cdc21021a82b133d0123e7d415f18bcaaba4",
   "pins" : [
     {
       "identity" : "eventsource",
@@ -34,7 +34,7 @@
       "location" : "https://github.com/Blaizzy/mlx-audio-swift",
       "state" : {
         "branch" : "main",
-        "revision" : "9264f40bc21c1dd461feb1ce1206e5ff38e8b9f5"
+        "revision" : "5ddd0f644ec6af11547d6879d7abd43f89a8889f"
       }
     },
     {
@@ -49,10 +49,10 @@
     {
       "identity" : "mlx-swift-lm",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/ml-explore/mlx-swift-lm.git",
+      "location" : "https://github.com/ml-explore/mlx-swift-lm/",
       "state" : {
-        "revision" : "25b00d4e22e61ec9c41efda47990cd2084ec87ff",
-        "version" : "2.31.3"
+        "revision" : "1c05248bb0899e2a7a4962b84d319cf12f4e12aa",
+        "version" : "3.31.3"
       }
     },
     {
@@ -69,8 +69,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-asn1.git",
       "state" : {
-        "revision" : "9f542610331815e29cc3821d3b6f488db8715517",
-        "version" : "1.6.0"
+        "revision" : "eb50cbd14606a9161cbc5d452f18797c90ef0bab",
+        "version" : "1.7.0"
       }
     },
     {
@@ -96,8 +96,35 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-crypto.git",
       "state" : {
-        "revision" : "bb4ba815dab96d4edc1e0b86d7b9acf9ff973a84",
-        "version" : "4.3.1"
+        "revision" : "476538ccb827f2dd18efc5de754cc87d77127a47",
+        "version" : "4.4.0"
+      }
+    },
+    {
+      "identity" : "swift-filelock",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/DePasqualeOrg/swift-filelock",
+      "state" : {
+        "revision" : "3894dbeea7593724b847f7cff32a3e2b162b70a0",
+        "version" : "0.1.1"
+      }
+    },
+    {
+      "identity" : "swift-hf-api",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/DePasqualeOrg/swift-hf-api",
+      "state" : {
+        "revision" : "476fd7537ac5aa8b8067235d13c61a01f4a43bb9",
+        "version" : "0.2.2"
+      }
+    },
+    {
+      "identity" : "swift-hf-api-mlx",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/DePasqualeOrg/swift-hf-api-mlx",
+      "state" : {
+        "revision" : "83189f677280b85e22dd7fa11d12d97b245a2013",
+        "version" : "0.2.0"
       }
     },
     {
@@ -123,8 +150,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-nio.git",
       "state" : {
-        "revision" : "558f24a4647193b5a0e2104031b71c55d31ff83a",
-        "version" : "2.97.1"
+        "revision" : "cd6710454f25733900e133c6caf5188952763c36",
+        "version" : "2.98.0"
       }
     },
     {
@@ -134,6 +161,24 @@
       "state" : {
         "revision" : "0c0290ff6b24942dadb83a929ffaaa1481df04a2",
         "version" : "1.1.1"
+      }
+    },
+    {
+      "identity" : "swift-sse",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/DePasqualeOrg/swift-sse",
+      "state" : {
+        "revision" : "c8e3f1a5d4cdf708c891bae1f2a975519627b65c",
+        "version" : "0.1.0"
+      }
+    },
+    {
+      "identity" : "swift-syntax",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-syntax.git",
+      "state" : {
+        "revision" : "0687f71944021d616d34d922343dcef086855920",
+        "version" : "600.0.1"
       }
     },
     {
@@ -150,8 +195,17 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/huggingface/swift-transformers.git",
       "state" : {
-        "revision" : "58c4bc11963a140358d791f678a60a2745a23146",
-        "version" : "1.2.1"
+        "revision" : "b38443e44d93eca770f2eb68e2a4d0fa100f9aa2",
+        "version" : "1.3.0"
+      }
+    },
+    {
+      "identity" : "swift-xet",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/DePasqualeOrg/swift-xet",
+      "state" : {
+        "revision" : "d6ace41073825e04fc7a8441ab4613afcf7fd32f",
+        "version" : "0.1.1"
       }
     },
     {

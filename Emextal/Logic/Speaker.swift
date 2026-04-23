@@ -71,10 +71,13 @@ final actor Speaker {
         spechContinuation.finish()
     }
 
+    let loadingProgress = Progress(totalUnitCount: 1000)
+
     func boot() async throws {
         let ttsId = "mlx-community/Soprano-1.1-80M-bf16"
-        let model = try await SopranoModel.fromPretrained(ttsId, cache: Model.audioCache)
-        Model.clearAudioCache(for: ttsId)
+        async let ttsDirectory = Model.installModel(id: ttsId, parentProgress: loadingProgress, progressCount: 800)
+        let model = try await SopranoModel.fromModelDirectory(ttsDirectory, repo: ttsId)
+        loadingProgress.completedUnitCount += 200
 
         let stream = speechStream
 

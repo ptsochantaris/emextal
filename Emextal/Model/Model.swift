@@ -1,11 +1,10 @@
 import Foundation
-import Hub
-import HuggingFace
 import MLX
-import MLXLLM
+import MLXHuggingFace
 import MLXLMCommon
-import MLXVLM
+import MLXLMHFAPI
 import PopTimer
+import Tokenizers
 
 @Observable
 final class Model: Hashable, Identifiable, Sendable {
@@ -26,93 +25,48 @@ final class Model: Hashable, Identifiable, Sendable {
     var isInstalled = false
 
     private func updateInstalled() throws -> Bool {
-        let repoDestination = modelDirectory
-
-        let fm = FileManager.default
-        guard
-            fm.fileExists(atPath: repoDestination.path)
-        else {
-            return false
-        }
-
-        guard
-            let enumerator = fm.enumerator(
-                at: repoDestination,
-                includingPropertiesForKeys: [.isRegularFileKey, .isHiddenKey],
-                options: [.skipsHiddenFiles]
-            )
-        else {
-            return false
-        }
-
-        var fileUrls = [URL]()
-
-        for case let fileURL as URL in enumerator {
-            let resourceValues = try fileURL.resourceValues(forKeys: [.isRegularFileKey, .isHiddenKey])
-            if resourceValues.isRegularFile == true, resourceValues.isHidden != true {
-                fileUrls.append(fileURL)
-            }
-        }
-
-        if fileUrls.isEmpty {
-            return false
-        }
-
-        let repoMetadataDestination = repoDestination.appending(path: ".cache/huggingface/download")
-
-        for fileUrl in fileUrls {
-            let metadataPath = URL(
-                fileURLWithPath: fileUrl.path.replacingOccurrences(
-                    of: repoDestination.path,
-                    with: repoMetadataDestination.path
-                ) + ".metadata"
-            )
-
-            let localMetadata = try HubApi.shared.readDownloadMetadata(metadataPath: metadataPath)
-
-            guard localMetadata != nil else {
-                return false
-            }
-        }
-
-        return true
+        modelDirectory != nil
     }
 
     var modelContainer: ModelContainer?
 
-    func install(parentProgress: Progress, progressCount: Int64) async throws {
-        nonisolated(unsafe) var addedChild = false
-
-        let modelConfiguration = ModelConfiguration(id: variant.repoId)
-        let progressHandler = { @Sendable (progress: Progress) in
-            _ = Task { @MainActor in
-                if unsafe !addedChild {
-                    parentProgress.addChild(progress, withPendingUnitCount: progressCount)
-                    unsafe addedChild = true
+    static func installModel(id: String, parentProgress: Progress, progressCount: Int64) async throws -> URL {
+        let repoId = Repo.ID(stringLiteral: id)
+        let modelDestination = HubCache.default.snapshotPath(repo: repoId, kind: .model, revision: "main")
+        if let modelDestination {
+            parentProgress.completedUnitCount += progressCount
+            return modelDestination
+        } else {
+            nonisolated(unsafe) var addedChild = false
+            let progressHandler = { @Sendable (progress: Progress) in
+                _ = Task { @MainActor in
+                    if unsafe !addedChild {
+                        unsafe addedChild = true
+                        parentProgress.addChild(progress, withPendingUnitCount: progressCount)
+                    }
                 }
             }
-        }
 
+            let hubClientOnline = HubClient(useOfflineMode: false)
+            return try await hubClientOnline.downloadSnapshot(of: repoId, progressHandler: progressHandler)
+        }
+    }
+
+    func install(parentProgress: Progress, progressCount: Int64) async throws {
         defer {
             updateStatus()
         }
 
-        let factory: any ModelFactory = switch variant.architecture {
-        case .llm: LLMModelFactory.shared
-        case .vlm: VLMModelFactory.shared
-        }
-
-        let hub = HubApi(cache: nil, useBackgroundSession: false)
-        let context = try await factory.load(hub: hub, configuration: modelConfiguration, progressHandler: progressHandler)
-        modelContainer = ModelContainer(context: context)
+        let loader = #huggingFaceTokenizerLoader() // TODO: Use integration package instead of HF tokenizer
+        let snapshotPath = try await Self.installModel(id: variant.repoId, parentProgress: parentProgress, progressCount: progressCount)
+        modelContainer = try await loadModelContainer(from: snapshotPath, using: loader)
     }
 
     func delete() {
-        let repoDestination = modelDirectory
-
+        let repoDirectory = HubCache.default.repoDirectory(repo: Repo.ID(stringLiteral: variant.repoId), kind: .model)
         let fm = FileManager.default
-        if fm.fileExists(atPath: repoDestination.path) {
-            try? fm.removeItem(at: repoDestination)
+        if fm.fileExists(atPath: repoDirectory.path) {
+            try? fm.removeItem(at: repoDirectory)
         }
 
         updateStatus()
@@ -120,19 +74,8 @@ final class Model: Hashable, Identifiable, Sendable {
 
     nonisolated static let appDocumentsUrl: URL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
 
-    nonisolated static let audioCache = HubCache(cacheDirectory: appDocumentsUrl.appendingPathComponent("huggingface/models", conformingTo: .directory))
-
-    nonisolated static func clearAudioCache(for id: String) {
-        let repoId = Repo.ID(stringLiteral: id)
-        let url = audioCache.repoDirectory(repo: repoId, kind: .model)
-        let fm = FileManager.default
-        if fm.fileExists(atPath: url.path) {
-            try? fm.removeItem(at: url)
-        }
-    }
-
-    var modelDirectory: URL {
-        Self.appDocumentsUrl.appendingPathComponent("huggingface/models/\(variant.repoId)", isDirectory: true)
+    var modelDirectory: URL? {
+        HubCache.default.snapshotPath(repo: Repo.ID(stringLiteral: variant.repoId), kind: .model, revision: "main")
     }
 
     static let modelsDir = appDocumentsUrl.appendingPathComponent("models", conformingTo: .directory)
