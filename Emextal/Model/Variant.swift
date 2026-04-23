@@ -223,9 +223,9 @@ extension Model {
 
         var architecture: Architecture {
             switch self {
-            case .devstral, .gemma4, .gemmaLm, .gptOss, .gptOssLarge, .llama, .mistral, .nemotronCascade, .qwen3coderNext, .qwen35opus, .smol:
+            case .devstral, .gemmaLm, .gptOss, .gptOssLarge, .llama, .mistral, .nemotronCascade, .qwen3coderNext, .qwen35opus, .smol:
                 .llm
-            case .qwen35moe, .qwen35regular:
+            case .qwen35moe, .qwen35regular, .gemma4:
                 .vlm
             }
         }
