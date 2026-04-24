@@ -1,9 +1,8 @@
 enum Registry {
     static let allModels: [Model] = [
-        .init(category: .qwen, variant: .qwen35regular),
-        .init(category: .qwen, variant: .qwen35moe),
+        .init(category: .qwen, variant: .qwen36regular),
+        .init(category: .qwen, variant: .qwen36moe),
         .init(category: .qwen, variant: .qwen3coderNext),
-        .init(category: .qwen, variant: .qwen35opus),
         .init(category: .gemma, variant: .gemma4),
         .init(category: .gemma, variant: .gemmaLm),
         .init(category: .openAi, variant: .gptOssLarge),

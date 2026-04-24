@@ -120,7 +120,7 @@ final class Model: Hashable, Identifiable, Sendable {
         status = if isInstalled {
             "INSTALLED"
         } else {
-            variant == .qwen35regular ? "START HERE" : nil
+            variant.recommended ? "START HERE" : nil
         }
     }
 
