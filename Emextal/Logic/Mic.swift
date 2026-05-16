@@ -13,8 +13,8 @@ final actor Mic {
     let phraseStream: AsyncStream<String>
 
     private var ignoreMic = false
-    private var transcriber: Qwen3ASRModel?
-    private var detector: SortformerModel?
+    private var transcriber: GLMASRModel?
+    private var detector: SileroVAD?
     private let phraseContinuation: AsyncStream<String>.Continuation
     private let recorder: Recorder
 
@@ -40,27 +40,23 @@ final actor Mic {
     let loadingProgress = Progress(totalUnitCount: 1000)
 
     func boot() async throws {
-        let detectorId = "mlx-community/diar_streaming_sortformer_4spk-v2.1-fp16"
-        async let detectorLocation = Model.installModel(id: detectorId, parentProgress: loadingProgress, progressCount: 400)
+        let detectorId = "mlx-community/silero-vad"
+        async let detectorLocation = Model.installModel(id: detectorId, parentProgress: loadingProgress, progressCount: 100)
 
-        let transcriberId = "mlx-community/Qwen3-ASR-1.7B-4bit"
-        async let transcriberLocation = Model.installModel(id: transcriberId, parentProgress: loadingProgress, progressCount: 400)
+        let transcriberId = "mlx-community/GLM-ASR-Nano-2512-4bit"
+        async let transcriberLocation = Model.installModel(id: transcriberId, parentProgress: loadingProgress, progressCount: 700)
 
-        transcriber = try await Qwen3ASRModel.fromModelDirectory(transcriberLocation)
+        transcriber = try await GLMASRModel.fromModelDirectory(transcriberLocation)
         loadingProgress.completedUnitCount += 100
 
-        detector = try await SortformerModel.fromModelDirectory(detectorLocation)
+        detector = try await SileroVAD.fromModelDirectory(detectorLocation)
         loadingProgress.completedUnitCount += 100
 
         #if os(macOS)
-            guard let detect = FinalWrapper(detector).data() else {
-                return
-            }
-
             let blank = MLXArray.zeros([100_000])
-            log("Speaker detection warmup...")
-            _ = try? await detect.generate(audio: blank)
-            log("Speaker detection warmup done")
+            // log("Speaker detection warmup...")
+            // _ = try? detect.feed(chunk: blank)
+            // log("Speaker detection warmup done")
 
             log("Transcriber warmup...")
             _ = transcriber?.generate(audio: blank)
@@ -134,37 +130,85 @@ final actor Mic {
         log("VAD recording")
 
         Task {
-            let detect = FinalWrapper(detector).data()
-            var state = detect.initStreamingState()
-            let stream = await recorder.start(dropFirstChunk: false)
-            var audioChain = [MLXArray]()
+            var overflow = MLXArray()
 
-            for try await chunk in stream {
-                let (result, newState) = try await detect.feed(chunk: chunk.data(), state: state, threshold: 0.5, minDuration: 0.3)
-                state = newState
-
-                if result.numSpeakers > 0 {
-                    if audioChain.isEmpty {
-                        log("Speaking started")
-                        await delegate.setListeningTalkingMode()
+            func splitData(_ data: MLXArray) -> [MLXArray] {
+                let data = concatenated([overflow, data])
+                let dataLen = data.count
+                var i = 0
+                var blocks = [MLXArray]()
+                while i < dataLen {
+                    let remaining = dataLen - i
+                    if remaining < 512 {
+                        overflow = data[i ..< dataLen]
+                        break
+                    } else {
+                        let block = data[i ..< i + 512]
+                        blocks.append(block)
+                        i += 512
                     }
-                    audioChain.append(chunk.data())
-
-                } else if !audioChain.isEmpty {
-                    log("Speaking done, parsing")
-
-                    await recorder.stop()
-
-                    await delegate.setTranscribingMode()
-
-                    let block = concatenated(audioChain)
-                    audioChain.removeAll(keepingCapacity: true)
-
-                    let text = transcriber.generate(audio: block).text.trimmingCharacters(in: .whitespacesAndNewlines)
-                    phraseContinuation.yield(text)
                 }
+                return blocks
             }
 
+            do {
+                let detect = FinalWrapper(detector).data()
+                var state: SileroVADStreamingState?
+                let stream = await recorder.start(dropFirstChunk: false)
+                var audioChain = [MLXArray]()
+                var lastNonSpeakingBlocks = [MLXArray]()
+                var speakerMomentum = 0
+
+                for try await audioChunk in stream {
+                    let blocks = splitData(audioChunk.data())
+
+                    for block in blocks {
+                        let (probs, newState) = try detect.feed(chunk: block, state: state)
+                        state = newState
+                        let prob = probs.asArray(Float.self)[0]
+
+                        if prob > 0.7 {
+                            if audioChain.isEmpty {
+                                log("Speaking started")
+                                await delegate.setListeningTalkingMode()
+                                audioChain = lastNonSpeakingBlocks
+                                lastNonSpeakingBlocks = []
+                                speakerMomentum = 10
+                            } else if speakerMomentum < 50 {
+                                speakerMomentum += 1
+                                log("Speaker momentum: \(speakerMomentum)")
+                            }
+                            audioChain.append(block)
+
+                        } else if audioChain.isEmpty {
+                            lastNonSpeakingBlocks.append(block)
+                            if lastNonSpeakingBlocks.count > 4 {
+                                lastNonSpeakingBlocks.remove(at: 0)
+                            }
+
+                        } else {
+                            speakerMomentum = max(speakerMomentum - 1, 0)
+                            log("Speaker momentum: \(speakerMomentum)")
+                            if speakerMomentum == 0 {
+                                log("Speaking done, parsing")
+
+                                await recorder.stop()
+
+                                await delegate.setTranscribingMode()
+
+                                let block = concatenated(audioChain)
+                                audioChain.removeAll(keepingCapacity: true)
+                                lastNonSpeakingBlocks = []
+
+                                let text = transcriber.generate(audio: block).text.trimmingCharacters(in: .whitespacesAndNewlines)
+                                phraseContinuation.yield(text)
+                            }
+                        }
+                    }
+                }
+            } catch {
+                log("Error in VAD: \(error)")
+            }
             log("VAD stream ended")
         }
     }

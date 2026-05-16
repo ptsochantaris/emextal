@@ -220,7 +220,7 @@ extension Model {
             switch self {
             case .devstral, .gemmaLm, .gptOss, .gptOssLarge, .llama, .mistral, .nemotronCascade, .qwen3coderNext, .smol:
                 .llm
-            case .qwen36moe, .qwen36regular, .gemma4:
+            case .gemma4, .qwen36moe, .qwen36regular:
                 .vlm
             }
         }
