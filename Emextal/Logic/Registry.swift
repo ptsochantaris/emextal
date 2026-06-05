@@ -3,11 +3,13 @@ enum Registry {
         .init(category: .qwen, variant: .qwen36regular),
         .init(category: .qwen, variant: .qwen36moe),
         .init(category: .qwen, variant: .qwen3coderNext),
+        .init(category: .mistrals, variant: .mistral),
+        .init(category: .mistrals, variant: .devstral),
         .init(category: .gemma, variant: .gemma4),
-        .init(category: .gemma, variant: .gemmaLm),
         .init(category: .openAi, variant: .gptOssLarge),
         .init(category: .openAi, variant: .gptOss),
         .init(category: .nvidia, variant: .nemotronCascade),
+        .init(category: .llamas, variant: .llama),
         .init(category: .experimental, variant: .smol)
     ]
 
