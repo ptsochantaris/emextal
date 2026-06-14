@@ -46,11 +46,157 @@ blockquote {
     border-radius: 15pt;
 }
 
+pre {
+    position: relative;
+}
+
 pre code {
     font-size: 110%;
     background: Canvas;
     border-radius: 8pt;
     display: block;
+}
+
+/* highlight.css defines `pre code.hljs { padding: 1em }` (same specificity as
+   `pre code.hljs`) and is linked after this file, so a plain tie would lose on
+   source order. The `html` prefix raises specificity above the theme's rule,
+   reliably reserving the top strip for the language label / chevron / copy
+   button. */
+html pre code.hljs {
+    /* 28pt header strip (divider sits at its base) plus ~6pt breathing room
+       before the first line of code. */
+    padding-top: 34pt;
+}
+
+pre .copy-holder {
+    position: sticky;
+    top: 0;
+    height: 0;
+    z-index: 2;
+}
+
+/* Opaque bar behind the sticky header controls so code scrolling up underneath
+   is hidden rather than showing through the gaps. Matches the highlight.js
+   panel colour and its rounded top corners. Painted before the controls (and
+   the divider) in DOM order, so it stays behind them. */
+pre .copy-holder::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    /* Only the 28pt control strip (down to the divider). The code's extra
+       padding-top below this is part of the content, so it scrolls away
+       instead of staying pinned under the header. */
+    height: 28pt;
+    background: #f3f3f3;
+    border-radius: 8pt 8pt 0 0;
+}
+
+/* Discreet divider at the bottom of the 28pt header strip, separating it from
+   the code. Drawn on the (zero-height, sticky) holder so it stays pinned under
+   the header while a long block scrolls. */
+pre .copy-holder::after {
+    content: "";
+    position: absolute;
+    top: 28pt;
+    left: 0;
+    right: 0;
+    border-top: 1px solid #0000001a;
+}
+
+pre .collapse-button {
+    position: absolute;
+    top: 14pt;
+    left: 7pt;
+    transform: translateY(-50%);
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3pt;
+
+    border: none;
+    border-radius: 6pt;
+    background: transparent;
+    /* The highlight.js theme paints the code panel a fixed light colour, so
+       these controls use a fixed dark tint rather than the system CanvasText
+       (which would turn white under dark appearance and vanish). */
+    color: #444;
+
+    opacity: 0.55;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    transition: opacity 0.15s ease;
+}
+
+pre .collapse-button:hover {
+    opacity: 0.9;
+}
+
+pre .collapse-button svg {
+    transition: transform 0.15s ease;
+}
+
+pre.collapsed .collapse-button svg {
+    transform: rotate(-90deg);
+}
+
+pre .code-lang {
+    position: absolute;
+    top: 14pt;
+    left: 28pt;
+    transform: translateY(-50%);
+
+    font-family: -apple-system;
+    font-size: small;
+    font-weight: 600;
+    color: #444;
+    opacity: 0.6;
+
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+pre.collapsed code {
+    box-sizing: border-box;
+    height: 28pt;
+    overflow: hidden;
+}
+
+pre .copy-button {
+    position: absolute;
+    top: 14pt;
+    right: 6pt;
+    transform: translateY(-50%);
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4pt;
+
+    border: none;
+    border-radius: 6pt;
+    background: #00000012;
+    color: #444;
+
+    opacity: 0.85;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    transition: opacity 0.15s ease;
+}
+
+pre .copy-button:hover {
+    opacity: 1;
+    background: #00000020;
+}
+
+pre .copy-button.copied {
+    opacity: 1;
+    background: #34C75955;
 }
 
 p > code,
