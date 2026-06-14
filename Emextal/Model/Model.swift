@@ -1,10 +1,9 @@
+import EmextalAudio
 import Foundation
 import MLX
-import MLXHuggingFace
 import MLXLMCommon
 import MLXLMHFAPI
 import PopTimer
-import Tokenizers
 
 @Observable
 final class Model: Hashable, Identifiable, Sendable {
@@ -57,7 +56,7 @@ final class Model: Hashable, Identifiable, Sendable {
             updateStatus()
         }
 
-        let loader = #huggingFaceTokenizerLoader() // TODO: Use integration package instead of HF tokenizer
+        let loader = EmextalTokenizerLoader()
         let snapshotPath = try await Self.installModel(id: variant.repoId, parentProgress: parentProgress, progressCount: progressCount)
         modelContainer = try await loadModelContainer(from: snapshotPath, using: loader)
     }

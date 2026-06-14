@@ -470,7 +470,7 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
         for segment in segments {
             if isSpecialToken(segment) {
                 // Special tokens are handled directly by the tokenizer
-                let tokens = tokenizer.encode(text: segment, addSpecialTokens: false)
+                let tokens = (try? tokenizer.encode(text: segment, addSpecialTokens: false)) ?? []
                 allTokens.append(contentsOf: tokens)
             } else {
                 // For regular text, pre-tokenize to handle spaces correctly
@@ -486,7 +486,7 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
                         }
                     } else {
                         // Use tokenizer for non-whitespace chunks
-                        let chunkTokens = tokenizer.encode(text: chunk, addSpecialTokens: false)
+                        let chunkTokens = (try? tokenizer.encode(text: chunk, addSpecialTokens: false)) ?? []
                         allTokens.append(contentsOf: chunkTokens)
                     }
                 }
@@ -942,7 +942,7 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
         eval(model)
 
         // Load tokenizer
-        model.tokenizer = try await AutoTokenizer.from(modelFolder: modelDir)
+        model.tokenizer = try await AutoTokenizer.from(directory: modelDir)
         if model.tokenizer != nil {
             model.stopTokenId = model.tokenizer?.eosTokenId ?? 3
         }

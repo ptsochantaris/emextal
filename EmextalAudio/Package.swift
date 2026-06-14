@@ -10,7 +10,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/ml-explore/mlx-swift.git", .upToNextMajor(from: "0.31.4")),
         .package(url: "https://github.com/ml-explore/mlx-swift-lm.git", branch: "main"),
-        .package(url: "https://github.com/huggingface/swift-transformers.git", .upToNextMajor(from: "1.3.3")),
+        .package(url: "https://github.com/DePasqualeOrg/swift-tokenizers.git", .upToNextMinor(from: "0.7.1")),
     ],
     targets: [
         .target(
@@ -19,7 +19,7 @@ let package = Package(
                 .product(name: "MLX", package: "mlx-swift"),
                 .product(name: "MLXNN", package: "mlx-swift"),
                 .product(name: "MLXLMCommon", package: "mlx-swift-lm"),
-                .product(name: "Tokenizers", package: "swift-transformers"),
+                .product(name: "Tokenizers", package: "swift-tokenizers"),
             ],
             path: "Sources/EmextalAudio"
         ),
