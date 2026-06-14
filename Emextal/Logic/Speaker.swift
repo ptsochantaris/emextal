@@ -3,6 +3,20 @@ import EmextalAudio
 import MLX
 import MLXLMCommon
 
+private extension AVAudioPlayerNode {
+    // `stop()` synchronously blocks on the audio engine's default-QoS render thread.
+    // Calling it from a higher-QoS executor causes a priority inversion, so hop to a
+    // default-QoS queue and suspend the caller instead of blocking the thread.
+    func stopOffActor() async {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .default).async {
+                self.stop()
+                continuation.resume()
+            }
+        }
+    }
+}
+
 final actor Speaker {
     nonisolated var unownedExecutor: UnownedSerialExecutor {
         unsafe HighPriorityExecutor.sharedExecutor.asUnownedSerialExecutor()
@@ -53,20 +67,20 @@ final actor Speaker {
         effectPlayer.play()
         await effectPlayer.scheduleFile(effect.audioFile, at: nil)
         try? await Task.sleep(for: .seconds(1))
-        effectPlayer.stop()
+        await effectPlayer.stopOffActor()
     }
 
-    func stopSpeaking() {
+    func stopSpeaking() async {
         active = UUID()
         countInQueue = 0
         playingLatestBuffer = false
         if speechPlayer.isPlaying {
-            speechPlayer.stop()
+            await speechPlayer.stopOffActor()
         }
     }
 
-    func shutdown() {
-        stopSpeaking()
+    func shutdown() async {
+        await stopSpeaking()
         effectContinuation.finish()
         spechContinuation.finish()
     }
@@ -140,7 +154,7 @@ final actor Speaker {
         while countInQueue > 0 {
             try? await Task.sleep(for: .seconds(0.1))
         }
-        speechPlayer.stop()
+        await speechPlayer.stopOffActor()
     }
 
     private let voiceParams = GenerateParameters(
