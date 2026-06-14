@@ -1,5 +1,5 @@
 {
-  "originHash" : "ec939bfe5ecb151880dd80b7e3e18c9c2612393217c5db34e76451b839aa3906",
+  "originHash" : "2c936d470c39cbda674f9e9b93a5fa16d6a72f2419be095c2f1228f73da53c51",
   "pins" : [
     {
       "identity" : "htmlstring",
@@ -80,15 +80,6 @@
       "state" : {
         "revision" : "985a673cbe2be9b61e1cbcbf062083ae6d648a8d",
         "version" : "0.3.2"
-      }
-    },
-    {
-      "identity" : "swift-hf-api-mlx",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/DePasqualeOrg/swift-hf-api-mlx",
-      "state" : {
-        "revision" : "83189f677280b85e22dd7fa11d12d97b245a2013",
-        "version" : "0.2.0"
       }
     },
     {

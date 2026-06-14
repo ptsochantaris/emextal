@@ -1,8 +1,8 @@
 import EmextalAudio
 import Foundation
+import HFAPI
 import MLX
 import MLXLMCommon
-import MLXLMHFAPI
 import PopTimer
 
 @Observable
