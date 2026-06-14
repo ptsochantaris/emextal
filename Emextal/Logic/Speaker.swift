@@ -1,6 +1,6 @@
 import AVFoundation
+import EmextalAudio
 import MLX
-import MLXAudioTTS
 import MLXLMCommon
 
 final actor Speaker {

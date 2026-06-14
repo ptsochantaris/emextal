@@ -1,5 +1,5 @@
 {
-  "originHash" : "ec939bfe5ecb151880dd80b7e3e18c9c2612393217c5db34e76451b839aa3906",
+  "originHash" : "96535e7b2aa6380631e6b18054f99a3f032d4320edb299b42ba7f2734422fcbe",
   "pins" : [
     {
       "identity" : "eventsource",
@@ -8,24 +8,6 @@
       "state" : {
         "revision" : "a3a85a85214caf642abaa96ae664e4c772a59f6e",
         "version" : "1.4.1"
-      }
-    },
-    {
-      "identity" : "htmlstring",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/alexaubry/HTMLString",
-      "state" : {
-        "revision" : "04613a3b0f40a91e554b5174c0a10657f1a26357",
-        "version" : "6.0.1"
-      }
-    },
-    {
-      "identity" : "ink",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/JohnSundell/Ink",
-      "state" : {
-        "revision" : "bcc9f219900a62c4210e6db726035d7f03ae757b",
-        "version" : "0.6.0"
       }
     },
     {
@@ -40,19 +22,10 @@
     {
       "identity" : "mlx-swift-lm",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/ml-explore/mlx-swift-lm/",
+      "location" : "https://github.com/ml-explore/mlx-swift-lm.git",
       "state" : {
         "branch" : "main",
         "revision" : "e3cb1e1b4fb373391a414c33e9221516d02134ef"
-      }
-    },
-    {
-      "identity" : "pop-timer",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/ptsochantaris/pop-timer",
-      "state" : {
-        "revision" : "866789ba524adc477ad3eb0ad41c929f7092dac7",
-        "version" : "1.0.1"
       }
     },
     {
@@ -92,33 +65,6 @@
       }
     },
     {
-      "identity" : "swift-filelock",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/DePasqualeOrg/swift-filelock",
-      "state" : {
-        "revision" : "3894dbeea7593724b847f7cff32a3e2b162b70a0",
-        "version" : "0.1.1"
-      }
-    },
-    {
-      "identity" : "swift-hf-api",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/DePasqualeOrg/swift-hf-api",
-      "state" : {
-        "revision" : "985a673cbe2be9b61e1cbcbf062083ae6d648a8d",
-        "version" : "0.3.2"
-      }
-    },
-    {
-      "identity" : "swift-hf-api-mlx",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/DePasqualeOrg/swift-hf-api-mlx",
-      "state" : {
-        "revision" : "83189f677280b85e22dd7fa11d12d97b245a2013",
-        "version" : "0.2.0"
-      }
-    },
-    {
       "identity" : "swift-huggingface",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/huggingface/swift-huggingface.git",
@@ -155,15 +101,6 @@
       }
     },
     {
-      "identity" : "swift-sse",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/DePasqualeOrg/swift-sse",
-      "state" : {
-        "revision" : "c8e3f1a5d4cdf708c891bae1f2a975519627b65c",
-        "version" : "0.1.0"
-      }
-    },
-    {
       "identity" : "swift-syntax",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/swiftlang/swift-syntax.git",
@@ -188,15 +125,6 @@
       "state" : {
         "revision" : "2fa33e1f5e7131a7fc64c28e6d161dcec0d24820",
         "version" : "1.3.3"
-      }
-    },
-    {
-      "identity" : "swift-xet",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/DePasqualeOrg/swift-xet",
-      "state" : {
-        "revision" : "4395b0900c1d45614d323b9ba1109cd46dc1c1d7",
-        "version" : "0.2.0"
       }
     },
     {

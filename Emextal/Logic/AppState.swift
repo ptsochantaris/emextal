@@ -26,25 +26,25 @@ final class AppState {
         }
     }
 
-    private nonisolated(unsafe) let engine = AVAudioEngine()
+    private let engine = AVAudioEngine()
 
     init() {
         if let id = Persisted.lastSelectedModelId {
             selectedModel = Registry.allModels.first(where: { $0.id == id })
         }
 
-        unsafe engine.inputNode.volume = 1.0
+        engine.inputNode.volume = 1.0
 
-        nonisolated(unsafe) let inputNode = unsafe engine.inputNode
-        let recorder = Recorder(inputNode: unsafe inputNode)
+        let inputNode = engine.inputNode
+        let recorder = Recorder(inputNode: inputNode)
 
-        let speaker = Speaker(engine: unsafe engine)
+        let speaker = Speaker(engine: engine)
 
         let mic = Mic(recorder: recorder)
 
         Task {
             do {
-                unsafe try engine.start()
+                try engine.start()
                 async let speakerBoot = speaker.boot()
                 async let micBoot = mic.boot()
                 try await speakerBoot

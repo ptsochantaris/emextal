@@ -1,7 +1,6 @@
+import EmextalAudio
 import Foundation
 import MLX
-import MLXAudioSTT
-import MLXAudioVAD
 
 final actor Mic {
     nonisolated var unownedExecutor: UnownedSerialExecutor {
@@ -100,7 +99,7 @@ final actor Mic {
             log("Manual recording streaming")
 
             // depending on the UI to call stop()
-            for try await chunk in sequence {
+            for await chunk in sequence {
                 audioChain.append(chunk.data())
             }
 

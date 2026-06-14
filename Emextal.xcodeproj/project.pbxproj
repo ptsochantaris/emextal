@@ -7,18 +7,18 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		160D458A2F98CBAA00AE57C5 /* MLXAudioSTT in Frameworks */ = {isa = PBXBuildFile; productRef = 160D45892F98CBAA00AE57C5 /* MLXAudioSTT */; };
-		160D458C2F98CBAA00AE57C5 /* MLXAudioTTS in Frameworks */ = {isa = PBXBuildFile; productRef = 160D458B2F98CBAA00AE57C5 /* MLXAudioTTS */; };
-		160D458E2F98CBAA00AE57C5 /* MLXAudioVAD in Frameworks */ = {isa = PBXBuildFile; productRef = 160D458D2F98CBAA00AE57C5 /* MLXAudioVAD */; };
 		160D46022F99FDA300AE57C5 /* MLXHuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = 160D46012F99FDA300AE57C5 /* MLXHuggingFace */; };
 		1641590E2F7484E000852D12 /* PopTimer in Frameworks */ = {isa = PBXBuildFile; productRef = 1641590D2F7484E000852D12 /* PopTimer */; };
 		166C6B6E2F5CAC7C00BFEF31 /* Ink in Frameworks */ = {isa = PBXBuildFile; productRef = 166C6B6D2F5CAC7C00BFEF31 /* Ink */; };
 		166C6B8A2F5CC0BE00BFEF31 /* HTMLString in Frameworks */ = {isa = PBXBuildFile; productRef = 166C6B892F5CC0BE00BFEF31 /* HTMLString */; };
 		16800ABB2F9A04C600F88E7C /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 16800ABA2F9A04C600F88E7C /* MLXLLM */; };
 		16800ABD2F9A04C600F88E7C /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = 16800ABC2F9A04C600F88E7C /* MLXVLM */; };
-		16A05F272FD23A5300A01A88 /* MLXLMHFAPI in Frameworks */ = {isa = PBXBuildFile; productRef = 16A05F262FD23A5300A01A88 /* MLXLMHFAPI */; };
+		1693197B2FDE9EFB00473E17 /* MLXLMHFAPI in Frameworks */ = {isa = PBXBuildFile; productRef = 1693197A2FDE9EFB00473E17 /* MLXLMHFAPI */; };
+		1693197E2FDEA2C000473E17 /* MLXLMHFAPI in Frameworks */ = {isa = PBXBuildFile; productRef = 1693197D2FDEA2C000473E17 /* MLXLMHFAPI */; };
+		169319802FDEA2E400473E17 /* HFAPI in Frameworks */ = {isa = PBXBuildFile; productRef = 1693197F2FDEA2E400473E17 /* HFAPI */; };
 		16A05F292FD23AE000A01A88 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 16A05F282FD23ADD00A01A88 /* README.md */; };
 		16B87D6A2F7F0FB9001723B6 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 16B87D692F7F0FB9001723B6 /* MLXLMCommon */; };
+		16BD89E82FDE991F006113E0 /* EmextalAudio in Frameworks */ = {isa = PBXBuildFile; productRef = 16BD89E72FDE991F006113E0 /* EmextalAudio */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -39,15 +39,15 @@
 		169527342F5B3F1400E04F44 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
+				169319802FDEA2E400473E17 /* HFAPI in Frameworks */,
 				16800ABB2F9A04C600F88E7C /* MLXLLM in Frameworks */,
 				16B87D6A2F7F0FB9001723B6 /* MLXLMCommon in Frameworks */,
-				160D458E2F98CBAA00AE57C5 /* MLXAudioVAD in Frameworks */,
 				16800ABD2F9A04C600F88E7C /* MLXVLM in Frameworks */,
-				160D458C2F98CBAA00AE57C5 /* MLXAudioTTS in Frameworks */,
-				160D458A2F98CBAA00AE57C5 /* MLXAudioSTT in Frameworks */,
-				16A05F272FD23A5300A01A88 /* MLXLMHFAPI in Frameworks */,
 				166C6B6E2F5CAC7C00BFEF31 /* Ink in Frameworks */,
+				1693197E2FDEA2C000473E17 /* MLXLMHFAPI in Frameworks */,
+				1693197B2FDE9EFB00473E17 /* MLXLMHFAPI in Frameworks */,
 				1641590E2F7484E000852D12 /* PopTimer in Frameworks */,
+				16BD89E82FDE991F006113E0 /* EmextalAudio in Frameworks */,
 				166C6B8A2F5CC0BE00BFEF31 /* HTMLString in Frameworks */,
 				160D46022F99FDA300AE57C5 /* MLXHuggingFace in Frameworks */,
 			);
@@ -103,13 +103,13 @@
 				166C6B892F5CC0BE00BFEF31 /* HTMLString */,
 				1641590D2F7484E000852D12 /* PopTimer */,
 				16B87D692F7F0FB9001723B6 /* MLXLMCommon */,
-				160D45892F98CBAA00AE57C5 /* MLXAudioSTT */,
-				160D458B2F98CBAA00AE57C5 /* MLXAudioTTS */,
-				160D458D2F98CBAA00AE57C5 /* MLXAudioVAD */,
 				160D46012F99FDA300AE57C5 /* MLXHuggingFace */,
 				16800ABA2F9A04C600F88E7C /* MLXLLM */,
 				16800ABC2F9A04C600F88E7C /* MLXVLM */,
-				16A05F262FD23A5300A01A88 /* MLXLMHFAPI */,
+				16BD89E72FDE991F006113E0 /* EmextalAudio */,
+				1693197A2FDE9EFB00473E17 /* MLXLMHFAPI */,
+				1693197D2FDEA2C000473E17 /* MLXLMHFAPI */,
+				1693197F2FDEA2E400473E17 /* HFAPI */,
 			);
 			productName = Emextal;
 			productReference = 169527372F5B3F1400E04F44 /* Emextal.app */;
@@ -144,8 +144,9 @@
 				166C6B882F5CC0BE00BFEF31 /* XCRemoteSwiftPackageReference "HTMLString" */,
 				1641590C2F7484E000852D12 /* XCRemoteSwiftPackageReference "pop-timer" */,
 				16B87D662F7F0FB9001723B6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
-				160D45882F98CBAA00AE57C5 /* XCRemoteSwiftPackageReference "mlx-audio-swift" */,
-				168552F82FD2398C0008BBD9 /* XCRemoteSwiftPackageReference "swift-hf-api-mlx" */,
+				16BD89E62FDE991F006113E0 /* XCLocalSwiftPackageReference "EmextalAudio" */,
+				169319792FDE9EFB00473E17 /* XCRemoteSwiftPackageReference "swift-hf-api" */,
+				1693197C2FDEA2C000473E17 /* XCRemoteSwiftPackageReference "swift-hf-api-mlx" */,
 			);
 			preferredProjectObjectVersion = 100;
 			productRefGroup = 169527382F5B3F1400E04F44 /* Products */;
@@ -463,15 +464,14 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		160D45882F98CBAA00AE57C5 /* XCRemoteSwiftPackageReference "mlx-audio-swift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Blaizzy/mlx-audio-swift";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
+/* Begin XCLocalSwiftPackageReference section */
+		16BD89E62FDE991F006113E0 /* XCLocalSwiftPackageReference "EmextalAudio" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = EmextalAudio;
 		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
 		1641590C2F7484E000852D12 /* XCRemoteSwiftPackageReference "pop-timer" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/ptsochantaris/pop-timer";
@@ -496,7 +496,15 @@
 				minimumVersion = 6.0.1;
 			};
 		};
-		168552F82FD2398C0008BBD9 /* XCRemoteSwiftPackageReference "swift-hf-api-mlx" */ = {
+		169319792FDE9EFB00473E17 /* XCRemoteSwiftPackageReference "swift-hf-api" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/DePasqualeOrg/swift-hf-api";
+			requirement = {
+				kind = upToNextMinorVersion;
+				minimumVersion = 0.3.0;
+			};
+		};
+		1693197C2FDEA2C000473E17 /* XCRemoteSwiftPackageReference "swift-hf-api-mlx" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/DePasqualeOrg/swift-hf-api-mlx";
 			requirement = {
@@ -515,21 +523,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		160D45892F98CBAA00AE57C5 /* MLXAudioSTT */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 160D45882F98CBAA00AE57C5 /* XCRemoteSwiftPackageReference "mlx-audio-swift" */;
-			productName = MLXAudioSTT;
-		};
-		160D458B2F98CBAA00AE57C5 /* MLXAudioTTS */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 160D45882F98CBAA00AE57C5 /* XCRemoteSwiftPackageReference "mlx-audio-swift" */;
-			productName = MLXAudioTTS;
-		};
-		160D458D2F98CBAA00AE57C5 /* MLXAudioVAD */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 160D45882F98CBAA00AE57C5 /* XCRemoteSwiftPackageReference "mlx-audio-swift" */;
-			productName = MLXAudioVAD;
-		};
 		160D46012F99FDA300AE57C5 /* MLXHuggingFace */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 16B87D662F7F0FB9001723B6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
@@ -560,15 +553,29 @@
 			package = 16B87D662F7F0FB9001723B6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
 			productName = MLXVLM;
 		};
-		16A05F262FD23A5300A01A88 /* MLXLMHFAPI */ = {
+		1693197A2FDE9EFB00473E17 /* MLXLMHFAPI */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 168552F82FD2398C0008BBD9 /* XCRemoteSwiftPackageReference "swift-hf-api-mlx" */;
+			package = 169319792FDE9EFB00473E17 /* XCRemoteSwiftPackageReference "swift-hf-api" */;
 			productName = MLXLMHFAPI;
+		};
+		1693197D2FDEA2C000473E17 /* MLXLMHFAPI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1693197C2FDEA2C000473E17 /* XCRemoteSwiftPackageReference "swift-hf-api-mlx" */;
+			productName = MLXLMHFAPI;
+		};
+		1693197F2FDEA2E400473E17 /* HFAPI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 169319792FDE9EFB00473E17 /* XCRemoteSwiftPackageReference "swift-hf-api" */;
+			productName = HFAPI;
 		};
 		16B87D692F7F0FB9001723B6 /* MLXLMCommon */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 16B87D662F7F0FB9001723B6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
 			productName = MLXLMCommon;
+		};
+		16BD89E72FDE991F006113E0 /* EmextalAudio */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmextalAudio;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
