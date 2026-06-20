@@ -9,7 +9,7 @@ final actor MessageLog {
     }
 
     private enum Change {
-        case prompt(text: String, image: NSImage?),
+        case prompt(text: String, image: ImageClass?),
              appendResponse(text: String),
              commitTurn,
              save(to: URL, @Sendable ((any Error)?) -> Void),
@@ -84,7 +84,7 @@ final actor MessageLog {
         }
     }
 
-    nonisolated func prompt(text: String, image: NSImage?) {
+    nonisolated func prompt(text: String, image: ImageClass?) {
         changeContinuation.yield(.prompt(text: text, image: image))
     }
 

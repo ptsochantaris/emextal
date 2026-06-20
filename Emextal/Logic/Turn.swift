@@ -1,9 +1,6 @@
 import Foundation
 import HTMLString
 import Ink
-#if canImport(AppKit)
-    import AppKit
-#endif
 
 nonisolated struct Turn: Codable {
     let id: UUID
@@ -34,15 +31,12 @@ nonisolated struct Turn: Codable {
         }
     }
 
-    init(id: UUID = UUID(), prompt: String, text: String, image: NSImage?) {
+    init(id: UUID = UUID(), prompt: String, text: String, image: ImageClass?) {
         self.id = id
         self.prompt = prompt
         self.text = text
 
-        if let image,
-           let data = image.tiffRepresentation,
-           let rep = NSBitmapImageRep(data: data),
-           let imgData = rep.representation(using: .jpeg, properties: [.compressionFactor: NSNumber(floatLiteral: 0.8)]) {
+        if let imgData = ImageUtilities.jpegData(from: image) {
             let filename = UUID().uuidString + "-attachment.jpg"
             let path = WebView.temporaryDirectory.appendingPathComponent(filename)
             do {

@@ -14,7 +14,7 @@ import WebKit
     private(set) var recognitionLoop: Task<Void, Never>?
 
     var prompt = ""
-    var attachedImage: NSImage?
+    var attachedImage: ImageClass?
     let memoryStats = MemoryStats()
 
     var textOnly = Persisted.textOnly {
@@ -266,7 +266,7 @@ import WebKit
 
             var first = true
             let images = [attached]
-                .compactMap { unsafe $0?.cgImage(forProposedRect: nil, context: nil, hints: nil) }
+                .compactMap { $0?.cgImage }
                 .map { CIImage(cgImage: $0) }
                 .map { UserInput.Image.ciImage($0) }
 
