@@ -8,11 +8,7 @@ struct ConversationView: View {
     @State private var inputHeight: CGFloat = 0
 
     var body: some View {
-        #if os(visionOS)
-            let spacing: CGFloat = 18
-        #else
-            let spacing: CGFloat = 8
-        #endif
+        let spacing: CGFloat = 8
 
         HStack(spacing: spacing) {
             VStack(spacing: spacing) {
@@ -21,17 +17,12 @@ struct ConversationView: View {
                 TextField("Hold \"↓\" to speak, or enter your message here", text: $conversation.prompt)
                     .textFieldStyle(.plain)
                     .onAppear { focusEntryField = true }
-                #if os(visionOS)
-                    .padding(22)
-                    .background(.ultraThinMaterial)
-                #else
                     .padding(7)
                     .padding(.horizontal, 5)
                     .background {
                         Capsule()
                             .foregroundStyle(.material)
                     }
-                #endif
                     .focused($focusEntryField)
                     .onSubmit {
                         conversation.respondToTypedPrompt()

@@ -179,7 +179,7 @@ final actor Speaker {
     )
 
     private var playingLatestBuffer = false
-    private var generationTask: Task<[Float], Error>?
+    private var generationTask: Task<[Float], any Error>?
 
     /// Isolated to this actor so the (interruptible) render stays on the same executor the inline
     /// call used, rather than hopping to the global pool and racing the STT model's MLX work.
