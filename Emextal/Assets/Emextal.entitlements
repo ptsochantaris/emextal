@@ -2,20 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>com.apple.developer.kernel.increased-debugging-memory-limit</key>
-	<true/>
 	<key>com.apple.developer.kernel.increased-memory-limit</key>
 	<true/>
-	<!-- Required for a sandboxed macOS app to receive microphone input at all. Without it the
-	     sandbox blocks the audio HAL input device and the tap delivers only silence. -->
 	<key>com.apple.security.device.audio-input</key>
 	<true/>
-	<!-- Apple's Voice-Processing I/O unit (enabled for echo cancellation / barge-in) talks to
-	     audioanalyticsd over Mach. The App Sandbox blocks that lookup by default, which trips a
-	     precondition failure and silences the microphone input, so grant the exception explicitly. -->
-	<key>com.apple.security.exception.mach-lookup.global-name</key>
-	<array>
-		<string>com.apple.audioanalyticsd</string>
-	</array>
 </dict>
 </plist>
