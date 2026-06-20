@@ -3,6 +3,8 @@ import SwiftUI
 struct ConversationContainer: View {
     let conversation: Conversation
 
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
     private func loadTop(conversation: Conversation) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(conversation.displayName)
@@ -33,12 +35,14 @@ struct ConversationContainer: View {
             ParamsView(model: conversation.model)
                 .clipShape(RoundedRectangle(cornerRadius: 20))
         }
-        .padding(88)
+        .padding(horizontalSizeClass == .compact ? 10 : 88)
     }
 
     var body: some View {
         NavigationStack {
             ZStack {
+                Color.clear
+
                 switch conversation.mode {
                 case .error, .loaded, .loading:
                     loadTop(conversation: conversation)
