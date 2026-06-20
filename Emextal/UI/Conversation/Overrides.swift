@@ -72,7 +72,7 @@ struct ParamsView: View {
                         FloatRow(descriptor: Model.Params.Descriptors.presentPenatly, value: $model.params.presentPenatly)
                     }
 
-                    if model.params.supportsQuantisation {
+                    if model.variant.supportsThinkingSwitch {
                         Toggle("Enable reasoning mode", isOn: $model.params.enableThinking)
                     }
                 }
@@ -111,6 +111,7 @@ struct ParamsView: View {
                 Spacer()
                 if model.variant.supportsThinkingSwitch {
                     Toggle("Enable reasoning mode", isOn: $model.params.enableThinking)
+                        .fixedSize(horizontal: true, vertical: false)
                     Spacer()
                 }
                 Button("Reset to Defaults") {

@@ -50,7 +50,7 @@ extension Model {
             switch self {
             case .qwen3coderNext:
                 "You are an AI coding assistant"
-            case .gemma4, .gptOss, .gptOssLarge, .llama, .nemotronCascade, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
+            case .gemma4, .gptOss, .gptOssLarge, .llama, .nemotronCascade, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
                 "You are a conversational AI chatbot"
             }
         }
@@ -85,7 +85,7 @@ extension Model {
             case .gptOssLarge: 66 * gb
             case .llama: 1 * gb
             case .gemma4: 34 * gb
-            case .qwen36deckard: 45 * gb // TODO
+            case .qwen36deckard: 45 * gb // TODO:
             }
         }
 
@@ -119,7 +119,7 @@ extension Model {
             switch self {
             case .gptOss:
                 true
-            case .gemma4, .gptOssLarge, .llama, .nemotronCascade, .qwen3coderNext, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
+            case .gemma4, .gptOssLarge, .llama, .nemotronCascade, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
                 false
             }
         }
@@ -132,7 +132,7 @@ extension Model {
             switch self {
             case .nemotronCascade, .qwen3coderNext:
                 40
-            case .gptOss, .gptOssLarge, .llama, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
+            case .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
                 20
             case .gemma4:
                 64
@@ -143,7 +143,7 @@ extension Model {
             switch self {
             case .gemma4, .nemotronCascade, .qwen3coderNext:
                 0.95
-            case .gptOss, .gptOssLarge, .llama, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
+            case .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
                 0.8
             }
         }
@@ -156,7 +156,7 @@ extension Model {
             switch self {
             case .gemma4, .nemotronCascade, .qwen3coderNext:
                 1.0
-            case .gptOss, .gptOssLarge, .llama, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
+            case .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
                 0.7
             }
         }
@@ -169,7 +169,7 @@ extension Model {
             switch self {
             case .nemotronCascade, .qwen3coderNext:
                 0.0
-            case .gemma4, .gptOss, .gptOssLarge, .llama, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
+            case .gemma4, .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
                 0.7
             }
         }
@@ -178,7 +178,7 @@ extension Model {
             switch self {
             case .gemma4, .gptOss, .gptOssLarge:
                 false
-            case .llama, .nemotronCascade, .qwen3coderNext, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
+            case .llama, .nemotronCascade, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
                 true
             }
         }
@@ -186,7 +186,7 @@ extension Model {
         var supportsThinkingSwitch: Bool {
             switch self {
             case .gemma4, // TODO: implement on system prompt for gemma4
-                 .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
+                 .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
                 true
             case .gptOss, .gptOssLarge, .llama, .nemotronCascade, .qwen3coderNext:
                 false
@@ -201,7 +201,7 @@ extension Model {
             switch self {
             case .nemotronCascade, .qwen3coderNext:
                 1.0
-            case .gemma4, .gptOss, .gptOssLarge, .llama, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
+            case .gemma4, .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
                 1.5
             }
         }
@@ -210,14 +210,14 @@ extension Model {
             switch self {
             case .gptOss, .gptOssLarge, .llama, .nemotronCascade, .qwen3coderNext, .smol:
                 .llm
-            case .gemma4, .qwen36moe, .qwen36regular, .qwen36deckard:
+            case .gemma4, .qwen36deckard, .qwen36moe, .qwen36regular:
                 .vlm
             }
         }
 
         var injectThinkingTag: Bool {
             switch self {
-            case .gemma4, .gptOss, .gptOssLarge, .llama, .nemotronCascade, .qwen3coderNext, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
+            case .gemma4, .gptOss, .gptOssLarge, .llama, .nemotronCascade, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
                 false
             }
         }
@@ -226,7 +226,7 @@ extension Model {
             switch self {
             case .qwen3coderNext:
                 false
-            case .gemma4, .gptOss, .gptOssLarge, .llama, .nemotronCascade, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
+            case .gemma4, .gptOss, .gptOssLarge, .llama, .nemotronCascade, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
                 true
             }
         }

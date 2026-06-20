@@ -4,12 +4,16 @@ import MLX
 import MLXLMCommon
 
 private extension AVAudioPlayerNode {
-    // `stop()` synchronously blocks on the audio engine's default-QoS render thread.
-    // Calling it from a higher-QoS executor causes a priority inversion, so hop to a
-    // default-QoS queue and suspend the caller instead of blocking the thread.
+    /// `stop()` synchronously blocks on the audio engine's default-QoS render thread.
+    /// Calling it from a higher-QoS executor causes a priority inversion, so hop to a
+    /// default-QoS queue and suspend the caller instead of blocking the thread.
     func stopOffActor() async {
         await withCheckedContinuation { continuation in
-            DispatchQueue.global(qos: .default).async {
+            // `.async` blocks inherit the submitting context's QoS, so a block submitted from
+            // the high-QoS actor executor would be boosted back to User-initiated. Enforce the
+            // Default QoS explicitly so `stop()` runs at the same level as the render thread it
+            // blocks on, avoiding the priority inversion.
+            DispatchQueue.global(qos: .default).async(qos: .default, flags: .enforceQoS) {
                 self.stop()
                 continuation.resume()
             }
@@ -22,8 +26,11 @@ final actor Speaker {
         unsafe HighPriorityExecutor.sharedExecutor.asUnownedSerialExecutor()
     }
 
-    private let speechStream: AsyncStream<String>
-    private let spechContinuation: AsyncStream<String>.Continuation
+    // Each queued line carries the speaking-session token (`active`) captured when it was enqueued.
+    // `stopSpeaking()` rotates that token, so any lines still buffered in the stream become stale and
+    // the consumer skips them — otherwise a cancel/reset mid-reply keeps speaking the backlog.
+    private let speechStream: AsyncStream<(text: String, token: UUID?)>
+    private let spechContinuation: AsyncStream<(text: String, token: UUID?)>.Continuation
 
     private let speechPlayer = AVAudioPlayerNode()
 
@@ -31,7 +38,7 @@ final actor Speaker {
     private let effectContinuation: AsyncStream<SoundEffect>.Continuation
 
     init(engine: AVAudioEngine) {
-        (speechStream, spechContinuation) = AsyncStream.makeStream(of: String.self, bufferingPolicy: .unbounded)
+        (speechStream, spechContinuation) = AsyncStream.makeStream(of: (text: String, token: UUID?).self, bufferingPolicy: .unbounded)
 
         engine.attach(speechPlayer)
         let speechFormat = AVAudioFormat(standardFormatWithSampleRate: 32000, channels: 1)
@@ -72,6 +79,10 @@ final actor Speaker {
 
     func stopSpeaking() async {
         active = UUID()
+        // Abort an in-flight TTS render too — SopranoModel.generate honours task cancellation — so a
+        // cancel/barge-in doesn't have to wait for the current line to finish generating.
+        generationTask?.cancel()
+        generationTask = nil
         countInQueue = 0
         playingLatestBuffer = false
         if speechPlayer.isPlaying {
@@ -106,10 +117,12 @@ final actor Speaker {
         Task { [weak self] in
             log("Speech queue starting")
             do {
-                for await line in stream {
+                for await (line, token) in stream {
                     guard let self else { return }
-                    guard let active = await active else { continue }
-                    try await speak(line, using: model, startedInActive: active)
+                    // Skip lines queued before the current speaking session (e.g. before a
+                    // cancel/reset/barge-in rotated the token).
+                    guard let token, await active == token else { continue }
+                    try await speak(line, using: model, startedInActive: token)
                 }
             } catch {
                 log("Speech generation failed: \(error)")
@@ -147,7 +160,7 @@ final actor Speaker {
         }
 
         countInQueue += 1
-        spechContinuation.yield(trimmed)
+        spechContinuation.yield((trimmed, active))
     }
 
     func waitUntilDone() async {
@@ -166,13 +179,35 @@ final actor Speaker {
     )
 
     private var playingLatestBuffer = false
+    private var generationTask: Task<[Float], Error>?
+
+    /// Isolated to this actor so the (interruptible) render stays on the same executor the inline
+    /// call used, rather than hopping to the global pool and racing the STT model's MLX work.
+    private func renderSamples(_ text: String, using speechModel: SopranoModel) async throws -> [Float] {
+        try await speechModel.generate(text: text, parameters: voiceParams).asArray(Float.self)
+    }
 
     private func speak(_ text: String, using speechModel: SopranoModel, startedInActive: UUID) async throws {
         guard startedInActive == active else { return }
 
         log("Rendering: \(text)")
 
-        let samples = try await speechModel.generate(text: text, parameters: voiceParams).asArray(Float.self)
+        // Render in a cancellable task so `stopSpeaking()` can abort it mid-generation (the render
+        // runs on this actor via the isolated `renderSamples`, same as before, just interruptible).
+        let task = Task { try await renderSamples(text, using: speechModel) }
+        generationTask = task
+        let samples: [Float]
+        do {
+            samples = try await task.value
+        } catch {
+            if !(error is CancellationError) {
+                log("Speech generation error, skipping line: \(error)")
+            }
+            return
+        }
+        generationTask = nil
+
+        guard startedInActive == active else { return }
 
         let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: Double(speechModel.sampleRate), channels: 1, interleaved: false)!
 

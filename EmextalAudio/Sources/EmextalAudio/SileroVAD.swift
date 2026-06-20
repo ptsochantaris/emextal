@@ -33,14 +33,14 @@ public enum SileroVADError: Error, LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .invalidRepositoryID(let r): return "Invalid repository ID: \(r)"
-        case .unsupportedSampleRate(let s): return "Silero VAD supports 8000 Hz and 16000 Hz audio (got \(s))"
-        case .stateSampleRateMismatch(let exp, let got):
-            return "Streaming state is for \(exp) Hz, got \(got) Hz"
-        case .unexpectedChunkSize(let exp, let got):
-            return "Expected \(exp) samples per chunk, got \(got)"
-        case .insufficientReflectPadInput(let s, let p):
-            return "Reflect padding of \(p) requires more than \(p) samples (got \(s))"
+        case let .invalidRepositoryID(r): "Invalid repository ID: \(r)"
+        case let .unsupportedSampleRate(s): "Silero VAD supports 8000 Hz and 16000 Hz audio (got \(s))"
+        case let .stateSampleRateMismatch(exp, got):
+            "Streaming state is for \(exp) Hz, got \(got) Hz"
+        case let .unexpectedChunkSize(exp, got):
+            "Expected \(exp) samples per chunk, got \(got)"
+        case let .insufficientReflectPadInput(s, p):
+            "Reflect padding of \(p) requires more than \(p) samples (got \(s))"
         }
     }
 }
@@ -67,29 +67,29 @@ private final class SileroVADBranch: Module {
 
     init(_ config: SileroVADBranchConfig) {
         self.config = config
-        self._stftConv.wrappedValue = Conv1d(
+        _stftConv.wrappedValue = Conv1d(
             inputChannels: 1, outputChannels: config.cutoff * 2,
             kernelSize: config.filterLength, stride: config.hopLength,
             padding: 0, bias: false
         )
-        self._conv1.wrappedValue = Conv1d(
+        _conv1.wrappedValue = Conv1d(
             inputChannels: config.cutoff, outputChannels: 128,
             kernelSize: 3, padding: 1
         )
-        self._conv2.wrappedValue = Conv1d(
+        _conv2.wrappedValue = Conv1d(
             inputChannels: 128, outputChannels: 64,
             kernelSize: 3, stride: 2, padding: 1
         )
-        self._conv3.wrappedValue = Conv1d(
+        _conv3.wrappedValue = Conv1d(
             inputChannels: 64, outputChannels: 64,
             kernelSize: 3, stride: 2, padding: 1
         )
-        self._conv4.wrappedValue = Conv1d(
+        _conv4.wrappedValue = Conv1d(
             inputChannels: 64, outputChannels: 128,
             kernelSize: 3, padding: 1
         )
-        self._lstm.wrappedValue = LSTM(inputSize: 128, hiddenSize: 128)
-        self._finalConv.wrappedValue = Conv1d(
+        _lstm.wrappedValue = LSTM(inputSize: 128, hiddenSize: 128)
+        _finalConv.wrappedValue = Conv1d(
             inputChannels: 128, outputChannels: 1,
             kernelSize: 1
         )
@@ -136,8 +136,8 @@ public final class SileroVAD: Module {
 
     public init(_ config: SileroVADConfig) {
         self.config = config
-        self.branch16k = SileroVADBranch(config.branch16k)
-        self.branch8k = SileroVADBranch(config.branch8k)
+        branch16k = SileroVADBranch(config.branch16k)
+        branch8k = SileroVADBranch(config.branch8k)
     }
 
     private func branch(forSampleRate sr: Int) throws -> SileroVADBranch {
@@ -285,17 +285,17 @@ public final class SileroVAD: Module {
 
         for (idx, p) in probs.enumerated() {
             let chunkStart = idx * chunkSize
-            if p >= threshold && !triggered {
+            if p >= threshold, !triggered {
                 triggered = true
                 currentStart = chunkStart
                 tempEnd = 0
                 continue
             }
-            if triggered && p >= threshold {
+            if triggered, p >= threshold {
                 tempEnd = 0
                 continue
             }
-            if triggered && p < negThreshold {
+            if triggered, p < negThreshold {
                 if tempEnd == 0 { tempEnd = chunkStart }
                 if Float(chunkStart - tempEnd) >= minSilenceSamples {
                     if Float(tempEnd - currentStart) >= minSpeechSamples {
@@ -354,7 +354,9 @@ public final class SileroVAD: Module {
         var allWeights: [String: MLXArray] = [:]
         for url in weightFiles {
             let w = try MLX.loadArrays(url: url)
-            for (k, v) in w { allWeights[k] = v }
+            for (k, v) in w {
+                allWeights[k] = v
+            }
         }
         let sanitized = sanitize(weights: allWeights)
         let parameters = ModuleParameters.unflattened(sanitized)

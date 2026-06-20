@@ -11,8 +11,8 @@ enum ConversationMode: Equatable {
     case listening(state: MicState, session: ChatSession)
     case transcribing(session: ChatSession)
     case transcribingDone(session: ChatSession)
-    case processingPrompt(session: ChatSession, task: Task<Void, any Error>)
-    case replying(session: ChatSession, task: Task<Void, any Error>)
+    case processingPrompt(session: ChatSession, task: Task<Void, Never>)
+    case replying(session: ChatSession, task: Task<Void, Never>)
     case shutdown
     case error(any Error)
 
@@ -22,15 +22,6 @@ enum ConversationMode: Equatable {
             true
         case .booting, .error, .listening, .loaded, .loading, .processingPrompt, .replying, .shutdown, .startup, .transcribing, .warmup:
             false
-        }
-    }
-
-    var shouldIgnoreMic: Bool {
-        switch self {
-        case .listening, .waiting:
-            false
-        case .booting, .error, .loaded, .loading, .processingPrompt, .replying, .shutdown, .startup, .transcribing, .transcribingDone, .warmup:
-            true
         }
     }
 
@@ -87,7 +78,7 @@ enum ConversationMode: Equatable {
         }
     }
 
-    var task: Task<Void, any Error>? {
+    var task: Task<Void, Never>? {
         switch self {
         case .booting,
              .error,

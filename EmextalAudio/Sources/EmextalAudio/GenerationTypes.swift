@@ -1,10 +1,3 @@
-//
-//  GenerationTypes.swift
-//  MLXAudioCore
-//
-//  Common types for audio generation shared across TTS, STT, and STS models.
-//
-
 import Foundation
 @preconcurrency import MLX
 
@@ -68,16 +61,16 @@ public enum AudioGenerationError: Error, LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .modelNotInitialized(let message):
-            return "Model not initialized: \(message)"
-        case .generationFailed(let message):
-            return "Generation failed: \(message)"
-        case .invalidInput(let message):
-            return "Invalid input: \(message)"
-        case .audioDecodingFailed(let message):
-            return "Audio decoding failed: \(message)"
-        case .audioEncodingFailed(let message):
-            return "Audio encoding failed: \(message)"
+        case let .modelNotInitialized(message):
+            "Model not initialized: \(message)"
+        case let .generationFailed(message):
+            "Generation failed: \(message)"
+        case let .invalidInput(message):
+            "Invalid input: \(message)"
+        case let .audioDecodingFailed(message):
+            "Audio decoding failed: \(message)"
+        case let .audioEncodingFailed(message):
+            "Audio encoding failed: \(message)"
         }
     }
 }

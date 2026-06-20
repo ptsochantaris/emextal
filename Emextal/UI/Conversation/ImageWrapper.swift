@@ -6,11 +6,11 @@ struct ImageWrapper: View {
 
     var body: some View {
         #if canImport(AppKit)
-        Image(nsImage: image)
-            .resizable()
+            Image(nsImage: image)
+                .resizable()
         #elseif canImport(UIKit)
-        Image(uiImage: image)
-            .resizable()
+            Image(uiImage: image)
+                .resizable()
         #endif
     }
 }

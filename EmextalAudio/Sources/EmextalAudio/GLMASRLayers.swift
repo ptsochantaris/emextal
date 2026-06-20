@@ -1,10 +1,3 @@
-//
-//  GLMASRLayers.swift
-//  MLXAudioSTT
-//
-// Created by Prince Canuma on 04/01/2026.
-//
-
 import Foundation
 import MLX
 import MLXNN
@@ -26,21 +19,21 @@ public class GLMASRWhisperAttention: Module {
     @ModuleInfo(key: "rope") var rope: RoPE?
 
     public init(config: GLMASRWhisperConfig, useRope: Bool = false) {
-        self.embedDim = config.dModel
-        self.numHeads = config.encoderAttentionHeads
-        self.headDim = embedDim / numHeads
-        self.scaling = pow(Float(headDim), -0.5)
+        embedDim = config.dModel
+        numHeads = config.encoderAttentionHeads
+        headDim = embedDim / numHeads
+        scaling = pow(Float(headDim), -0.5)
         self.useRope = useRope
 
-        self._qProj.wrappedValue = Linear(embedDim, embedDim, bias: true)
-        self._kProj.wrappedValue = Linear(embedDim, embedDim, bias: false)
-        self._vProj.wrappedValue = Linear(embedDim, embedDim, bias: true)
-        self._outProj.wrappedValue = Linear(embedDim, embedDim, bias: true)
+        _qProj.wrappedValue = Linear(embedDim, embedDim, bias: true)
+        _kProj.wrappedValue = Linear(embedDim, embedDim, bias: false)
+        _vProj.wrappedValue = Linear(embedDim, embedDim, bias: true)
+        _outProj.wrappedValue = Linear(embedDim, embedDim, bias: true)
 
         if useRope {
-            self._rope.wrappedValue = RoPE(dimensions: headDim / 2, traditional: config.ropeTraditional)
+            _rope.wrappedValue = RoPE(dimensions: headDim / 2, traditional: config.ropeTraditional)
         } else {
-            self._rope.wrappedValue = nil
+            _rope.wrappedValue = nil
         }
     }
 
@@ -56,7 +49,7 @@ public class GLMASRWhisperAttention: Module {
         keyStates = keyStates.reshaped([bsz, tgtLen, numHeads, headDim]).transposed(0, 2, 1, 3)
         valueStates = valueStates.reshaped([bsz, tgtLen, numHeads, headDim]).transposed(0, 2, 1, 3)
 
-        if useRope, let rope = rope {
+        if useRope, let rope {
             queryStates = rope(queryStates)
             keyStates = rope(keyStates)
         }
@@ -90,13 +83,13 @@ public class GLMASRWhisperEncoderLayer: Module {
     @ModuleInfo(key: "final_layer_norm") var finalLayerNorm: LayerNorm
 
     public init(config: GLMASRWhisperConfig, useRope: Bool = false) {
-        self.embedDim = config.dModel
+        embedDim = config.dModel
 
-        self._selfAttn.wrappedValue = GLMASRWhisperAttention(config: config, useRope: useRope)
-        self._selfAttnLayerNorm.wrappedValue = LayerNorm(dimensions: embedDim)
-        self._fc1.wrappedValue = Linear(embedDim, config.encoderFfnDim)
-        self._fc2.wrappedValue = Linear(config.encoderFfnDim, embedDim)
-        self._finalLayerNorm.wrappedValue = LayerNorm(dimensions: embedDim)
+        _selfAttn.wrappedValue = GLMASRWhisperAttention(config: config, useRope: useRope)
+        _selfAttnLayerNorm.wrappedValue = LayerNorm(dimensions: embedDim)
+        _fc1.wrappedValue = Linear(embedDim, config.encoderFfnDim)
+        _fc2.wrappedValue = Linear(config.encoderFfnDim, embedDim)
+        _finalLayerNorm.wrappedValue = LayerNorm(dimensions: embedDim)
     }
 
     public func callAsFunction(_ hiddenStates: MLXArray) -> MLXArray {
@@ -134,13 +127,13 @@ public class GLMASRWhisperEncoder: Module {
         self.useRope = useRope
         let embedDim = config.dModel
 
-        self._conv1.wrappedValue = Conv1d(
+        _conv1.wrappedValue = Conv1d(
             inputChannels: config.numMelBins,
             outputChannels: embedDim,
             kernelSize: 3,
             padding: 1
         )
-        self._conv2.wrappedValue = Conv1d(
+        _conv2.wrappedValue = Conv1d(
             inputChannels: embedDim,
             outputChannels: embedDim,
             kernelSize: 3,
@@ -149,13 +142,13 @@ public class GLMASRWhisperEncoder: Module {
         )
 
         // Always create for weight loading compatibility (only used when not using RoPE)
-        self._embedPositions.wrappedValue = Embedding(embeddingCount: config.maxSourcePositions, dimensions: embedDim)
+        _embedPositions.wrappedValue = Embedding(embeddingCount: config.maxSourcePositions, dimensions: embedDim)
 
         var encoderLayers: [GLMASRWhisperEncoderLayer] = []
-        for _ in 0..<config.encoderLayers {
+        for _ in 0 ..< config.encoderLayers {
             encoderLayers.append(GLMASRWhisperEncoderLayer(config: config, useRope: useRope))
         }
-        self._layers.wrappedValue = encoderLayers
+        _layers.wrappedValue = encoderLayers
     }
 
     public func callAsFunction(_ inputFeatures: MLXArray) -> MLXArray {
@@ -165,7 +158,7 @@ public class GLMASRWhisperEncoder: Module {
         // Add position embeddings if not using RoPE
         if !useRope {
             let seqLen = hiddenStates.shape[1]
-            let embedPos = embedPositions.weight[0..<seqLen]
+            let embedPos = embedPositions.weight[0 ..< seqLen]
             hiddenStates = hiddenStates + embedPos
         }
 
@@ -185,8 +178,8 @@ public class AdaptingMLP: Module {
     @ModuleInfo(key: "fc2") var fc2: Linear
 
     public init(inputDim: Int, intermediateDim: Int, outputDim: Int) {
-        self._fc1.wrappedValue = Linear(inputDim, intermediateDim, bias: true)
-        self._fc2.wrappedValue = Linear(intermediateDim, outputDim, bias: true)
+        _fc1.wrappedValue = Linear(inputDim, intermediateDim, bias: true)
+        _fc2.wrappedValue = Linear(intermediateDim, outputDim, bias: true)
     }
 
     public func callAsFunction(_ x: MLXArray) -> MLXArray {
@@ -222,26 +215,26 @@ public class AudioEncoder: Module {
         let lmHiddenSize = config.lmConfig.hiddenSize
 
         // Whisper encoder
-        self._whisper.wrappedValue = GLMASRWhisperEncoder(config: whisperConfig, useRope: config.useRope)
+        _whisper.wrappedValue = GLMASRWhisperEncoder(config: whisperConfig, useRope: config.useRope)
 
         // Layer norm after whisper encoder
-        self._layerNorm.wrappedValue = LayerNorm(dimensions: whisperConfig.dModel)
+        _layerNorm.wrappedValue = LayerNorm(dimensions: whisperConfig.dModel)
 
         // Projection from whisper dim to LM hidden size
-        self._proj.wrappedValue = Linear(whisperConfig.dModel, lmHiddenSize, bias: true)
+        _proj.wrappedValue = Linear(whisperConfig.dModel, lmHiddenSize, bias: true)
 
         // MLP adapter: merged_dim -> intermediate -> lm_hidden
         let mergedDim = whisperConfig.dModel * config.mergeFactor
         let intermediateDim = lmHiddenSize * 2
 
-        self._adapting.wrappedValue = AdaptingMLP(
+        _adapting.wrappedValue = AdaptingMLP(
             inputDim: mergedDim,
             intermediateDim: intermediateDim,
             outputDim: lmHiddenSize
         )
 
         // Begin/End of audio token embeddings
-        self._audioBosEosToken.wrappedValue = Embedding(embeddingCount: 2, dimensions: lmHiddenSize)
+        _audioBosEosToken.wrappedValue = Embedding(embeddingCount: 2, dimensions: lmHiddenSize)
     }
 
     public func callAsFunction(_ inputFeatures: MLXArray) -> (MLXArray, Int) {
@@ -261,10 +254,10 @@ public class AudioEncoder: Module {
         newSeqLen = min(newSeqLen, maxLen)
 
         var mergedFeatures: [MLXArray] = []
-        for i in 0..<newSeqLen {
+        for i in 0 ..< newSeqLen {
             let startIdx = i * mergeFactor
             let endIdx = startIdx + mergeFactor
-            let chunk = audioFeatures[0..., startIdx..<endIdx, 0...]
+            let chunk = audioFeatures[0..., startIdx ..< endIdx, 0...]
             let chunkReshaped = chunk.reshaped([batchSize, -1])
             mergedFeatures.append(chunkReshaped)
         }

@@ -22,6 +22,7 @@ struct ConversationContainer: View {
                     Button("Start") {
                         conversation.start()
                     }
+                    .foregroundStyle(.black)
                     .buttonStyle(.borderedProminent)
                 }
 

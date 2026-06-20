@@ -12,10 +12,10 @@ public class AdaLayerNorm: Module {
 
     public init(numEmbeddings: Int, embeddingDim: Int, eps: Float = 1e-6) {
         self.eps = eps
-        self.dim = embeddingDim
+        dim = embeddingDim
 
-        self._scale.wrappedValue = Linear(numEmbeddings, embeddingDim)
-        self._shift.wrappedValue = Linear(numEmbeddings, embeddingDim)
+        _scale.wrappedValue = Linear(numEmbeddings, embeddingDim)
+        _shift.wrappedValue = Linear(numEmbeddings, embeddingDim)
     }
 
     public func callAsFunction(_ x: MLXArray, condEmbedding: MLXArray) -> MLXArray {

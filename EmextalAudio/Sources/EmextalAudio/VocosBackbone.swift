@@ -1,10 +1,3 @@
-//
-//  VocosBackbone.swift
-//  MLXAudioCodecs
-//
-//  Created by Prince Canuma on 04/01/2026.
-//
-
 import Foundation
 import MLX
 import MLXNN
@@ -30,10 +23,10 @@ public class ConvNeXtBlock: Module {
         adanormNumEmbeddings: Int? = nil,
         dwKernelSize: Int = 7
     ) {
-        self.useAdaNorm = adanormNumEmbeddings != nil
+        useAdaNorm = adanormNumEmbeddings != nil
 
         // Depthwise convolution with groups=dim
-        self._dwconv.wrappedValue = MLXNN.Conv1d(
+        _dwconv.wrappedValue = MLXNN.Conv1d(
             inputChannels: dim,
             outputChannels: dim,
             kernelSize: dwKernelSize,
@@ -44,21 +37,21 @@ public class ConvNeXtBlock: Module {
         // Normalization (either LayerNorm or AdaLayerNorm)
         if let numEmbeddings = adanormNumEmbeddings {
             let adaNorm = AdaLayerNorm(numEmbeddings: numEmbeddings, embeddingDim: dim, eps: 1e-6)
-            self._norm.wrappedValue = adaNorm
+            _norm.wrappedValue = adaNorm
         } else {
             let norm = LayerNorm(dimensions: dim, eps: 1e-6)
-            self._norm.wrappedValue = norm
+            _norm.wrappedValue = norm
         }
 
         // Pointwise/1x1 convs, implemented with linear layers
-        self._pwconv1.wrappedValue = Linear(dim, intermediateDim)
-        self._pwconv2.wrappedValue = Linear(intermediateDim, dim)
+        _pwconv1.wrappedValue = Linear(dim, intermediateDim)
+        _pwconv2.wrappedValue = Linear(intermediateDim, dim)
 
         // Layer scale parameter
         if layerScaleInitValue > 0 {
-            self.gamma = layerScaleInitValue * MLXArray.ones([dim])
+            gamma = layerScaleInitValue * MLXArray.ones([dim])
         } else {
-            self.gamma = nil
+            gamma = nil
         }
     }
 
@@ -90,7 +83,7 @@ public class ConvNeXtBlock: Module {
         h = pwconv2(h)
 
         // Layer scale
-        if let gamma = gamma {
+        if let gamma {
             h = gamma * h
         }
 
@@ -121,15 +114,15 @@ public class VocosBackbone: Module {
         numLayers: Int,
         layerScaleInitValue: Float? = nil,
         adanormNumEmbeddings: Int? = nil,
-        bias: Bool = true,
+        bias _: Bool = true,
         inputKernelSize: Int = 7,
         dwKernelSize: Int = 7
     ) {
         self.inputChannels = inputChannels
-        self.useAdaNorm = adanormNumEmbeddings != nil
+        useAdaNorm = adanormNumEmbeddings != nil
 
         // Embedding convolution
-        self._embed.wrappedValue = MLXNN.Conv1d(
+        _embed.wrappedValue = MLXNN.Conv1d(
             inputChannels: inputChannels,
             outputChannels: dim,
             kernelSize: inputKernelSize,
@@ -139,17 +132,17 @@ public class VocosBackbone: Module {
         // Initial normalization (either LayerNorm or AdaLayerNorm)
         if let numEmbeddings = adanormNumEmbeddings {
             let adaNorm = AdaLayerNorm(numEmbeddings: numEmbeddings, embeddingDim: dim, eps: 1e-6)
-            self._norm.wrappedValue = adaNorm
+            _norm.wrappedValue = adaNorm
         } else {
             let norm = LayerNorm(dimensions: dim, eps: 1e-6)
-            self._norm.wrappedValue = norm
+            _norm.wrappedValue = norm
         }
 
         // Calculate layer scale init value
         let scaleValue = layerScaleInitValue ?? (1.0 / Float(numLayers))
 
         // Stack of ConvNeXt blocks
-        self._convnext.wrappedValue = (0..<numLayers).map { _ in
+        _convnext.wrappedValue = (0 ..< numLayers).map { _ in
             ConvNeXtBlock(
                 dim: dim,
                 intermediateDim: intermediateDim,
@@ -160,7 +153,7 @@ public class VocosBackbone: Module {
         }
 
         // Final layer norm (always regular LayerNorm)
-        self._finalLayerNorm.wrappedValue = LayerNorm(dimensions: dim, eps: 1e-6)
+        _finalLayerNorm.wrappedValue = LayerNorm(dimensions: dim, eps: 1e-6)
     }
 
     public func callAsFunction(_ x: MLXArray, bandwidthId: MLXArray? = nil) -> MLXArray {

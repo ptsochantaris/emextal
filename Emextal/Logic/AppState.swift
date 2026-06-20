@@ -35,26 +35,6 @@ final class AppState {
 
         engine.inputNode.volume = 1.0
 
-        // Enable Apple's voice-processing I/O on the input node, which runs the built-in echo
-        // canceller so the spoken TTS output is removed from the always-on microphone signal
-        // (otherwise the speaker feeds back into the VAD). This works on both macOS and iOS, and
-        // must happen before the Recorder samples the input node's format below, as it changes
-        // the I/O format. On iOS we additionally configure the shared session: using the input
-        // node forces the `playAndRecord` category, whose default output route is the receiver
-        // (the earpiece used during phone calls), so route playback to the built-in speaker
-        // instead while still allowing Bluetooth accessories. macOS has no audio session; its
-        // routing follows the system Sound preferences.
-        do {
-            #if os(iOS)
-                let session = AVAudioSession.sharedInstance()
-                try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetoothHFP, .allowBluetoothA2DP])
-                try session.setActive(true)
-            #endif
-            try engine.inputNode.setVoiceProcessingEnabled(true)
-        } catch {
-            log("Could not configure audio session / echo cancellation: \(error)")
-        }
-
         let inputNode = engine.inputNode
         let recorder = Recorder(inputNode: inputNode)
 
@@ -63,14 +43,53 @@ final class AppState {
         let mic = Mic(recorder: recorder)
 
         Task {
+            // Apple's Voice Processing I/O unit (enabled below for echo cancellation) couples the
+            // microphone input and speaker output into a single audio unit, so the engine can only
+            // start once microphone access has been granted. Request it up front rather than waiting
+            // until a conversation begins, otherwise the output unit fails to initialise at launch.
+            _ = await AVCaptureDevice.requestAccess(for: .audio)
+
+            // Enable the built-in echo canceller so the spoken TTS output is removed from the
+            // always-on microphone signal (otherwise the speaker feeds back into the VAD, and
+            // barge-in can't work). On iOS we also configure the shared session: using the input
+            // node forces the `playAndRecord` category, whose default output route is the receiver
+            // (the earpiece used during phone calls), so route playback to the built-in speaker
+            // while still allowing Bluetooth accessories. macOS has no audio session; routing
+            // follows the system Sound preferences.
+            do {
+                #if os(iOS)
+                    let session = AVAudioSession.sharedInstance()
+                    try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetoothHFP, .allowBluetoothA2DP])
+                    try session.setActive(true)
+                #endif
+                try engine.inputNode.setVoiceProcessingEnabled(true)
+            } catch {
+                log("Could not enable echo cancellation: \(error)")
+            }
+
             do {
                 try engine.start()
+            } catch {
+                // Voice processing can fail to initialise on some output devices or when input is
+                // unavailable. Fall back to a plain engine (no echo cancellation / barge-in) so the
+                // app still launches rather than failing outright.
+                log("Audio engine start failed with voice processing (\(error)); retrying without it")
+                try? engine.inputNode.setVoiceProcessingEnabled(false)
+                do {
+                    try engine.start()
+                } catch {
+                    mode = .error(title: "Audio engine start failed", error: error)
+                    return
+                }
+            }
+
+            do {
                 async let speakerBoot = speaker.boot()
                 async let micBoot = mic.boot()
                 try await speakerBoot
                 try await micBoot
             } catch {
-                mode = .error(title: "Audio engine start failed", error: error)
+                mode = .error(title: "Audio engine boot failed", error: error)
             }
         }
 

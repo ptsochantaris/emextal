@@ -11,7 +11,6 @@ final actor Mic {
 
     let phraseStream: AsyncStream<String>
 
-    private var ignoreMic = false
     private var transcriber: GLMASRModel?
     private var detector: SileroVAD?
     private let phraseContinuation: AsyncStream<String>.Continuation
@@ -24,10 +23,6 @@ final actor Mic {
 
     deinit {
         log("\(Self.self) deinit")
-    }
-
-    func setIgnoreMic(_ ignore: Bool) {
-        ignoreMic = ignore
     }
 
     func setModeDelegate(_ delegate: Conversation) {
@@ -156,7 +151,15 @@ final actor Mic {
                 let stream = await recorder.start(dropFirstChunk: false)
                 var audioChain = [MLXArray]()
                 var lastNonSpeakingBlocks = [MLXArray]()
+                var onsetBlocks = [MLXArray]()
                 var speakerMomentum = 0
+
+                // Require this many consecutive speaking blocks (each 512 samples ≈ 32ms, so ~320ms)
+                // before treating it as a real utterance. The echo canceller removes most of the
+                // assistant's own TTS from the always-on mic, but brief residual blips remain; a
+                // sustained-speech requirement rejects those (and stray coughs/clicks) so the
+                // assistant can't false-trigger a barge-in and cut itself off.
+                let speechOnsetBlocks = 10
 
                 for try await audioChunk in stream {
                     let blocks = splitData(audioChunk.data())
@@ -168,18 +171,33 @@ final actor Mic {
 
                         if prob > 0.7 {
                             if audioChain.isEmpty {
-                                log("Speaking started")
-                                await delegate.setListeningTalkingMode()
-                                audioChain = lastNonSpeakingBlocks
-                                lastNonSpeakingBlocks = []
-                                speakerMomentum = 10
-                            } else if speakerMomentum < 50 {
-                                speakerMomentum += 1
-                                log("Speaker momentum: \(speakerMomentum)")
+                                // Not yet committed to an utterance: buffer candidate onset blocks
+                                // and only commit once speech is sustained, so transient echo of the
+                                // assistant's own reply can't trigger a false barge-in.
+                                onsetBlocks.append(block)
+                                if onsetBlocks.count >= speechOnsetBlocks {
+                                    log("Speaking started")
+                                    // Barge-in: if the assistant is mid-reply, cancel it and
+                                    // stop the speaker the moment the user starts talking.
+                                    await delegate.userDidStartSpeaking()
+                                    await delegate.setListeningTalkingMode()
+                                    audioChain = lastNonSpeakingBlocks + onsetBlocks
+                                    lastNonSpeakingBlocks = []
+                                    onsetBlocks = []
+                                    speakerMomentum = 10
+                                }
+                            } else {
+                                if speakerMomentum < 50 {
+                                    speakerMomentum += 1
+                                    log("Speaker momentum: \(speakerMomentum)")
+                                }
+                                audioChain.append(block)
                             }
-                            audioChain.append(block)
 
                         } else if audioChain.isEmpty {
+                            // A non-speaking block breaks a partial onset: it was a transient, so
+                            // discard the candidate blocks accumulated so far.
+                            onsetBlocks.removeAll(keepingCapacity: true)
                             lastNonSpeakingBlocks.append(block)
                             if lastNonSpeakingBlocks.count > 4 {
                                 lastNonSpeakingBlocks.remove(at: 0)
@@ -191,13 +209,15 @@ final actor Mic {
                             if speakerMomentum == 0 {
                                 log("Speaking done, parsing")
 
-                                await recorder.stop()
-
+                                // Keep the recorder running so the mic stays live through the
+                                // assistant's reply (echo-cancelled), enabling barge-in. Reset
+                                // the per-utterance accumulators and VAD state and keep looping.
                                 await delegate.setTranscribingMode()
 
                                 let block = concatenated(audioChain)
                                 audioChain.removeAll(keepingCapacity: true)
                                 lastNonSpeakingBlocks = []
+                                state = nil
 
                                 let text = transcriber.generate(audio: block).text.trimmingCharacters(in: .whitespacesAndNewlines)
                                 phraseContinuation.yield(text)

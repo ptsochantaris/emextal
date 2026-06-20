@@ -57,8 +57,8 @@ struct ConversationView: View {
                 conversation.textOnly.toggle()
             } label: {
                 Label(conversation.textOnly ? "Text Only" : "Spoken Replies", systemImage: conversation.textOnly ? "text.bubble" : "speaker.wave.2.bubble")
-                    .labelStyle(.titleAndIcon)
             }
+            .labelStyle(.titleAndIcon)
 
             let va = conversation.activationState == .voiceActivated
             Button { [weak conversation] in
@@ -70,8 +70,8 @@ struct ConversationView: View {
                 }
             } label: {
                 Label(va ? "Voice Activated" : "Manual", systemImage: va ? "waveform.badge.microphone" : "mic")
-                    .labelStyle(.titleAndIcon)
             }
+            .labelStyle(.titleAndIcon)
             .opacity(conversation.mode.showAlwaysOn ? 1 : 0.3)
             .allowsHitTesting(conversation.mode.showAlwaysOn)
 
@@ -83,8 +83,8 @@ struct ConversationView: View {
                 }
             } label: {
                 Label("Reset", systemImage: "clear")
-                    .labelStyle(.titleAndIcon)
             }
+            .labelStyle(.titleAndIcon)
             .keyboardShortcut(KeyEquivalent("k"), modifiers: .command)
             .opacity(ready ? 1 : 0.3)
             .allowsHitTesting(ready)
@@ -96,8 +96,8 @@ struct ConversationView: View {
                 }
             } label: {
                 Label("Models", systemImage: "square.grid.3x2")
-                    .labelStyle(.titleAndIcon)
             }
+            .labelStyle(.titleAndIcon)
             .opacity(ready ? 1 : 0.3)
             .allowsHitTesting(ready)
         }

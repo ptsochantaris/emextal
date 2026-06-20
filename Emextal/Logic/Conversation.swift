@@ -23,15 +23,7 @@ import WebKit
         }
     }
 
-    var mode = ConversationMode.loading(progress: 0, status: []) {
-        didSet {
-            if oldValue != mode {
-                Task {
-                    await mic.setIgnoreMic(mode.shouldIgnoreMic)
-                }
-            }
-        }
-    }
+    var mode = ConversationMode.loading(progress: 0, status: [])
 
     var buttonPushed = false {
         didSet {
@@ -115,6 +107,25 @@ import WebKit
             return
         }
         setMode(.waiting(session: session))
+    }
+
+    // Barge-in: invoked by the mic the moment the user starts speaking. If the assistant is
+    // generating or speaking a reply, cancel it and silence the speaker so the user's new
+    // utterance takes over. The mic stays live throughout, so this is only reachable in
+    // voice-activated mode (the only mode where the VAD runs during a reply).
+    func userDidStartSpeaking() {
+        guard activationState == .voiceActivated else {
+            return
+        }
+        switch mode {
+        case .processingPrompt, .replying:
+            mode.task?.cancel()
+            Task {
+                await speaker.stopSpeaking()
+            }
+        case .booting, .error, .listening, .loaded, .loading, .shutdown, .startup, .transcribing, .transcribingDone, .waiting, .warmup:
+            break
+        }
     }
 
     private var statusComponents = [
@@ -225,9 +236,9 @@ import WebKit
             case .button:
                 mode = .waiting(session: session)
             case .voiceActivated:
-                Task {
-                    await mic.startAutodetect()
-                }
+                // The autodetect loop is already running continuously; just return to
+                // quietly listening for the next utterance.
+                setListeningQuietMode()
             }
         } else {
             mode = .transcribingDone(session: session)
@@ -260,7 +271,6 @@ import WebKit
         let textProcessor = TextProcessor(harmony: model.variant.usesHarmony ? .idle : .notApplicable)
 
         let responseTask = Task {
-
             var speechBuffer = ""
             speechBuffer.reserveCapacity(1024)
 
@@ -288,28 +298,37 @@ import WebKit
                 }
             }
 
-            for await token in textProcessor.output {
-                switch token {
-                case let .text(item):
-                    appendText(item, session: session, first: &first)
-                    speechBuffer.append(item)
-                    switch speechBuffer.last {
-                    case ":", "!", "?", ".", ")", "\n":
-                        if !textOnly {
-                            await speaker.queue(speechBuffer)
+            await withTaskCancellationHandler {
+                for await token in textProcessor.output {
+                    switch token {
+                    case let .text(item):
+                        appendText(item, session: session, first: &first)
+                        speechBuffer.append(item)
+                        switch speechBuffer.last {
+                        case ":", "!", "?", ".", ")", "\n":
+                            if !textOnly {
+                                await speaker.queue(speechBuffer)
+                            }
+                            speechBuffer.removeAll(keepingCapacity: true)
+                        default: break
                         }
-                        speechBuffer.removeAll(keepingCapacity: true)
-                    default: break
+
+                    case let .tag(token):
+                        appendText(token, session: session, first: &first)
+                        speechBuffer.append(token)
                     }
-
-                case let .tag(token):
-                    appendText(token, session: session, first: &first)
-                    speechBuffer.append(token)
                 }
-            }
 
-            _ = await processorTask.value
-            _ = try await tokenTask.value
+                _ = await processorTask.value
+                _ = try? await tokenTask.value
+            } onCancel: {
+                // The token/processor tasks are unstructured, so cancelling the response task does
+                // not reach them on its own. Forward the cancellation so the LLM stream stops
+                // promptly — otherwise reset/barge-in would block until the full reply generates,
+                // leaving the UI stuck in the replying state.
+                tokenTask.cancel()
+                processorTask.cancel()
+            }
 
             await responseEnd(speechBuffer: speechBuffer, session: session)
         }
@@ -318,6 +337,14 @@ import WebKit
     }
 
     private func responseEnd(speechBuffer: String, session: ChatSession) async {
+        // A cancelled task means the user barged in: the mic is already capturing their new
+        // utterance, so don't speak the trailing buffer, wait on the speaker, or touch the mode.
+        if Task.isCancelled {
+            messageLog.commitTurn()
+            try? await messageLog.save(to: model.modelHistoryPath)
+            return
+        }
+
         if !textOnly, !speechBuffer.isEmpty {
             await speaker.queue(speechBuffer)
         }
@@ -334,12 +361,24 @@ import WebKit
             await speaker.waitUntilDone()
         }
 
+        // A barge-in may have arrived while we waited for the speaker to finish.
+        if Task.isCancelled {
+            return
+        }
+
         switch activationState {
         case .button:
             setMode(.waiting(session: session))
 
         case .voiceActivated:
-            await mic.startAutodetect()
+            // The autodetect loop keeps running continuously; only return to quiet listening
+            // if a barge-in hasn't already moved us into capturing a new utterance.
+            switch mode {
+            case .processingPrompt, .replying:
+                setListeningQuietMode()
+            case .booting, .error, .listening, .loaded, .loading, .shutdown, .startup, .transcribing, .transcribingDone, .waiting, .warmup:
+                break
+            }
         }
     }
 
@@ -378,7 +417,7 @@ import WebKit
 
         if let task = mode.task {
             task.cancel()
-            try? await task.value
+            await task.value
         }
 
         if let session = FinalWrapper(mode.session).data() {
@@ -413,15 +452,28 @@ import WebKit
     }
 
     func reset() {
+        let task = mode.task
+        let session = mode.session
+
+        // Cancel and return to the idle/listening state synchronously, before any awaits. A
+        // cancelled response task early-returns from `responseEnd` without restoring the mode, so
+        // doing it here is what unsticks the UI — waiting on teardown first would leave it stuck in
+        // the interrupted reply. The restored `.waiting`/`.listening` modes carry no task, so a late
+        // token can't re-enter `.replying` (`appendText` only changes mode when `mode.task` exists).
+        task?.cancel()
+        switch activationState {
+        case .button:
+            setWaitingMode()
+        case .voiceActivated:
+            setListeningQuietMode()
+        }
+
         Task {
             await speaker.stopSpeaking()
-            if let task = mode.task {
-                task.cancel()
-                try? await task.value
-            }
+            await task?.value
             messageLog.reset()
             try? await messageLog.save(to: model.modelHistoryPath)
-            if let session = FinalWrapper(mode.session).data() {
+            if let session = FinalWrapper(session).data() {
                 await session.clear()
             }
         }
