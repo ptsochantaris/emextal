@@ -24,8 +24,6 @@ extension Model {
              gptOssLarge,
              nemotronCascade,
              smol,
-             devstral,
-             mistral,
              llama,
              gemma4
 
@@ -37,8 +35,6 @@ extension Model {
             case .gptOss: "txgsync/gpt-oss-20b-Derestricted-mxfp4-mlx"
             case .nemotronCascade: "mlx-community/Nemotron-Cascade-2-30B-A3B-4bit"
             case .smol: "mlx-community/SmolLM3-3B-4bit"
-            case .devstral: "mlx-community/mistralai_Devstral-Small-2-24B-Instruct-2512-MLX-4Bit"
-            case .mistral: "mlx-community/Mistral-Small-24B-Instruct-2501-4bit"
             case .llama: "mlx-community/Llama-3.3-70B-Instruct-4bit"
             case .gemma4: "unsloth/gemma-4-31b-it-UD-MLX-4bit"
             case .gptOssLarge: "txgsync/gpt-oss-120b-Derestricted-mxfp4-mlx"
@@ -52,9 +48,9 @@ extension Model {
 
         private var defaultPrompt: String {
             switch self {
-            case .devstral, .qwen3coderNext:
+            case .qwen3coderNext:
                 "You are an AI coding assistant"
-            case .gemma4, .gptOss, .gptOssLarge, .llama, .mistral, .nemotronCascade, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
+            case .gemma4, .gptOss, .gptOssLarge, .llama, .nemotronCascade, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
                 "You are a conversational AI chatbot"
             }
         }
@@ -72,9 +68,7 @@ extension Model {
             case .nemotronCascade: "17.8 GB"
             case .smol: "1.8 GB"
             case .gptOssLarge: "65.2 GB"
-            case .devstral: "13.3 GB"
             case .llama: "39.7 GB"
-            case .mistral: "13.3 GB"
             case .gemma4: "18.4 GB"
             case .qwen36deckard: "41.5 GB"
             }
@@ -89,9 +83,7 @@ extension Model {
             case .nemotronCascade: 20 * gb
             case .smol: 5 * gb
             case .gptOssLarge: 66 * gb
-            case .devstral: 14 * gb
             case .llama: 1 * gb
-            case .mistral: 14 * gb
             case .gemma4: 34 * gb
             case .qwen36deckard: 45 * gb // TODO
             }
@@ -117,8 +109,6 @@ extension Model {
             case .gptOss: "Compact version of OpenAI's open-weight language model."
             case .nemotronCascade: "A model with strong mathematical and logical reasoning."
             case .smol: "A very capable mini-model by HuggingFace, currently with the top performance in the compact model range."
-            case .devstral: "This model claims to be the top coding model for its size, but heavily quantised."
-            case .mistral: "Multilingual and very knowledge-dense model by Mistral."
             case .llama: "The regular version of the latest Llama-3 model from Meta."
             case .gemma4: "The latest Gemma 4 model."
             case .gptOssLarge: "Full version of OpenAI's open-weight language model."
@@ -129,7 +119,7 @@ extension Model {
             switch self {
             case .gptOss:
                 true
-            case .devstral, .gemma4, .gptOssLarge, .llama, .mistral, .nemotronCascade, .qwen3coderNext, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
+            case .gemma4, .gptOssLarge, .llama, .nemotronCascade, .qwen3coderNext, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
                 false
             }
         }
@@ -140,9 +130,9 @@ extension Model {
 
         private var defaultTopK: Int {
             switch self {
-            case .devstral, .nemotronCascade, .qwen3coderNext:
+            case .nemotronCascade, .qwen3coderNext:
                 40
-            case .gptOss, .gptOssLarge, .llama, .mistral, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
+            case .gptOss, .gptOssLarge, .llama, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
                 20
             case .gemma4:
                 64
@@ -151,9 +141,9 @@ extension Model {
 
         private var defaultTopP: Float {
             switch self {
-            case .devstral, .gemma4, .nemotronCascade, .qwen3coderNext:
+            case .gemma4, .nemotronCascade, .qwen3coderNext:
                 0.95
-            case .gptOss, .gptOssLarge, .llama, .mistral, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
+            case .gptOss, .gptOssLarge, .llama, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
                 0.8
             }
         }
@@ -164,9 +154,9 @@ extension Model {
 
         private var defaultTemperature: Float {
             switch self {
-            case .devstral, .gemma4, .nemotronCascade, .qwen3coderNext:
+            case .gemma4, .nemotronCascade, .qwen3coderNext:
                 1.0
-            case .gptOss, .gptOssLarge, .llama, .mistral, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
+            case .gptOss, .gptOssLarge, .llama, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
                 0.7
             }
         }
@@ -177,9 +167,9 @@ extension Model {
 
         private var defaultFrequencyPenalty: Float {
             switch self {
-            case .devstral, .nemotronCascade, .qwen3coderNext:
+            case .nemotronCascade, .qwen3coderNext:
                 0.0
-            case .gemma4, .gptOss, .gptOssLarge, .llama, .mistral, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
+            case .gemma4, .gptOss, .gptOssLarge, .llama, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
                 0.7
             }
         }
@@ -188,7 +178,7 @@ extension Model {
             switch self {
             case .gemma4, .gptOss, .gptOssLarge:
                 false
-            case .devstral, .llama, .mistral, .nemotronCascade, .qwen3coderNext, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
+            case .llama, .nemotronCascade, .qwen3coderNext, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
                 true
             }
         }
@@ -198,7 +188,7 @@ extension Model {
             case .gemma4, // TODO: implement on system prompt for gemma4
                  .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
                 true
-            case .devstral, .gptOss, .gptOssLarge, .llama, .mistral, .nemotronCascade, .qwen3coderNext:
+            case .gptOss, .gptOssLarge, .llama, .nemotronCascade, .qwen3coderNext:
                 false
             }
         }
@@ -209,16 +199,16 @@ extension Model {
 
         private var defaultPresentPenalty: Float {
             switch self {
-            case .devstral, .nemotronCascade, .qwen3coderNext:
+            case .nemotronCascade, .qwen3coderNext:
                 1.0
-            case .gemma4, .gptOss, .gptOssLarge, .llama, .mistral, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
+            case .gemma4, .gptOss, .gptOssLarge, .llama, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
                 1.5
             }
         }
 
         var architecture: Architecture {
             switch self {
-            case .devstral, .gptOss, .gptOssLarge, .llama, .mistral, .nemotronCascade, .qwen3coderNext, .smol:
+            case .gptOss, .gptOssLarge, .llama, .nemotronCascade, .qwen3coderNext, .smol:
                 .llm
             case .gemma4, .qwen36moe, .qwen36regular, .qwen36deckard:
                 .vlm
@@ -227,7 +217,7 @@ extension Model {
 
         var injectThinkingTag: Bool {
             switch self {
-            case .devstral, .gemma4, .gptOss, .gptOssLarge, .llama, .mistral, .nemotronCascade, .qwen3coderNext, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
+            case .gemma4, .gptOss, .gptOssLarge, .llama, .nemotronCascade, .qwen3coderNext, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
                 false
             }
         }
@@ -236,7 +226,7 @@ extension Model {
             switch self {
             case .qwen3coderNext:
                 false
-            case .devstral, .gemma4, .gptOss, .gptOssLarge, .llama, .mistral, .nemotronCascade, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
+            case .gemma4, .gptOss, .gptOssLarge, .llama, .nemotronCascade, .qwen36moe, .qwen36regular, .smol, .qwen36deckard:
                 true
             }
         }
@@ -251,9 +241,7 @@ extension Model {
             case .nemotronCascade: "Nemotron Cascade 2"
             case .smol: "SmolLM 2"
             case .gptOssLarge: "GPT OSS Regular"
-            case .mistral: "Mistral Small 2501"
             case .llama: "Llama 3.3"
-            case .devstral: "Devstral 2"
             case .gemma4: "Gemma 4"
             }
         }
@@ -267,9 +255,7 @@ extension Model {
             case .gptOss: "20b params"
             case .nemotronCascade: "30b params"
             case .smol: "1.7b params"
-            case .mistral: "24b params"
             case .gptOssLarge: "117b params"
-            case .devstral: "4b params"
             case .llama: "70b params"
             case .gemma4: "31b params"
             }
@@ -283,9 +269,7 @@ extension Model {
             case .gptOss: "CD9DF04E-A0A7-4EAE-803F-80BCB173040E"
             case .nemotronCascade: "D9AAF39E-DE93-44C8-A613-71756BB5C57D"
             case .smol: "650C7684-B76F-42CE-9EAD-8BCC4BD9C247"
-            case .mistral: "7F570A81-8489-4930-BF88-9278AE4E2ED5"
             case .gptOssLarge: "D45DB369-0F20-490C-A18B-9989DB487879"
-            case .devstral: "7A282082-2990-42EC-ACF0-C4AFF41326C6"
             case .llama: "73476AA8-9D1E-444C-B6C0-140A4682A67D"
             case .gemma4: "5B90E2EA-A97F-4AF5-BF99-F4E1C684D7D5"
             case .qwen36deckard: "8286D907-F97A-43C1-B046-2162D0CEE654"
