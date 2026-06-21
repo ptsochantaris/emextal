@@ -57,12 +57,12 @@ final class AppState {
             // while still allowing Bluetooth accessories. macOS has no audio session; routing
             // follows the system Sound preferences.
             do {
-                #if os(iOS)
-                    let session = AVAudioSession.sharedInstance()
-                    try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetoothHFP, .allowBluetoothA2DP])
-                    try session.setActive(true)
-                #endif
-                try engine.inputNode.setVoiceProcessingEnabled(true)
+                // Configuring and activating the audio session is synchronous and can block while the
+                // route is negotiated. Because the project defaults to main-actor isolation this Task
+                // inherits the main actor, so run the work off it (via the nonisolated helper) to keep
+                // the main thread responsive and avoid AVAudioSession's "called on the main thread"
+                // warnings.
+                try await Self.configureAudioSession(for: engine)
             } catch {
                 log("Could not enable echo cancellation: \(error)")
             }
@@ -136,5 +136,23 @@ final class AppState {
                 #endif
             }
         }
+    }
+
+    // `@concurrent` forces this onto the global concurrent executor so the synchronous AVAudioSession
+    // calls never run on the main thread. (A plain `nonisolated async` function isn't enough here: with
+    // approachable concurrency / NonisolatedNonsendingByDefault it runs on the caller's executor, which
+    // is the main actor.) The engine isn't `Sendable`, so it's passed `sending`: safe because the engine
+    // is handed off and not touched concurrently while this runs.
+    @concurrent private static func configureAudioSession(for engine: sending AVAudioEngine) async throws {
+        // On iOS we configure the shared session: using the input node forces the `playAndRecord`
+        // category, whose default output route is the receiver (the earpiece used during phone calls),
+        // so route playback to the built-in speaker while still allowing Bluetooth accessories. macOS
+        // has no audio session; routing follows the system Sound preferences.
+        #if os(iOS)
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetoothHFP, .allowBluetoothA2DP])
+            try session.setActive(true)
+        #endif
+        try engine.inputNode.setVoiceProcessingEnabled(true)
     }
 }
