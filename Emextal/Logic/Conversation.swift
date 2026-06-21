@@ -129,16 +129,18 @@ import WebKit
     }
 
     private var statusComponents = [
-        LoadingProgressDisplay.Status(phase: .loading, text: "Text-to-Speech"),
-        LoadingProgressDisplay.Status(phase: .loading, text: "Voice Recognition"),
-        LoadingProgressDisplay.Status(phase: .loading, text: "Language Model"),
+        LoadingProgressDisplay.Status(phase: .waiting, text: "Text-to-Speech"),
+        LoadingProgressDisplay.Status(phase: .waiting, text: "Voice Recognition"),
+        LoadingProgressDisplay.Status(phase: .waiting, text: "Language Model"),
         LoadingProgressDisplay.Status(phase: .waiting, text: "Ready")
     ]
 
-    private func setStatus(_ text: String, to _: LoadingProgressDisplay.Status.Phase, loadProgress: Progress) {
+    private func setStatus(_ text: String, to phase: LoadingProgressDisplay.Status.Phase, loadProgress: Progress) {
         if let index = statusComponents.firstIndex(where: { $0.text == text }) {
-            statusComponents[index] = .init(phase: .done, text: statusComponents[index].text)
+            statusComponents[index] = .init(phase: phase, text: statusComponents[index].text)
             mode = .loading(progress: loadProgress.fractionCompleted, status: statusComponents)
+        } else {
+            log("Warning: could not find status for \(text)")
         }
     }
 
@@ -167,12 +169,14 @@ import WebKit
             let warmupTask = Task {
                 let t1 = Task {
                     loadProgress.addChild(speaker.loadingProgress, withPendingUnitCount: 150)
+                    setStatus("Text-to-Speech", to: .loading, loadProgress: loadProgress)
                     await speaker.waitForBoot()
                     setStatus("Text-to-Speech", to: .done, loadProgress: loadProgress)
                 }
 
                 let t2 = Task {
                     loadProgress.addChild(mic.loadingProgress, withPendingUnitCount: 150)
+                    setStatus("Voice Recognition", to: .loading, loadProgress: loadProgress)
                     await mic.waitForBoot()
                     setStatus("Voice Recognition", to: .done, loadProgress: loadProgress)
                 }
@@ -182,9 +186,11 @@ import WebKit
                 await t2.value
             }
 
+            setStatus("Language Model", to: .loading, loadProgress: loadProgress)
             try await model.install(parentProgress: loadProgress, progressCount: 700)
-
             setStatus("Language Model", to: .done, loadProgress: loadProgress)
+
+            setStatus("Ready", to: .warmup, loadProgress: loadProgress)
 
             try? await Task.sleep(for: .seconds(0.1))
 
@@ -195,6 +201,7 @@ import WebKit
             }
 
             mode = .loaded
+
         } catch {
             mode = .error(error)
         }
