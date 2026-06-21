@@ -78,13 +78,13 @@ final actor Speaker {
     }
 
     func stopSpeaking() async {
-        active = UUID()
+        active.set(UUID())
         // Abort an in-flight TTS render too — SopranoModel.generate honours task cancellation — so a
         // cancel/barge-in doesn't have to wait for the current line to finish generating.
         generationTask?.cancel()
         generationTask = nil
-        countInQueue = 0
-        playingLatestBuffer = false
+        setQueueCount(0)
+        playingLatestBuffer.set(false)
         if speechPlayer.isPlaying {
             await speechPlayer.stopOffActor()
         }
@@ -112,7 +112,7 @@ final actor Speaker {
             log("Speech model warmup done")
         #endif
 
-        active = UUID()
+        active.set(UUID())
 
         Task { [weak self] in
             log("Speech queue starting")
@@ -121,7 +121,7 @@ final actor Speaker {
                     guard let self else { return }
                     // Skip lines queued before the current speaking session (e.g. before a
                     // cancel/reset/barge-in rotated the token).
-                    guard let token, await active == token else { continue }
+                    guard let token, active.value == token else { continue }
                     try await speak(line, using: model, startedInActive: token)
                 }
             } catch {
@@ -131,18 +131,17 @@ final actor Speaker {
         }
     }
 
-    private var active: UUID?
+    private let active = WatchedValue<UUID?>(nil)
 
     func waitForBoot() async {
-        while active == nil {
-            try? await Task.sleep(for: .seconds(0.1))
-        }
+        await active.first { $0 != nil }
     }
 
-    private var countInQueue = 0 {
-        didSet {
-            log("Speech audio queue: \(countInQueue)")
-        }
+    private let countInQueue = WatchedValue(0)
+
+    private func setQueueCount(_ value: Int) {
+        countInQueue.set(value)
+        log("Speech audio queue: \(value)")
     }
 
     func queue(_ text: String) {
@@ -159,14 +158,12 @@ final actor Speaker {
             speechPlayer.play()
         }
 
-        countInQueue += 1
-        spechContinuation.yield((trimmed, active))
+        setQueueCount(countInQueue.value + 1)
+        spechContinuation.yield((trimmed, active.value))
     }
 
     func waitUntilDone() async {
-        while countInQueue > 0 {
-            try? await Task.sleep(for: .seconds(0.1))
-        }
+        await countInQueue.first { $0 <= 0 }
         await speechPlayer.stopOffActor()
     }
 
@@ -178,7 +175,7 @@ final actor Speaker {
         repetitionContextSize: 64
     )
 
-    private var playingLatestBuffer = false
+    private let playingLatestBuffer = WatchedValue(false)
     private var generationTask: Task<[Float], any Error>?
 
     /// Isolated to this actor so the (interruptible) render stays on the same executor the inline
@@ -188,7 +185,7 @@ final actor Speaker {
     }
 
     private func speak(_ text: String, using speechModel: SopranoModel, startedInActive: UUID) async throws {
-        guard startedInActive == active else { return }
+        guard startedInActive == active.value else { return }
 
         log("Rendering: \(text)")
 
@@ -207,7 +204,7 @@ final actor Speaker {
         }
         generationTask = nil
 
-        guard startedInActive == active else { return }
+        guard startedInActive == active.value else { return }
 
         let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: Double(speechModel.sampleRate), channels: 1, interleaved: false)!
 
@@ -220,26 +217,24 @@ final actor Speaker {
             unsafe channel[i] = samples[i]
         }
 
-        while playingLatestBuffer {
-            try? await Task.sleep(for: .seconds(0.2))
-        }
+        await playingLatestBuffer.reaches(false)
 
-        guard startedInActive == active else { return }
+        guard startedInActive == active.value else { return }
 
-        playingLatestBuffer = true
+        playingLatestBuffer.set(true)
 
         Task {
             defer {
-                playingLatestBuffer = false
+                playingLatestBuffer.set(false)
             }
 
-            guard startedInActive == active else { return }
+            guard startedInActive == active.value else { return }
 
             log("Playing: \(text)")
             await speechPlayer.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack)
             try? await Task.sleep(for: .seconds(0.5))
-            if countInQueue > 0 {
-                countInQueue -= 1
+            if countInQueue.value > 0 {
+                setQueueCount(countInQueue.value - 1)
             }
         }
     }

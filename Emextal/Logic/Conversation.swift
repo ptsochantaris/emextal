@@ -147,6 +147,8 @@ import WebKit
     private func boot() async {
         await mic.setModeDelegate(self)
 
+        Memory.cacheLimit = 1024 * 1024 * 16 // 16Mb
+
         do {
             let logTask = Task {
                 try await messageLog.loadHistory(from: model.modelHistoryPath)

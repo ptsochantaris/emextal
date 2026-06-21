@@ -29,7 +29,7 @@ final actor Mic {
         modeDelegate = delegate
     }
 
-    private var bootDone = false
+    private let bootDone = WatchedValue(false)
 
     let loadingProgress = Progress(totalUnitCount: 1000)
 
@@ -57,13 +57,11 @@ final actor Mic {
             log("Transcriber warmup done")
         #endif
 
-        bootDone = true
+        bootDone.set(true)
     }
 
     func waitForBoot() async {
-        while !bootDone {
-            try? await Task.sleep(for: .seconds(0.1))
-        }
+        await bootDone.reaches(true)
     }
 
     func stop() async {
