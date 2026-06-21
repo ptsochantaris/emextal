@@ -38,6 +38,7 @@ struct ConversationContainer: View {
                 .clipShape(RoundedRectangle(cornerRadius: 20))
         }
         .padding(horizontalSizeClass == .compact ? 10 : 88)
+        .animation(.easeInOut, value: model.params.cacheStrategy)
     }
 
     var body: some View {

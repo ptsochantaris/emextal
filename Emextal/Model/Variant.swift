@@ -184,7 +184,7 @@ extension Model {
             }
         }
 
-        private var supportsQuantisation: Bool {
+        var supportsQuantisation: Bool {
             switch self {
             case .gemma4, .gptOss, .gptOssLarge:
                 false
@@ -297,8 +297,7 @@ extension Model {
                 frequencyPenatly: defaultFrequencyPenalty,
                 presentPenatly: defaultPresentPenalty,
                 enableThinking: defaultEnableThinking,
-                contextSize: nil,
-                supportsQuantisation: supportsQuantisation
+                cacheStrategy: supportsQuantisation ? .quantized(bits: 8) : .unbounded
             )
         }
     }
