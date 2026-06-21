@@ -80,12 +80,12 @@ extension Model {
             case .qwen36regular: 26 * gb
             case .qwen36moe: 22 * gb
             case .gptOss: 18 * gb
-            case .nemotron3: 43 * gb
-            case .smol: 5 * gb
+            case .nemotron3: 22 * gb
+            case .smol: 4 * gb
             case .gptOssLarge: 66 * gb
-            case .llama: 1 * gb
-            case .gemma4: 34 * gb
-            case .qwen36deckard: 45 * gb // TODO:
+            case .llama: 39 * gb
+            case .gemma4: 23 * gb
+            case .qwen36deckard: 42 * gb
             }
         }
 

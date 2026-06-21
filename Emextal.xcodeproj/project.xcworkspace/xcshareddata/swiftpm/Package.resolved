@@ -34,7 +34,7 @@
       "location" : "https://github.com/ml-explore/mlx-swift-lm/",
       "state" : {
         "branch" : "main",
-        "revision" : "e3cb1e1b4fb373391a414c33e9221516d02134ef"
+        "revision" : "944828ff66e216b7ae6991fabe471cc42f1cf37c"
       }
     },
     {
@@ -42,8 +42,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/ptsochantaris/pop-timer",
       "state" : {
-        "revision" : "866789ba524adc477ad3eb0ad41c929f7092dac7",
-        "version" : "1.0.1"
+        "revision" : "110e46429bac67578b3c202a0e01f0c1c62e8c97",
+        "version" : "1.1.0"
       }
     },
     {
