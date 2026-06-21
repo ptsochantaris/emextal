@@ -217,6 +217,74 @@ think {
     display: block;
 }
 
+/* Reasoning (<think>) blocks are wrapped in a collapsed bubble so they stay
+   tidy and out of the way; the user can expand to read them. */
+.think-bubble {
+    margin: 10pt 0;
+}
+
+.think-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6pt;
+    width: fit-content;
+
+    padding: 5pt 12pt;
+    border-radius: 13pt;
+    background: #FFFFFF1F;
+
+    font-size: small;
+    opacity: 0.8;
+    cursor: pointer;
+    list-style: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* Hide the native disclosure triangle in favour of our own chevron. */
+.think-summary::-webkit-details-marker {
+    display: none;
+}
+
+.think-summary:hover {
+    opacity: 0.85;
+}
+
+.think-chevron {
+    display: inline-flex;
+    opacity: 0.7;
+    transition: transform 0.15s ease;
+}
+
+.think-bubble[open] .think-chevron {
+    transform: rotate(180deg);
+}
+
+/* Animated spinner shown while the thought is still being generated. */
+.think-spinner {
+    width: 11pt;
+    height: 11pt;
+    border: 2px solid #80808055;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: think-spin 0.8s linear infinite;
+}
+
+@keyframes think-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* The reasoning text itself, revealed when the bubble is expanded. */
+.think-bubble think {
+    margin-top: 8pt;
+    margin-bottom: 2pt;
+    margin-left: 4pt;
+    padding-left: 9pt;
+    border-left: 2px solid #80808033;
+}
+
 img {
     width: 256pt;
     margin-top: 12pt;

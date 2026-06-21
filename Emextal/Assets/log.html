@@ -7,180 +7,29 @@
         <script src="highlight.js"></script>
     </head>
     <body>
+        <!-- Icon sprite: referenced from log.js via <use href="#icon-…">. Kept
+             inline (not separate .svg files) so the icons inherit currentColor
+             from their controls and need no asynchronous loading. -->
+        <svg xmlns="http://www.w3.org/2000/svg" style="display: none" aria-hidden="true">
+            <symbol id="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="11" height="11" rx="2"></rect>
+                <path d="M5 15V5a2 2 0 0 1 2-2h10"></path>
+            </symbol>
+            <symbol id="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 13l4 4L19 7"></path>
+            </symbol>
+            <symbol id="icon-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 9l6 6 6-6"></path>
+            </symbol>
+            <symbol id="icon-thought" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 18h6"></path>
+                <path d="M10 22h4"></path>
+                <path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"></path>
+            </symbol>
+        </svg>
+
         <div id='__emeltal_internal_history' style="margin-top: 7pt;"></div>
         <div id='__emeltal_internal_new'></div>
-        <script>
-            var lastDocHeight = 0;
-            const historyElement = document.getElementById("__emeltal_internal_history");
-            const newElement = document.getElementById("__emeltal_internal_new");
-
-            function reset() {
-                historyElement.innerHTML = "";
-            }
-
-            function decorate(root) {
-                root.querySelectorAll("pre code").forEach(function(code){
-                    const tagged = /language-[A-Za-z0-9+#-]+/.test(code.className);
-                    hljs.highlightElement(code);
-                    // Fall back to highlight.js's auto-detection only when the
-                    // markup didn't specify a language, and only if the guess
-                    // is confident enough to be useful.
-                    if (!tagged && code.result && code.result.language && code.result.relevance >= 5) {
-                        code.dataset.detectedLanguage = code.result.language;
-                    }
-                });
-                addCopyButtons(root);
-            }
-
-            const copyIcon = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>`;
-            const checkIcon = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"></path></svg>`;
-            const chevronIcon = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>`;
-
-            const languageNames = {
-                js: "JavaScript", javascript: "JavaScript", jsx: "JavaScript",
-                ts: "TypeScript", typescript: "TypeScript", tsx: "TypeScript",
-                py: "Python", python: "Python",
-                rb: "Ruby", ruby: "Ruby",
-                sh: "Shell", bash: "Shell", shell: "Shell", zsh: "Shell",
-                objc: "Objective-C", objectivec: "Objective-C",
-                cpp: "C++", "c++": "C++", cc: "C++",
-                cs: "C#", csharp: "C#",
-                c: "C", swift: "Swift", perl: "Perl", java: "Java",
-                kotlin: "Kotlin", kt: "Kotlin", go: "Go", golang: "Go",
-                rust: "Rust", rs: "Rust", php: "PHP", html: "HTML", xml: "XML",
-                css: "CSS", scss: "SCSS", json: "JSON", yaml: "YAML", yml: "YAML",
-                md: "Markdown", markdown: "Markdown", sql: "SQL",
-                diff: "Diff", dockerfile: "Dockerfile", toml: "TOML",
-                plaintext: "", text: ""
-            };
-
-            function languageLabel(code) {
-                const match = code.className.match(/language-([A-Za-z0-9+#-]+)/);
-                const key = (match ? match[1] : (code.dataset.detectedLanguage || "")).toLowerCase();
-                if (!key) {
-                    return "";
-                }
-                if (key in languageNames) {
-                    return languageNames[key];
-                }
-                return key.charAt(0).toUpperCase() + key.slice(1);
-            }
-
-            function addCopyButtons(root) {
-                root.querySelectorAll("pre").forEach(function(pre){
-                    if (pre.querySelector(".copy-button")) {
-                        return;
-                    }
-                    const code = pre.querySelector("code");
-                    if (!code) {
-                        return;
-                    }
-                    const holder = document.createElement("div");
-                    holder.className = "copy-holder";
-
-                    function setCollapsed(collapsed) {
-                        pre.classList.toggle("collapsed", collapsed);
-                        toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
-                        toggle.title = collapsed ? "Expand" : "Collapse";
-                    }
-
-                    const toggle = document.createElement("button");
-                    toggle.className = "collapse-button";
-                    toggle.type = "button";
-                    toggle.title = "Collapse";
-                    toggle.setAttribute("aria-label", "Toggle code block");
-                    toggle.setAttribute("aria-expanded", "true");
-                    toggle.innerHTML = chevronIcon;
-                    toggle.addEventListener("click", function(){
-                        setCollapsed(!pre.classList.contains("collapsed"));
-                    });
-                    holder.appendChild(toggle);
-
-                    const label = languageLabel(code);
-                    if (label) {
-                        const tag = document.createElement("span");
-                        tag.className = "code-lang";
-                        tag.textContent = label;
-                        tag.addEventListener("click", function(){
-                            setCollapsed(!pre.classList.contains("collapsed"));
-                        });
-                        holder.appendChild(tag);
-                    }
-
-                    const button = document.createElement("button");
-                    button.className = "copy-button";
-                    button.type = "button";
-                    button.title = "Copy";
-                    button.setAttribute("aria-label", "Copy");
-                    button.innerHTML = copyIcon;
-                    button.addEventListener("click", function(){
-                        copyText(code.textContent, button);
-                    });
-
-                    holder.appendChild(button);
-                    pre.insertBefore(holder, pre.firstChild);
-                });
-            }
-
-            function copyText(text, button) {
-                function finished() {
-                    button.innerHTML = checkIcon;
-                    button.classList.add("copied");
-                    setTimeout(function(){
-                        button.innerHTML = copyIcon;
-                        button.classList.remove("copied");
-                    }, 1200);
-                }
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(text).then(finished).catch(function(){
-                        fallbackCopy(text, finished);
-                    });
-                } else {
-                    fallbackCopy(text, finished);
-                }
-            }
-
-            function fallbackCopy(text, finished) {
-                const area = document.createElement("textarea");
-                area.value = text;
-                area.style.position = "fixed";
-                area.style.top = "0";
-                area.style.left = "0";
-                area.style.opacity = "0";
-                document.body.appendChild(area);
-                area.focus();
-                area.select();
-                try {
-                    document.execCommand("copy");
-                } catch (e) {}
-                document.body.removeChild(area);
-                finished();
-            }
-
-            function addHistory(id, html) {
-                const newDiv = document.createElement('div');
-                newDiv.className = 'turn';
-                newDiv.id = id;
-                newDiv.innerHTML = html;
-                decorate(newDiv);
-                historyElement.appendChild(newDiv);
-                return false;
-            }
-
-            function setNewText(html) {
-                newElement.innerHTML = html;
-
-                decorate(newElement);
-
-                const newDocHeight = document.body.scrollHeight;
-                const atBottom = (window.innerHeight + Math.round(window.scrollY) + 40) >= newDocHeight;
-                const shouldScroll = atBottom && (lastDocHeight != newDocHeight);
-                if (shouldScroll) {
-                    lastDocHeight = newDocHeight
-                    window.scrollTo(0, newDocHeight);
-                }
-                return shouldScroll;
-            }
-        </script>
+        <script src="log.js"></script>
     </body>
 </html>

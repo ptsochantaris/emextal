@@ -45,6 +45,7 @@ extension WebView {
 
             // Move to RW directory
             let itemsToCopy = [Bundle.main.url(forResource: "log", withExtension: "html")!,
+                               Bundle.main.url(forResource: "log", withExtension: "js")!,
                                Bundle.main.url(forResource: "highlight", withExtension: "css")!,
                                Bundle.main.url(forResource: "highlight", withExtension: "js")!,
                                Bundle.main.url(forResource: "style", withExtension: "css")!]

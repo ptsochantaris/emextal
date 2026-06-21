@@ -9,7 +9,7 @@ enum Registry {
         .init(category: .llamas, variant: .llama),
         .init(category: .tiny, variant: .smol),
         .init(category: .experimental, variant: .qwen36deckard),
-        .init(category: .experimental, variant: .nemotronCascade)
+        .init(category: .experimental, variant: .nemotron3)
     ]
 
     static func variants(for category: Model.Category) -> [Model] {
