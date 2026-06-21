@@ -115,6 +115,16 @@ extension Model {
             }
         }
 
+        // The model's native maximum context length (`max_position_embeddings`), used as the ceiling
+        // for the user-adjustable context-size slider. TODO: verify these against each repo's config.
+        var maxContextTokens: Int {
+            switch self {
+            case .qwen3coderNext: 262_144
+            case .smol: 65_536
+            case .gemma4, .gptOss, .gptOssLarge, .llama, .nemotronCascade, .qwen36deckard, .qwen36moe, .qwen36regular: 131_072
+            }
+        }
+
         var usesHarmony: Bool {
             switch self {
             case .gptOss:
@@ -287,6 +297,7 @@ extension Model {
                 frequencyPenatly: defaultFrequencyPenalty,
                 presentPenatly: defaultPresentPenalty,
                 enableThinking: defaultEnableThinking,
+                contextSize: nil,
                 supportsQuantisation: supportsQuantisation
             )
         }

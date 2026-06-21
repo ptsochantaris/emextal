@@ -5,8 +5,6 @@ import SwiftUI
 import WebKit
 import MLX
 
-// TODO: configurable context size
-
 @Observable final class Conversation {
     private let messageLog = MessageLog()
     private let speaker: Speaker

@@ -34,6 +34,10 @@ extension Model {
         var frequencyPenatly: Float
         var presentPenatly: Float
         var enableThinking: Bool
+        // The maximum size of the key-value cache, in tokens. `nil` keeps MLX's default unbounded
+        // cache (it retains the whole conversation up to the model's native limit); a value caps it
+        // to a rotating window of that size, trading retained context for lower memory use.
+        var contextSize: Int?
         let supportsQuantisation: Bool
 
         var mlx: GenerateParameters {
@@ -43,6 +47,7 @@ extension Model {
 
             return if supportsQuantisation {
                 .init(
+                    maxKVSize: contextSize,
                     kvBits: 8,
                     kvGroupSize: 64,
                     quantizedKVStart: 0,
@@ -56,6 +61,7 @@ extension Model {
                 )
             } else {
                 .init(
+                    maxKVSize: contextSize,
                     temperature: temperature,
                     topP: topP,
                     topK: topK,

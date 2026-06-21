@@ -43,6 +43,8 @@ struct ParamsView: View {
                 .multilineTextAlignment(.leading)
             }
 
+            ContextRow(contextSize: $model.params.contextSize, maxContextTokens: model.variant.maxContextTokens)
+
             let params = model.params
 
             if horizontalSizeClass == .compact {
