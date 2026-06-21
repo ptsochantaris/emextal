@@ -161,125 +161,151 @@ struct ParamsView: View {
         }
     }
 
-    // MARK: - Top section
+    // MARK: - Context cache grid (regular layout)
 
-    @ViewBuilder
-    private var topSection: some View {
-        if horizontalSizeClass == .compact {
+    private var promptCacheGrid: some View {
+        // A grid keeps the two columns' rows aligned (label↔Context Cache, field↔Precision,
+        // caption↔caption) without any per-view inset tuning.
+        Grid(alignment: .leading, horizontalSpacing: 30, verticalSpacing: 8) {
+            GridRow(alignment: .firstTextBaseline) {
+                systemPromptLabel
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                cacheHeader
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            GridRow(alignment: .top) {
+                promptField(fill: true)
+                cacheMiddle
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            GridRow(alignment: .firstTextBaseline) {
+                promptCaption
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                cacheCaption
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        // Pin to the rows' ideal height so the fill-height text field matches the taller column
+        // without the grid stretching to soak up any extra height the panel is offered.
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    // MARK: - Sliders
+
+    private var slidersColumn: some View {
+        let params = model.params
+        return VStack(spacing: 16) {
+            VStack(spacing: 10) {
+                let hasTemp = params.temperature != Model.Params.Descriptors.temperature.disabled
+                FloatRow(descriptor: Model.Params.Descriptors.temperature, value: $model.params.temperature)
+                    .opacity(hasTemp ? 1.0 : 0.5)
+
+                IntRow(descriptor: Model.Params.Descriptors.topK, value: $model.params.topK)
+                    .opacity(params.topK != Int(Model.Params.Descriptors.topK.disabled) ? 1.0 : 0.5)
+
+                HStack(spacing: 10) {
+                    FloatRow(descriptor: Model.Params.Descriptors.topP, value: $model.params.topP)
+                        .opacity(params.topP != Model.Params.Descriptors.topP.disabled ? 1.0 : 0.5)
+
+                    FloatRow(descriptor: Model.Params.Descriptors.minP, value: $model.params.minP)
+                        .opacity(params.minP != Model.Params.Descriptors.minP.disabled ? 1.0 : 0.5)
+                }
+            }
+
+            VStack(spacing: 10) {
+                FloatRow(descriptor: Model.Params.Descriptors.repeatPenatly, value: $model.params.repeatPenatly)
+                FloatRow(descriptor: Model.Params.Descriptors.frequencyPenatly, value: $model.params.frequencyPenatly)
+                FloatRow(descriptor: Model.Params.Descriptors.presentPenatly, value: $model.params.presentPenatly)
+            }
+        }
+    }
+
+    private var slidersRow: some View {
+        let params = model.params
+        return HStack(alignment: .top, spacing: 30) {
+            VStack(spacing: 10) {
+                let hasTemp = params.temperature != Model.Params.Descriptors.temperature.disabled
+                FloatRow(descriptor: Model.Params.Descriptors.temperature, value: $model.params.temperature)
+                    .opacity(hasTemp ? 1.0 : 0.5)
+
+                IntRow(descriptor: Model.Params.Descriptors.topK, value: $model.params.topK)
+                    .opacity(params.topK != Int(Model.Params.Descriptors.topK.disabled) ? 1.0 : 0.5)
+
+                HStack(spacing: 10) {
+                    FloatRow(descriptor: Model.Params.Descriptors.topP, value: $model.params.topP)
+                        .opacity(params.topP != Model.Params.Descriptors.topP.disabled ? 1.0 : 0.5)
+
+                    FloatRow(descriptor: Model.Params.Descriptors.minP, value: $model.params.minP)
+                        .opacity(params.minP != Model.Params.Descriptors.minP.disabled ? 1.0 : 0.5)
+                }
+            }
+
+            VStack(spacing: 10) {
+                FloatRow(descriptor: Model.Params.Descriptors.repeatPenatly, value: $model.params.repeatPenatly)
+                FloatRow(descriptor: Model.Params.Descriptors.frequencyPenatly, value: $model.params.frequencyPenatly)
+                FloatRow(descriptor: Model.Params.Descriptors.presentPenatly, value: $model.params.presentPenatly)
+            }
+        }
+    }
+
+    private var reasoningToggle: some View {
+        Toggle("Enable reasoning mode", isOn: $model.params.enableThinking)
+    }
+
+    // MARK: - Bottom bar
+
+    private var bottomBar: some View {
+        HStack {
+            Button("Back") {
+                NotificationCenter.default.post(name: .endModel, object: model)
+            }
+            Spacer()
+            if model.variant.supportsThinkingSwitch, horizontalSizeClass != .compact {
+                Toggle("Enable reasoning mode", isOn: $model.params.enableThinking)
+                    .fixedSize(horizontal: true, vertical: false)
+                Spacer()
+            }
+            Button("Reset to Defaults") {
+                withAnimation {
+                    model.resetToDefaults()
+                }
+            }
+        }
+    }
+
+    // Each group is a direct child of the stack so they share one even spacing.
+    private var compactBody: some View {
+        VStack(spacing: 36) {
             if model.variant.acceptsSystemPrompt {
                 systemPromptBlock
             }
             cacheBlock
-        } else if model.variant.acceptsSystemPrompt {
-            // A grid keeps the two columns' rows aligned (label↔Context Cache, field↔Precision,
-            // caption↔caption) without any per-view inset tuning.
-            Grid(alignment: .leading, horizontalSpacing: 30, verticalSpacing: 8) {
-                GridRow(alignment: .firstTextBaseline) {
-                    systemPromptLabel
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    cacheHeader
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                GridRow(alignment: .top) {
-                    promptField(fill: true)
-                    cacheMiddle
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                GridRow(alignment: .firstTextBaseline) {
-                    promptCaption
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    cacheCaption
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+            slidersColumn
+            if model.variant.supportsThinkingSwitch {
+                reasoningToggle
             }
-            // Pin to the rows' ideal height so the fill-height text field matches the taller column
-            // without the grid stretching to soak up any extra height the panel is offered.
-            .fixedSize(horizontal: false, vertical: true)
-        } else {
-            cacheBlock
+            bottomBar
+        }
+    }
+
+    private var regularBody: some View {
+        VStack(spacing: 24) {
+            if model.variant.acceptsSystemPrompt {
+                promptCacheGrid
+            } else {
+                cacheBlock
+            }
+            slidersRow
+            bottomBar
         }
     }
 
     var body: some View {
-        let params = model.params
-
-        VStack(spacing: 24) {
-            topSection
-
+        Group {
             if horizontalSizeClass == .compact {
-                VStack {
-                    VStack(spacing: 10) {
-                        HStack(spacing: 10) {
-                            let hasTemp = params.temperature != Model.Params.Descriptors.temperature.disabled
-                            FloatRow(descriptor: Model.Params.Descriptors.temperature, value: $model.params.temperature)
-                                .opacity(hasTemp ? 1.0 : 0.5)
-                        }
-
-                        IntRow(descriptor: Model.Params.Descriptors.topK, value: $model.params.topK)
-                            .opacity(params.topK != Int(Model.Params.Descriptors.topK.disabled) ? 1.0 : 0.5)
-
-                        HStack(spacing: 10) {
-                            FloatRow(descriptor: Model.Params.Descriptors.topP, value: $model.params.topP)
-                                .opacity(params.topP != Model.Params.Descriptors.topP.disabled ? 1.0 : 0.5)
-
-                            FloatRow(descriptor: Model.Params.Descriptors.minP, value: $model.params.minP)
-                                .opacity(params.minP != Model.Params.Descriptors.minP.disabled ? 1.0 : 0.5)
-                        }
-                    }
-
-                    VStack(spacing: 10) {
-                        FloatRow(descriptor: Model.Params.Descriptors.repeatPenatly, value: $model.params.repeatPenatly)
-                        FloatRow(descriptor: Model.Params.Descriptors.frequencyPenatly, value: $model.params.frequencyPenatly)
-                        FloatRow(descriptor: Model.Params.Descriptors.presentPenatly, value: $model.params.presentPenatly)
-                    }
-
-                    if model.variant.supportsThinkingSwitch {
-                        Toggle("Enable reasoning mode", isOn: $model.params.enableThinking)
-                    }
-                }
-
+                compactBody
             } else {
-                HStack(alignment: .top, spacing: 30) {
-                    VStack(spacing: 10) {
-                        let hasTemp = params.temperature != Model.Params.Descriptors.temperature.disabled
-                        FloatRow(descriptor: Model.Params.Descriptors.temperature, value: $model.params.temperature)
-                            .opacity(hasTemp ? 1.0 : 0.5)
-
-                        IntRow(descriptor: Model.Params.Descriptors.topK, value: $model.params.topK)
-                            .opacity(params.topK != Int(Model.Params.Descriptors.topK.disabled) ? 1.0 : 0.5)
-
-                        HStack(spacing: 10) {
-                            FloatRow(descriptor: Model.Params.Descriptors.topP, value: $model.params.topP)
-                                .opacity(params.topP != Model.Params.Descriptors.topP.disabled ? 1.0 : 0.5)
-
-                            FloatRow(descriptor: Model.Params.Descriptors.minP, value: $model.params.minP)
-                                .opacity(params.minP != Model.Params.Descriptors.minP.disabled ? 1.0 : 0.5)
-                        }
-                    }
-
-                    VStack(spacing: 10) {
-                        FloatRow(descriptor: Model.Params.Descriptors.repeatPenatly, value: $model.params.repeatPenatly)
-                        FloatRow(descriptor: Model.Params.Descriptors.frequencyPenatly, value: $model.params.frequencyPenatly)
-                        FloatRow(descriptor: Model.Params.Descriptors.presentPenatly, value: $model.params.presentPenatly)
-                    }
-                }
-            }
-
-            HStack {
-                Button("Back") {
-                    NotificationCenter.default.post(name: .endModel, object: model)
-                }
-                Spacer()
-                if model.variant.supportsThinkingSwitch {
-                    Toggle("Enable reasoning mode", isOn: $model.params.enableThinking)
-                        .fixedSize(horizontal: true, vertical: false)
-                    Spacer()
-                }
-                Button("Reset to Defaults") {
-                    withAnimation {
-                        model.resetToDefaults()
-                    }
-                }
+                regularBody
             }
         }
         .font(.callout)

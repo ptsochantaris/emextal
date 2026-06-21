@@ -6,8 +6,9 @@ struct ConversationContainer: View {
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
+    @ViewBuilder
     private func loadTop(conversation: Conversation) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
+        let content = VStack(alignment: .leading, spacing: 16) {
             Text(conversation.displayName)
                 .font(.title.bold())
 
@@ -39,6 +40,16 @@ struct ConversationContainer: View {
         }
         .padding(horizontalSizeClass == .compact ? 10 : 88)
         .animation(.easeInOut, value: model.params.cacheStrategy)
+
+        // On compact the panel can be taller than the screen, so let it scroll. On regular it stays
+        // centered in the available space.
+        if horizontalSizeClass == .compact {
+            ScrollView {
+                content
+            }
+        } else {
+            content
+        }
     }
 
     var body: some View {
