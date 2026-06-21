@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ConversationContainer: View {
     let conversation: Conversation
+    let model: Model
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
@@ -33,7 +34,7 @@ struct ConversationContainer: View {
                 EmptyView()
             }
 
-            ParamsView(model: conversation.model)
+            ParamsView(model: model)
                 .clipShape(RoundedRectangle(cornerRadius: 20))
         }
         .padding(horizontalSizeClass == .compact ? 10 : 88)

@@ -14,8 +14,8 @@ struct ContentView: View {
             case let .error(title, error):
                 ErrorView(title: title, error: error)
 
-            case let .conversation(conversation):
-                ConversationContainer(conversation: conversation)
+            case let .conversation(conversation, model):
+                ConversationContainer(conversation: conversation, model: model)
             }
         }
         .animation(.easeInOut(duration: 0.2), value: appState.selectedModel)

@@ -3,11 +3,15 @@ import Foundation
 import MLXLMCommon
 import SwiftUI
 import WebKit
+import MLX
+
+// TODO: configurable context size
 
 @Observable final class Conversation {
     private let messageLog = MessageLog()
     private let speaker: Speaker
     private let mic: Mic
+    private let brain: Brain
 
     private(set) var micPermission = false
     private(set) var activationState = ActivationState.button
@@ -37,12 +41,17 @@ import WebKit
         }
     }
 
-    let model: Model
+    let displayName: String
+    let supportsImageInputs: Bool
+    private let historyPath: URL
 
     init(model: Model, speaker: Speaker, mic: Mic) {
-        self.model = model
         self.speaker = speaker
         self.mic = mic
+        brain = Brain(model: model)
+        displayName = model.variant.displayName
+        supportsImageInputs = model.variant.architecture.supportsImageInputs
+        historyPath = model.modelHistoryPath
 
         Task {
             micPermission = await AVCaptureDevice.requestAccess(for: .audio)
@@ -55,14 +64,6 @@ import WebKit
 
     deinit {
         log("\(Self.self) deinit")
-    }
-
-    var displayName: String {
-        model.variant.displayName
-    }
-
-    var supportsImageInputs: Bool {
-        model.variant.architecture.supportsImageInputs
     }
 
     func setWebView(_ webView: WKWebView) async {
@@ -151,7 +152,7 @@ import WebKit
 
         do {
             let logTask = Task {
-                try await messageLog.loadHistory(from: model.modelHistoryPath)
+                try await messageLog.loadHistory(from: historyPath)
             }
 
             let loadProgress = Progress(totalUnitCount: 1000)
@@ -189,7 +190,7 @@ import WebKit
             }
 
             setStatus("Language Model", to: .loading, loadProgress: loadProgress)
-            try await model.install(parentProgress: loadProgress, progressCount: 700)
+            try await brain.install(parentProgress: loadProgress, progressCount: 700)
             setStatus("Language Model", to: .done, loadProgress: loadProgress)
 
             setStatus("Ready", to: .warmup, loadProgress: loadProgress)
@@ -216,19 +217,11 @@ import WebKit
     }
 
     private func mainLoop() async {
-        guard let modelContainer = model.modelContainer else {
-            log("Warning: The model is not installed.")
-            return
-        }
-
         let asHistory = await messageLog.asSessionHistory
 
-        let session = ChatSession(
-            modelContainer,
-            history: asHistory.data(),
-            generateParameters: model.params.mlx,
-            additionalContext: model.additionalContext
-        )
+        guard let session = brain.makeSession(history: asHistory.data()) else {
+            return
+        }
 
         mode = .waiting(session: session)
 
@@ -275,68 +268,35 @@ import WebKit
         }
         prompt = ""
 
-        let tokenIngestion = TokenIngestion(initialBuffer: model.variant.injectThinkingTag ? "<think>" : "")
-
-        let textProcessor = TextProcessor(harmony: model.variant.usesHarmony ? .idle : .notApplicable)
+        let images = [attached]
+            .compactMap { $0?.cgImage }
+            .map { CIImage(cgImage: $0) }
+            .map { UserInput.Image.ciImage($0) }
 
         let responseTask = Task {
             var speechBuffer = ""
             speechBuffer.reserveCapacity(1024)
 
             var first = true
-            let images = [attached]
-                .compactMap { $0?.cgImage }
-                .map { CIImage(cgImage: $0) }
-                .map { UserInput.Image.ciImage($0) }
 
-            let tokenTask = Task {
-                defer {
-                    tokenIngestion.done()
-                }
-                for try await item in session.streamResponse(to: trimmedText, images: images, videos: []) {
-                    tokenIngestion.ingest(text: item)
-                }
-            }
-
-            let processorTask = Task {
-                defer {
-                    textProcessor.done()
-                }
-                for await item in tokenIngestion.output {
-                    textProcessor.ingest(token: item)
-                }
-            }
-
-            await withTaskCancellationHandler {
-                for await token in textProcessor.output {
-                    switch token {
-                    case let .text(item):
-                        appendText(item, session: session, first: &first)
-                        speechBuffer.append(item)
-                        switch speechBuffer.last {
-                        case ":", "!", "?", ".", ")", "\n":
-                            if !textOnly {
-                                await speaker.queue(speechBuffer)
-                            }
-                            speechBuffer.removeAll(keepingCapacity: true)
-                        default: break
+            for await token in brain.reply(in: session, to: trimmedText, images: images) {
+                switch token {
+                case let .text(item):
+                    appendText(item, session: session, first: &first)
+                    speechBuffer.append(item)
+                    switch speechBuffer.last {
+                    case ":", "!", "?", ".", ")", "\n":
+                        if !textOnly {
+                            await speaker.queue(speechBuffer)
                         }
-
-                    case let .tag(token):
-                        appendText(token, session: session, first: &first)
-                        speechBuffer.append(token)
+                        speechBuffer.removeAll(keepingCapacity: true)
+                    default: break
                     }
-                }
 
-                _ = await processorTask.value
-                _ = try? await tokenTask.value
-            } onCancel: {
-                // The token/processor tasks are unstructured, so cancelling the response task does
-                // not reach them on its own. Forward the cancellation so the LLM stream stops
-                // promptly — otherwise reset/barge-in would block until the full reply generates,
-                // leaving the UI stuck in the replying state.
-                tokenTask.cancel()
-                processorTask.cancel()
+                case let .tag(token):
+                    appendText(token, session: session, first: &first)
+                    speechBuffer.append(token)
+                }
             }
 
             await responseEnd(speechBuffer: speechBuffer, session: session)
@@ -350,7 +310,7 @@ import WebKit
         // utterance, so don't speak the trailing buffer, wait on the speaker, or touch the mode.
         if Task.isCancelled {
             messageLog.commitTurn()
-            try? await messageLog.save(to: model.modelHistoryPath)
+            try? await messageLog.save(to: historyPath)
             return
         }
 
@@ -361,7 +321,7 @@ import WebKit
         messageLog.commitTurn()
 
         do {
-            try await messageLog.save(to: model.modelHistoryPath)
+            try await messageLog.save(to: historyPath)
         } catch {
             log("Warning: Failed to save message log: \(error)")
         }
@@ -481,7 +441,7 @@ import WebKit
             await speaker.stopSpeaking()
             await task?.value
             messageLog.reset()
-            try? await messageLog.save(to: model.modelHistoryPath)
+            try? await messageLog.save(to: historyPath)
             if let session = FinalWrapper(session).data() {
                 await session.clear()
             }

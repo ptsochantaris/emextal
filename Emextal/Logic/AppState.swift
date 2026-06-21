@@ -108,7 +108,7 @@ final class AppState {
         Task { [weak self] in
             for await _ in center.notifications(named: .startModelWithoutConfirming) {
                 guard let self, let selectedModel else { return }
-                mode = .conversation(.init(model: selectedModel, speaker: speaker, mic: mic))
+                mode = .conversation(conversation: .init(model: selectedModel, speaker: speaker, mic: mic), model: selectedModel)
             }
         }
         Task {
