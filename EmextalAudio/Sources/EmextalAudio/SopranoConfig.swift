@@ -1,3 +1,10 @@
+//
+//  SopranoConfig.swift
+//  MLXAudio
+//
+//  Created by Prince Canuma on 04/01/2026.
+//
+
 import Foundation
 import MLXLMCommon
 
@@ -74,7 +81,7 @@ public struct SopranoConfiguration: Codable, Sendable {
     public var eosTokenId: Int
     public var padTokenId: Int
 
-    /// Audio config
+    // Audio config
     public var sampleRate: Int
 
     // Decoder config (embedded)
@@ -127,44 +134,44 @@ public struct SopranoConfiguration: Codable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         // Transformer config
-        hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
-        hiddenLayers = try container.decode(Int.self, forKey: .hiddenLayers)
-        intermediateSize = try container.decode(Int.self, forKey: .intermediateSize)
-        attentionHeads = try container.decode(Int.self, forKey: .attentionHeads)
-        kvHeads = try container.decode(Int.self, forKey: .kvHeads)
-        headDim = try container.decode(Int.self, forKey: .headDim)
-        vocabularySize = try container.decode(Int.self, forKey: .vocabularySize)
-        maxPositionEmbeddings = try container.decodeIfPresent(Int.self, forKey: .maxPositionEmbeddings) ?? 512
-        rmsNormEps = try container.decodeIfPresent(Float.self, forKey: .rmsNormEps) ?? 1e-6
-        ropeTheta = try container.decodeIfPresent(Float.self, forKey: .ropeTheta) ?? 10000
-        tieWordEmbeddings = try container.decodeIfPresent(Bool.self, forKey: .tieWordEmbeddings) ?? false
+        self.hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
+        self.hiddenLayers = try container.decode(Int.self, forKey: .hiddenLayers)
+        self.intermediateSize = try container.decode(Int.self, forKey: .intermediateSize)
+        self.attentionHeads = try container.decode(Int.self, forKey: .attentionHeads)
+        self.kvHeads = try container.decode(Int.self, forKey: .kvHeads)
+        self.headDim = try container.decode(Int.self, forKey: .headDim)
+        self.vocabularySize = try container.decode(Int.self, forKey: .vocabularySize)
+        self.maxPositionEmbeddings = try container.decodeIfPresent(Int.self, forKey: .maxPositionEmbeddings) ?? 512
+        self.rmsNormEps = try container.decodeIfPresent(Float.self, forKey: .rmsNormEps) ?? 1e-6
+        self.ropeTheta = try container.decodeIfPresent(Float.self, forKey: .ropeTheta) ?? 10000
+        self.tieWordEmbeddings = try container.decodeIfPresent(Bool.self, forKey: .tieWordEmbeddings) ?? false
 
         // Token IDs
-        bosTokenId = try container.decodeIfPresent(Int.self, forKey: .bosTokenId) ?? 1
-        eosTokenId = try container.decodeIfPresent(Int.self, forKey: .eosTokenId) ?? 2
-        padTokenId = try container.decodeIfPresent(Int.self, forKey: .padTokenId) ?? 0
+        self.bosTokenId = try container.decodeIfPresent(Int.self, forKey: .bosTokenId) ?? 1
+        self.eosTokenId = try container.decodeIfPresent(Int.self, forKey: .eosTokenId) ?? 2
+        self.padTokenId = try container.decodeIfPresent(Int.self, forKey: .padTokenId) ?? 0
 
         // Audio config
-        sampleRate = try container.decodeIfPresent(Int.self, forKey: .sampleRate) ?? 32000
+        self.sampleRate = try container.decodeIfPresent(Int.self, forKey: .sampleRate) ?? 32000
 
         // Decoder config (defaults match Soprano-1.1)
-        decoderNumLayers = try container.decodeIfPresent(Int.self, forKey: .decoderNumLayers) ?? 8
-        decoderDim = try container.decodeIfPresent(Int.self, forKey: .decoderDim) ?? 768
-        decoderIntermediateDim = try container.decodeIfPresent(Int.self, forKey: .decoderIntermediateDim) ?? 2304
-        hopLength = try container.decodeIfPresent(Int.self, forKey: .hopLength) ?? 512
-        nFft = try container.decodeIfPresent(Int.self, forKey: .nFft) ?? 2048
-        upscale = try container.decodeIfPresent(Int.self, forKey: .upscale) ?? 4
-        inputKernel = try container.decodeIfPresent(Int.self, forKey: .inputKernel) ?? 1
-        dwKernel = try container.decodeIfPresent(Int.self, forKey: .dwKernel) ?? 3
-        tokenSize = try container.decodeIfPresent(Int.self, forKey: .tokenSize) ?? 2048
-        receptiveField = try container.decodeIfPresent(Int.self, forKey: .receptiveField) ?? 4
+        self.decoderNumLayers = try container.decodeIfPresent(Int.self, forKey: .decoderNumLayers) ?? 8
+        self.decoderDim = try container.decodeIfPresent(Int.self, forKey: .decoderDim) ?? 768
+        self.decoderIntermediateDim = try container.decodeIfPresent(Int.self, forKey: .decoderIntermediateDim) ?? 2304
+        self.hopLength = try container.decodeIfPresent(Int.self, forKey: .hopLength) ?? 512
+        self.nFft = try container.decodeIfPresent(Int.self, forKey: .nFft) ?? 2048
+        self.upscale = try container.decodeIfPresent(Int.self, forKey: .upscale) ?? 4
+        self.inputKernel = try container.decodeIfPresent(Int.self, forKey: .inputKernel) ?? 1
+        self.dwKernel = try container.decodeIfPresent(Int.self, forKey: .dwKernel) ?? 3
+        self.tokenSize = try container.decodeIfPresent(Int.self, forKey: .tokenSize) ?? 2048
+        self.receptiveField = try container.decodeIfPresent(Int.self, forKey: .receptiveField) ?? 4
 
         // Quantization
         let baseConfig = try? BaseConfiguration(from: decoder)
         let globalQuant = try container.decodeIfPresent(BaseConfiguration.Quantization.self, forKey: .quantization)
         let altGlobalQuant = try container.decodeIfPresent(BaseConfiguration.Quantization.self, forKey: .quantizationConfig)
-        quantization = globalQuant ?? altGlobalQuant
-        perLayerQuantization = baseConfig?.perLayerQuantization
+        self.quantization = globalQuant ?? altGlobalQuant
+        self.perLayerQuantization = baseConfig?.perLayerQuantization
     }
 
     public func encode(to encoder: Swift.Encoder) throws {

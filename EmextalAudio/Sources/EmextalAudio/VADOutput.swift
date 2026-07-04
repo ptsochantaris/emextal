@@ -54,21 +54,16 @@ public struct DiarizationOutput: Sendable {
 // MARK: - Streaming State
 
 public struct StreamingState: Sendable {
-    public var spkcache: MLXArray // (1, cache_frames, emb_dim)
-    public var spkcachePreds: MLXArray // (1, cache_frames, n_spk)
-    public var fifo: MLXArray // (1, fifo_frames, emb_dim)
-    public var fifoPreds: MLXArray // (1, fifo_frames, n_spk)
-    public var framesProcessed: Int // total diarization frames emitted
-    public var meanSilEmb: MLXArray // (1, emb_dim) running mean silence embedding
-    public var nSilFrames: MLXArray // (1,) count of silence frames seen
+    public var spkcache: MLXArray        // (1, cache_frames, emb_dim)
+    public var spkcachePreds: MLXArray   // (1, cache_frames, n_spk)
+    public var fifo: MLXArray            // (1, fifo_frames, emb_dim)
+    public var fifoPreds: MLXArray       // (1, fifo_frames, n_spk)
+    public var framesProcessed: Int      // total diarization frames emitted
+    public var meanSilEmb: MLXArray      // (1, emb_dim) running mean silence embedding
+    public var nSilFrames: MLXArray      // (1,) count of silence frames seen
 
-    public var spkcacheLen: Int {
-        spkcache.dim(1)
-    }
-
-    public var fifoLen: Int {
-        fifo.dim(1)
-    }
+    public var spkcacheLen: Int { spkcache.dim(1) }
+    public var fifoLen: Int { fifo.dim(1) }
 
     public init(
         spkcache: MLXArray,

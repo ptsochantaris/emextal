@@ -15,7 +15,7 @@ needed to do that quickly.
 |---|---|
 | Upstream repo | `https://github.com/Blaizzy/mlx-audio-swift` |
 | Upstream branch | `main` |
-| **Last synced upstream commit** | `3f6b0553188a921f635df54b5e20442001037336` |
+| **Last synced upstream commit** | `580e952adda0cd6bdc5c04f402822adbb61525c8` |
 
 > When you finish a sync pass, **update the commit hash above** to the upstream `main` HEAD you
 > reconciled against. That hash is the `<baseline>` for the next pass.
@@ -66,6 +66,10 @@ back:
   the small piece locally over re-adding a heavy dependency.
 - **Original headers retained:** the `// MLXAudio…` header comments are kept on purpose — they are
   our provenance breadcrumbs for this mapping.
+- **No formatting:** this package is exempt from the repo-wide SwiftFormat config (see the
+  `.swiftformat` in this directory with `--disable all`). Formatting these files churns every
+  future upstream diff, and the root config's `-header ""` strips the provenance headers above.
+  A formatter pass was accidentally run on 2026-07 and reverted; keep the override file in place.
 - **Symbol renames to avoid collisions:** because we flatten multiple upstream targets into one
   module, upstream namespacing sometimes has to be applied locally too. Example (sync of
   2026-06: upstream `0c71eba`): GLM-ASR's `WhisperConfig` / `WhisperAttention` /
@@ -80,7 +84,7 @@ back:
 git clone --filter=blob:none https://github.com/Blaizzy/mlx-audio-swift.git /tmp/mlx-audio-swift
 cd /tmp/mlx-audio-swift
 
-BASELINE=3f6b0553188a921f635df54b5e20442001037336   # <-- "Last synced" commit above
+BASELINE=580e952adda0cd6bdc5c04f402822adbb61525c8   # <-- "Last synced" commit above
 HEAD=$(git rev-parse HEAD)
 
 # 2. See which upstream files changed, then intersect with the mapping table above.
@@ -103,3 +107,4 @@ Then, back in this package:
 |---|---|---|
 | 2026-06-14 | `856e04afb3c6eb931d92bb0d6ae7bbfbdfa89b15` | Initial extraction (`dfd3df4` in this repo). |
 | 2026-06-20 | `3f6b0553188a921f635df54b5e20442001037336` | First maintenance pass. Only GLM-ASR `Whisper*` → `GLMASRWhisper*` rename affected us; everything else upstream was in non-extracted models. |
+| 2026-07-04 | `580e952adda0cd6bdc5c04f402822adbb61525c8` | No-op sync: none of our extracted files changed upstream (9 commits, all in non-extracted models/codecs). Noted but did not extract the new `MLXAudioVAD/SpeechSegmenter.swift` (batch VAD segmentation on top of SileroVAD; app uses streaming VAD instead). Also reverted an accidental formatter pass and added the `.swiftformat` override. |

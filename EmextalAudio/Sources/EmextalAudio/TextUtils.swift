@@ -1,3 +1,10 @@
+//
+//  TextUtils.swift
+//  MLXAudio
+//
+//  Created by Prince Canuma on 04/01/2026.
+//
+
 import Foundation
 
 // MARK: - Number to Words
@@ -173,7 +180,7 @@ private func expandDollars(_ match: String) -> String {
     let dollars = parts.first.flatMap { Int($0) } ?? 0
     let cents = parts.count > 1 ? (Int(parts[1]) ?? 0) : 0
 
-    if dollars > 0, cents > 0 {
+    if dollars > 0 && cents > 0 {
         let dollarUnit = dollars == 1 ? "dollar" : "dollars"
         let centUnit = cents == 1 ? "cent" : "cents"
         return "\(numToWords(dollars)) \(dollarUnit), \(numToWords(cents)) \(centUnit)"
@@ -204,11 +211,11 @@ private func expandOrdinal(_ match: String) -> String {
 private func expandNumber(_ match: String) -> String {
     guard let num = Int(match) else { return match }
 
-    if num > 1000, num < 3000 {
+    if num > 1000 && num < 3000 {
         if num == 2000 {
             return "two thousand"
         }
-        if num > 2000, num < 2010 {
+        if num > 2000 && num < 2010 {
             return "two thousand " + numToWords(num % 100)
         }
         if num % 100 == 0 {
@@ -338,7 +345,7 @@ private func convertToASCII(_ text: String) -> String {
     // Normalize unicode and convert to ASCII
     let normalized = text.precomposedStringWithCanonicalMapping
     return normalized.unicodeScalars
-        .filter(\.isASCII)
+        .filter { $0.isASCII }
         .map { String($0) }
         .joined()
 }

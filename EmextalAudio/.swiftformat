@@ -1,0 +1,7 @@
+# Do NOT format this package.
+#
+# The sources here are a tracked subset of the upstream mlx-audio-swift repo
+# (see UPSTREAM.md). Keeping them byte-close to upstream keeps sync-pass diffs
+# clean, and the repo root config's `-header ""` would strip the upstream
+# provenance header comments that the sync procedure relies on.
+--disable all

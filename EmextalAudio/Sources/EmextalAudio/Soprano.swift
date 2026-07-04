@@ -1,8 +1,15 @@
+//
+//  Soprano.swift
+//  MLXAudio
+//
+//  Created by Prince Canuma on 04/01/2026.
+//
+
 import Foundation
 @preconcurrency import MLX
+import Tokenizers
 import MLXLMCommon
 import MLXNN
-import Tokenizers
 
 // MARK: - Type Aliases
 
@@ -34,17 +41,17 @@ private class SopranoAttention: Module {
         let kvHeads = args.kvHeads
         let headDim = args.headDim
 
-        scale = pow(Float(headDim), -0.5)
+        self.scale = pow(Float(headDim), -0.5)
 
-        _wq.wrappedValue = Linear(dim, heads * headDim, bias: false)
-        _wk.wrappedValue = Linear(dim, kvHeads * headDim, bias: false)
-        _wv.wrappedValue = Linear(dim, kvHeads * headDim, bias: false)
-        _wo.wrappedValue = Linear(heads * headDim, dim, bias: false)
+        self._wq.wrappedValue = Linear(dim, heads * headDim, bias: false)
+        self._wk.wrappedValue = Linear(dim, kvHeads * headDim, bias: false)
+        self._wv.wrappedValue = Linear(dim, kvHeads * headDim, bias: false)
+        self._wo.wrappedValue = Linear(heads * headDim, dim, bias: false)
 
-        _qNorm.wrappedValue = RMSNorm(dimensions: headDim, eps: args.rmsNormEps)
-        _kNorm.wrappedValue = RMSNorm(dimensions: headDim, eps: args.rmsNormEps)
+        self._qNorm.wrappedValue = RMSNorm(dimensions: headDim, eps: args.rmsNormEps)
+        self._kNorm.wrappedValue = RMSNorm(dimensions: headDim, eps: args.rmsNormEps)
 
-        rope = RoPE(
+        self.rope = RoPE(
             dimensions: headDim,
             traditional: false,
             base: args.ropeTheta,
@@ -67,7 +74,7 @@ private class SopranoAttention: Module {
         keys = kNorm(keys.reshaped(B, L, args.kvHeads, -1)).transposed(0, 2, 1, 3)
         values = values.reshaped(B, L, args.kvHeads, -1).transposed(0, 2, 1, 3)
 
-        if let cache {
+        if let cache = cache {
             queries = rope(queries, offset: cache.offset)
             keys = rope(keys, offset: cache.offset)
             (keys, values) = cache.update(keys: keys, values: values)
@@ -96,13 +103,13 @@ private class SopranoMLP: Module {
     @ModuleInfo(key: "up_proj") var up: Linear
 
     init(dimensions: Int, hiddenDimensions: Int) {
-        _gate.wrappedValue = Linear(dimensions, hiddenDimensions, bias: false)
-        _down.wrappedValue = Linear(hiddenDimensions, dimensions, bias: false)
-        _up.wrappedValue = Linear(dimensions, hiddenDimensions, bias: false)
+        self._gate.wrappedValue = Linear(dimensions, hiddenDimensions, bias: false)
+        self._down.wrappedValue = Linear(hiddenDimensions, dimensions, bias: false)
+        self._up.wrappedValue = Linear(dimensions, hiddenDimensions, bias: false)
     }
 
     func callAsFunction(_ x: MLXArray) -> MLXArray {
-        down(silu(gate(x)) * up(x))
+        return down(silu(gate(x)) * up(x))
     }
 }
 
@@ -116,10 +123,10 @@ private class SopranoTransformerBlock: Module {
     @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayerNorm: RMSNorm
 
     init(_ args: SopranoConfiguration) {
-        _attention.wrappedValue = SopranoAttention(args)
-        mlp = SopranoMLP(dimensions: args.hiddenSize, hiddenDimensions: args.intermediateSize)
-        _inputLayerNorm.wrappedValue = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
-        _postAttentionLayerNorm.wrappedValue = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
+        self._attention.wrappedValue = SopranoAttention(args)
+        self.mlp = SopranoMLP(dimensions: args.hiddenSize, hiddenDimensions: args.intermediateSize)
+        self._inputLayerNorm.wrappedValue = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
+        self._postAttentionLayerNorm.wrappedValue = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
     }
 
     func callAsFunction(
@@ -145,16 +152,16 @@ private class SopranoModelInner: Module {
     init(_ args: SopranoConfiguration) {
         precondition(args.vocabularySize > 0)
 
-        _embedTokens.wrappedValue = Embedding(
+        self._embedTokens.wrappedValue = Embedding(
             embeddingCount: args.vocabularySize,
             dimensions: args.hiddenSize
         )
 
-        layers = (0 ..< args.hiddenLayers).map { _ in
+        self.layers = (0..<args.hiddenLayers).map { _ in
             SopranoTransformerBlock(args)
         }
 
-        norm = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
+        self.norm = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
     }
 
     func callAsFunction(_ inputs: MLXArray, cache: [KVCache]? = nil) -> MLXArray {
@@ -183,22 +190,22 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
 
     @ModuleInfo(key: "lm_head") var lmHead: Linear?
 
-    /// Token IDs
+    // Token IDs
     private var stopTokenId: Int?
 
-    /// KVCacheDimensionProvider conformance
+    // KVCacheDimensionProvider conformance
     public var numLayers: Int {
-        configuration.hiddenLayers
+        return configuration.hiddenLayers
     }
 
     public init(_ config: SopranoConfiguration) {
-        configuration = config
-        vocabularySize = config.vocabularySize
-        kvHeads = (0 ..< config.hiddenLayers).map { _ in config.kvHeads }
-        model = SopranoModelInner(config)
+        self.configuration = config
+        self.vocabularySize = config.vocabularySize
+        self.kvHeads = (0..<config.hiddenLayers).map { _ in config.kvHeads }
+        self.model = SopranoModelInner(config)
 
         // Initialize decoder
-        decoder = SopranoDecoder(
+        self.decoder = SopranoDecoder(
             numInputChannels: config.hiddenSize,
             decoderNumLayers: config.decoderNumLayers,
             decoderDim: config.decoderDim,
@@ -211,12 +218,12 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
         )
 
         if !config.tieWordEmbeddings {
-            _lmHead.wrappedValue = Linear(config.hiddenSize, config.vocabularySize, bias: false)
+            self._lmHead.wrappedValue = Linear(config.hiddenSize, config.vocabularySize, bias: false)
         }
     }
 
     public var sampleRate: Int {
-        configuration.sampleRate
+        return configuration.sampleRate
     }
 
     public var defaultGenerationParameters: GenerateParameters {
@@ -232,7 +239,7 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
     public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]? = nil) -> MLXArray {
         var out = model(inputs, cache: cache)
 
-        if let lmHead {
+        if let lmHead = lmHead {
             out = lmHead(out)
         } else {
             out = model.embedTokens.asLinear(out)
@@ -255,17 +262,18 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
         let hiddenStates = model.norm(h)
 
         // Compute logits
-        let logits: MLXArray = if let lmHead {
-            lmHead(hiddenStates)
+        let logits: MLXArray
+        if let lmHead = lmHead {
+            logits = lmHead(hiddenStates)
         } else {
-            model.embedTokens.asLinear(hiddenStates)
+            logits = model.embedTokens.asLinear(hiddenStates)
         }
 
         return (logits, hiddenStates)
     }
 
     public func makeCache() -> [KVCache] {
-        (0 ..< configuration.hiddenLayers).map { _ in
+        return (0..<configuration.hiddenLayers).map { _ in
             KVCacheSimple()
         }
     }
@@ -366,7 +374,7 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
             // Process sentences, merging short ones
             var processed: [(text: String, textIdx: Int)] = sentences.map { (text: $0, textIdx: textIdx) }
 
-            if minLength > 0, processed.count > 1 {
+            if minLength > 0 && processed.count > 1 {
                 var merged: [(text: String, textIdx: Int)] = []
                 var i = 0
                 while i < processed.count {
@@ -438,7 +446,6 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
 
         return sentences
     }
-
     /// Space token ID in Soprano vocabulary
     private let spaceTokenId = 8004
 
@@ -450,7 +457,7 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
     private let preTokenizePattern = #"\s+|\w+|[^\w\s]+"#
 
     private func tokenize(_ text: String) -> MLXArray {
-        guard let tokenizer else {
+        guard let tokenizer = tokenizer else {
             fatalError("Tokenizer not initialized")
         }
 
@@ -472,7 +479,7 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
                 let chunks = preTokenizeText(segment)
 
                 for chunk in chunks {
-                    if chunk.allSatisfy(\.isWhitespace) {
+                    if chunk.allSatisfy({ $0.isWhitespace }) {
                         // For each space character, add a space token
                         for _ in chunk {
                             allTokens.append(spaceTokenId)
@@ -486,12 +493,13 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
             }
         }
 
+
         return MLXArray(allTokens.map { Int32($0) })
     }
 
     /// Check if a string is a special token
     private func isSpecialToken(_ text: String) -> Bool {
-        text == "[STOP]" || text == "[TEXT]" || text == "[START]"
+        return text == "[STOP]" || text == "[TEXT]" || text == "[START]"
     }
 
     /// Split text into special tokens and regular segments
@@ -566,8 +574,8 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
     /// - Returns: Generated audio as MLXArray
     public func generate(
         text: String,
-        voice _: String? = nil,
-        splitPattern: String = "\n", // Add split pattern parameter
+        voice: String? = nil,
+        splitPattern: String = "\n",  // Add split pattern parameter
         parameters: GenerateParameters = GenerateParameters(
             maxTokens: 1200,
             temperature: 0.7,
@@ -576,7 +584,7 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
             repetitionContextSize: 30
         )
     ) async throws -> MLXArray {
-        guard tokenizer != nil else {
+        guard self.tokenizer != nil else {
             throw SopranoError.modelNotInitialized("Tokenizer not loaded")
         }
 
@@ -620,18 +628,19 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
         // Process each chunk separately
         for promptChunk in prompts {
             try Task.checkCancellation()
-            let sentenceData = preprocessText([promptChunk])
+            let sentenceData = self.preprocessText([promptChunk])
+
 
             for (promptText, _, _) in sentenceData {
-                let inputIds = tokenize(promptText)
+                let inputIds = self.tokenize(promptText)
                 var allHiddenStates: [MLXArray] = []
 
-                for await (token, hiddenState) in streamGenerate(
+                for await (token, hiddenState) in self.streamGenerate(
                     inputIds: inputIds,
                     maxTokens: maxTokens,
                     temperature: parameters.temperature,
                     topP: parameters.topP,
-                    repetitionPenalty: parameters.repetitionPenalty ?? 1.0, // Match Python (no penalty)
+                    repetitionPenalty: parameters.repetitionPenalty ?? 1.0,  // Match Python (no penalty)
                     repetitionContextSize: parameters.repetitionContextSize
                 ) {
                     allHiddenStates.append(hiddenState)
@@ -648,9 +657,9 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
                 let hiddenStates = MLX.concatenated(allHiddenStates, axis: 1)
 
                 // Decode to audio
-                var audio = decoder(hiddenStates)
+                var audio = self.decoder(hiddenStates)
 
-                let tokenSize = configuration.tokenSize
+                let tokenSize = self.configuration.tokenSize
                 let audioLength = tokenCount * tokenSize - tokenSize
 
                 if audioLength > 0 {
@@ -681,7 +690,7 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
     /// Generate audio with streaming events.
     public func generateStream(
         text: String,
-        voice _: String? = nil,
+        voice: String? = nil,
         parameters: GenerateParameters = GenerateParameters(
             maxTokens: 512,
             temperature: 0.3,
@@ -695,73 +704,74 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
             guard let self else { return }
 
             do {
-                guard tokenizer != nil else {
+                guard self.tokenizer != nil else {
                     throw SopranoError.modelNotInitialized("Tokenizer not loaded")
                 }
-
+                
                 let prompt = text.replacingOccurrences(of: "\\n", with: "\n")
                     .replacingOccurrences(of: "\\t", with: "\t")
-
+                
                 let startTime = Date()
-                let sentenceData = preprocessText([prompt])
-
+                let sentenceData = self.preprocessText([prompt])
+                
                 var audioParts: [MLXArray] = []
                 var totalTokens = 0
                 let maxTokens = parameters.maxTokens ?? 512
-
+                
                 for (promptText, _, _) in sentenceData {
                     try Task.checkCancellation()
-                    let inputIds = tokenize(promptText)
+                    let inputIds = self.tokenize(promptText)
                     var allHiddenStates: [MLXArray] = []
-
-                    for await (token, hiddenState) in streamGenerate(
+                    
+                    for await (token, hiddenState) in self.streamGenerate(
                         inputIds: inputIds,
                         maxTokens: maxTokens,
                         temperature: parameters.temperature,
                         topP: parameters.topP,
-                        repetitionPenalty: parameters.repetitionPenalty ?? 1.0, // Match Python (no penalty)
+                        repetitionPenalty: parameters.repetitionPenalty ?? 1.0,  // Match Python (no penalty)
                         repetitionContextSize: parameters.repetitionContextSize
                     ) {
                         allHiddenStates.append(hiddenState)
-
+                        
                         if let tokenVal = token {
                             continuation.yield(.token(tokenVal))
                         }
                     }
                     try Task.checkCancellation()
-
+                    
                     let tokenCount = allHiddenStates.count
                     totalTokens += tokenCount
-
+                    
                     // Stack hidden states
                     let hiddenStates = MLX.concatenated(allHiddenStates, axis: 1)
-
+                    
                     // Decode to audio
-                    var audio = decoder(hiddenStates)
-
-                    let tokenSize = configuration.tokenSize
+                    var audio = self.decoder(hiddenStates)
+                    
+                    let tokenSize = self.configuration.tokenSize
                     let audioLength = tokenCount * tokenSize - tokenSize
-
+                    
                     if audioLength > 0 {
                         audio = audio[0, (-audioLength)...]
                     } else {
                         audio = audio[0]
                     }
-
+                    
                     audioParts.append(audio)
                 }
-
+                
                 try Task.checkCancellation()
 
                 // Concatenate audio
-                let finalAudio: MLXArray = if audioParts.count > 1 {
-                    MLX.concatenated(audioParts, axis: 0)
+                let finalAudio: MLXArray
+                if audioParts.count > 1 {
+                    finalAudio = MLX.concatenated(audioParts, axis: 0)
                 } else {
-                    audioParts[0]
+                    finalAudio = audioParts[0]
                 }
-
+                
                 let elapsed = Date().timeIntervalSince(startTime)
-
+                
                 // Yield info
                 let info = SopranoGenerationInfo(
                     promptTokenCount: 0,
@@ -772,10 +782,10 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
                     peakMemoryUsage: Double(Memory.peakMemory) / 1e9
                 )
                 continuation.yield(.info(info))
-
+                
                 // Yield audio
                 continuation.yield(.audio(finalAudio))
-
+                
                 continuation.finish()
             } catch {
                 continuation.finish(throwing: error)
@@ -809,7 +819,7 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
                 eval(logits, hiddenStates)
 
                 // Yield last hidden state from prefill (last position along sequence dim)
-                let lastHiddenState = hiddenStates[0..., (hiddenStates.shape[1] - 1) ..< hiddenStates.shape[1], 0...]
+                let lastHiddenState = hiddenStates[0..., (hiddenStates.shape[1] - 1)..<hiddenStates.shape[1], 0...]
                 continuation.yield((nil, lastHiddenState))
 
                 // Create sampler
@@ -821,14 +831,14 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
                 // Generate tokens
                 var currentLogits = logits
 
-                for _ in 0 ..< maxTokens {
+                for _ in 0..<maxTokens {
                     if Task.isCancelled { break }
                     // Get last logits
                     var lastLogits = currentLogits[0..., -1, 0...]
                     eval(lastLogits)
 
                     // Apply repetition penalty
-                    if repetitionPenalty != 1.0, !generatedTokens.isEmpty {
+                    if repetitionPenalty != 1.0 && !generatedTokens.isEmpty {
                         let contextTokens = Array(generatedTokens.suffix(repetitionContextSize))
                         lastLogits = applyRepetitionPenalty(
                             logits: lastLogits,
@@ -838,10 +848,11 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
                     }
 
                     // Sample next token
-                    let nextToken: MLXArray = if temperature == 0 {
-                        argMax(lastLogits, axis: -1, keepDims: true)
+                    let nextToken: MLXArray
+                    if temperature == 0 {
+                        nextToken = argMax(lastLogits, axis: -1, keepDims: true)
                     } else {
-                        sampler.sample(logits: lastLogits)
+                        nextToken = sampler.sample(logits: lastLogits)
                     }
 
                     let tokenId = nextToken.item(Int.self)
@@ -858,7 +869,7 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
                     let nextTokenExpanded = nextToken.reshaped([1, 1])
                     let (newLogits, newHiddenStates) = self.forwardWithHiddenStates(nextTokenExpanded, cache: cache)
 
-                    let newLastHiddenState = newHiddenStates[0..., (newHiddenStates.shape[1] - 1) ..< newHiddenStates.shape[1], 0...]
+                    let newLastHiddenState = newHiddenStates[0..., (newHiddenStates.shape[1] - 1)..<newHiddenStates.shape[1], 0...]
                     eval(newLastHiddenState)
                     continuation.yield((tokenId, newLastHiddenState))
 
@@ -918,7 +929,7 @@ public class SopranoModel: Module, KVCacheDimensionProvider, SpeechGenerationMod
                 }
 
                 if let perLayerQuant = config.perLayerQuantization,
-                   let layerQuant = perLayerQuant.quantization(layer: path) {
+                    let layerQuant = perLayerQuant.quantization(layer: path) {
                     return layerQuant.asTuple
                 }
 
@@ -1002,10 +1013,11 @@ private struct TopPSampler {
 
     func sample(logits: MLXArray) -> MLXArray {
         // Ensure logits is 1D for processing
-        let logits1D: MLXArray = if logits.ndim == 2 {
-            logits.squeezed(axis: 0) // [1, vocab] -> [vocab]
+        let logits1D: MLXArray
+        if logits.ndim == 2 {
+            logits1D = logits.squeezed(axis: 0)  // [1, vocab] -> [vocab]
         } else {
-            logits
+            logits1D = logits
         }
 
         // Apply top-p filtering in log space (sets excluded tokens to -inf)
@@ -1015,8 +1027,8 @@ private struct TopPSampler {
         // categorical expects log probabilities (logits), not probabilities!
         // This matches Python's: mx.random.categorical(logits * (1 / temp))
         let scaledLogits = filteredLogits / temperature
-        let scaledLogits2D = scaledLogits.expandedDimensions(axis: 0) // [1, vocab]
-        let sampledToken = categorical(scaledLogits2D) // [1]
+        let scaledLogits2D = scaledLogits.expandedDimensions(axis: 0)  // [1, vocab]
+        let sampledToken = categorical(scaledLogits2D)  // [1]
 
         return sampledToken.reshaped([1])
     }

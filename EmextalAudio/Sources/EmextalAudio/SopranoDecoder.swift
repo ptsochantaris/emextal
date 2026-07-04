@@ -1,3 +1,10 @@
+//
+//  SopranoDecoder.swift
+//  MLXAudio
+//
+//  Created by Prince Canuma on 04/01/2026.
+//
+
 import Foundation
 import MLX
 import MLXNN
@@ -32,7 +39,7 @@ func interpolate1d(_ input: MLXArray, size: Int, alignCorners: Bool = true) -> M
 
     // Compute sampling positions
     let x: MLXArray
-    if alignCorners, size > 1 {
+    if alignCorners && size > 1 {
         // align_corners mode: endpoints match exactly
         x = MLXArray(Array(stride(from: Float(0), to: Float(size), by: 1)))
             * (Float(inWidth - 1) / Float(size - 1))
@@ -66,7 +73,9 @@ func interpolate1d(_ input: MLXArray, size: Int, alignCorners: Bool = true) -> M
     let yHigh = take(input, xHighExpanded.squeezed(axes: [0, 1]), axis: 2)
 
     // Linear interpolation
-    return yLow * (1 - xFracExpanded) + yHigh * xFracExpanded
+    let output = yLow * (1 - xFracExpanded) + yHigh * xFracExpanded
+
+    return output
 }
 
 // MARK: - ISTFT Head
@@ -83,7 +92,7 @@ public class ISTFTHead: Module {
         self.nFft = nFft
         self.hopLength = hopLength
         // Output n_fft + 2 for magnitude and phase (n_fft/2 + 1 each)
-        _out.wrappedValue = Linear(dim, nFft + 2)
+        self._out.wrappedValue = Linear(dim, nFft + 2)
     }
 
     public func callAsFunction(_ x: MLXArray) -> MLXArray {
@@ -95,7 +104,7 @@ public class ISTFTHead: Module {
 
         // Split into magnitude and phase
         let halfSize = (nFft + 2) / 2
-        let mag = exp(h[0..., 0 ..< halfSize, 0...])
+        let mag = exp(h[0..., 0..<halfSize, 0...])
         let clippedMag = clip(mag, max: MLXArray(Float(1e2)))
         let phase = h[0..., halfSize..., 0...]
 
@@ -109,7 +118,9 @@ public class ISTFTHead: Module {
         let stftImag = clippedMag * sinPhase
 
         // Perform ISTFT
-        return performISTFT(real: stftReal, imag: stftImag)
+        let audio = performISTFT(real: stftReal, imag: stftImag)
+
+        return audio
     }
 
     /// Perform inverse STFT using overlap-add synthesis.
@@ -127,7 +138,7 @@ public class ISTFTHead: Module {
 
         var outputs: [MLXArray] = []
 
-        for b in 0 ..< batchSize {
+        for b in 0..<batchSize {
             // Get single batch: (n_fft/2+1, L)
             let realB = real[b]
             let imagB = imag[b]
@@ -152,11 +163,11 @@ public class ISTFTHead: Module {
             let windowArray = window.asArray(Float.self)
 
             // Process each frame - overlap-add
-            for i in 0 ..< numFrames {
+            for i in 0..<numFrames {
                 let start = i * hopLength
                 let frameData = windowedFrames[i].asArray(Float.self)
 
-                for j in 0 ..< min(nFft, frameData.count) {
+                for j in 0..<min(nFft, frameData.count) {
                     if start + j < outputLength {
                         audioSamples[start + j] += frameData[j]
                         // Use window values (not squared) for normalization - matches Python
@@ -167,7 +178,7 @@ public class ISTFTHead: Module {
 
             // Normalize by window sum (avoid division by zero)
             // Matches: reconstructed = mx.where(window_sum != 0, reconstructed / window_sum, reconstructed)
-            for i in 0 ..< outputLength {
+            for i in 0..<outputLength {
                 if windowSum[i] != 0 {
                     audioSamples[i] /= windowSum[i]
                 }
@@ -176,10 +187,11 @@ public class ISTFTHead: Module {
             // Trim to remove center padding: reconstructed[win_length // 2 : -win_length // 2]
             let trimStart = nFft / 2
             let trimEnd = outputLength - nFft / 2
-            let trimmedAudio: [Float] = if trimEnd > trimStart {
-                Array(audioSamples[trimStart ..< trimEnd])
+            let trimmedAudio: [Float]
+            if trimEnd > trimStart {
+                trimmedAudio = Array(audioSamples[trimStart..<trimEnd])
             } else {
-                audioSamples
+                trimmedAudio = audioSamples
             }
 
             outputs.append(MLXArray(trimmedAudio))
@@ -226,12 +238,12 @@ public class SopranoDecoder: Module {
         inputKernel: Int = 1,
         dwKernel: Int = 3
     ) {
-        decoderInitialChannels = numInputChannels
+        self.decoderInitialChannels = numInputChannels
         self.upscale = upscale
 
         let intermediateDim = decoderIntermediateDim ?? (decoderDim * 3)
 
-        decoder = VocosBackbone(
+        self.decoder = VocosBackbone(
             inputChannels: numInputChannels,
             dim: decoderDim,
             intermediateDim: intermediateDim,
@@ -240,7 +252,7 @@ public class SopranoDecoder: Module {
             dwKernelSize: dwKernel
         )
 
-        head = ISTFTHead(
+        self.head = ISTFTHead(
             dim: decoderDim,
             nFft: nFft,
             hopLength: hopLength
@@ -250,7 +262,7 @@ public class SopranoDecoder: Module {
     public func callAsFunction(_ x: MLXArray) -> MLXArray {
         // x is (B, L, C) in MLX convention
         // For interpolate, we need (B, C, L)
-        var h = x.transposed(0, 2, 1) // (B, C, L)
+        var h = x.transposed(0, 2, 1)  // (B, C, L)
 
         let L = h.shape[2]
 
@@ -265,6 +277,8 @@ public class SopranoDecoder: Module {
         h = decoder(h)
 
         // Convert to audio via ISTFT
-        return head(h)
+        let audio = head(h)
+
+        return audio
     }
 }

@@ -1,13 +1,21 @@
+//
+//  MelSpectrogram.swift
+//  MLXAudioSTT
+//
+// Created by Prince Canuma on 04/01/2026.
+//
+
 import Foundation
 import MLX
 
 // MARK: - Mel Spectrogram Computation
 
+
 /// Create a Hanning window of given size.
 public func hanningWindow(size: Int) -> MLXArray {
     var window = [Float](repeating: 0, count: size)
     let denom = Float(size - 1)
-    for n in 0 ..< size {
+    for n in 0..<size {
         window[n] = 0.5 * (1 - cos(2 * Float.pi * Float(n) / denom))
     }
     return MLXArray(window)
@@ -22,7 +30,7 @@ public func hammingWindow(size: Int, periodic: Bool = true) -> MLXArray {
     let denom = Float(effectiveSize - 1)
 
     var values = [Float](repeating: 0, count: effectiveSize)
-    for n in 0 ..< effectiveSize {
+    for n in 0..<effectiveSize {
         let phase = 2.0 * Float.pi * Float(n) / denom
         values[n] = 0.54 - 0.46 * cos(phase)
     }
@@ -80,7 +88,7 @@ public func melFilters(
 
     // Generate frequency points
     var allFreqs = [Float](repeating: 0, count: nFreqs)
-    for i in 0 ..< nFreqs {
+    for i in 0..<nFreqs {
         allFreqs[i] = Float(i) * Float(sampleRate) / Float(nFft)
     }
 
@@ -102,16 +110,16 @@ public func melFilters(
 
         hzToMel = { freq in
             if freq < minLogHz {
-                (freq - fMin) / fSp
+                return (freq - fMin) / fSp
             } else {
-                minLogMel + log(freq / minLogHz) / logStep
+                return minLogMel + log(freq / minLogHz) / logStep
             }
         }
         melToHz = { mel in
             if mel < minLogMel {
-                fMin + fSp * mel
+                return fMin + fSp * mel
             } else {
-                minLogHz * exp(logStep * (mel - minLogMel))
+                return minLogHz * exp(logStep * (mel - minLogMel))
             }
         }
     }
@@ -121,7 +129,7 @@ public func melFilters(
     let mMax = hzToMel(fMaxVal)
 
     var mPts = [Float](repeating: 0, count: nMels + 2)
-    for i in 0 ..< (nMels + 2) {
+    for i in 0..<(nMels + 2) {
         mPts[i] = mMin + Float(i) * (mMax - mMin) / Float(nMels + 1)
     }
 
@@ -130,15 +138,15 @@ public func melFilters(
     // Compute filterbank
     var filterbank = [[Float]](repeating: [Float](repeating: 0, count: nMels), count: nFreqs)
 
-    for i in 0 ..< nFreqs {
-        for j in 0 ..< nMels {
+    for i in 0..<nFreqs {
+        for j in 0..<nMels {
             let low = fPts[j]
             let center = fPts[j + 1]
             let high = fPts[j + 2]
 
-            if allFreqs[i] >= low, allFreqs[i] < center {
+            if allFreqs[i] >= low && allFreqs[i] < center {
                 filterbank[i][j] = (allFreqs[i] - low) / (center - low)
-            } else if allFreqs[i] >= center, allFreqs[i] <= high {
+            } else if allFreqs[i] >= center && allFreqs[i] <= high {
                 filterbank[i][j] = (high - allFreqs[i]) / (high - center)
             }
         }
@@ -146,16 +154,16 @@ public func melFilters(
 
     // Apply slaney normalization
     if norm == "slaney" {
-        for j in 0 ..< nMels {
+        for j in 0..<nMels {
             let enorm = 2.0 / (fPts[j + 2] - fPts[j])
-            for i in 0 ..< nFreqs {
+            for i in 0..<nFreqs {
                 filterbank[i][j] *= enorm
             }
         }
     }
 
     // Convert to MLXArray [nFreqs, nMels]
-    let flatFilters = filterbank.flatMap(\.self)
+    let flatFilters = filterbank.flatMap { $0 }
     return MLXArray(flatFilters).reshaped([nFreqs, nMels])
 }
 
@@ -163,7 +171,7 @@ public func melFilters(
 private func reverseArray(_ arr: MLXArray) -> MLXArray {
     let len = arr.shape[0]
     var indices = [Int](repeating: 0, count: len)
-    for i in 0 ..< len {
+    for i in 0..<len {
         indices[i] = len - 1 - i
     }
     return arr[MLXArray(indices.map { Int32($0) })]
@@ -185,12 +193,12 @@ public func stft(
     switch padMode {
     case .reflect:
         // Reflect padding: reverse slices at both ends
-        let prefixSlice = audio[1 ..< min(padding + 1, audioLen)]
+        let prefixSlice = audio[1..<(min(padding + 1, audioLen))]
         let prefix = reverseArray(prefixSlice)
 
         let suffixStart = max(0, audioLen - padding - 1)
         let suffixEnd = max(1, audioLen - 1)
-        let suffixSlice = audio[suffixStart ..< suffixEnd]
+        let suffixSlice = audio[suffixStart..<suffixEnd]
         let suffix = reverseArray(suffixSlice)
 
         padded = MLX.concatenated([prefix, audio, suffix])
@@ -213,7 +221,9 @@ public func stft(
     let windowed = framesStacked * window
 
     // Compute FFT (real FFT)
-    return MLXFFT.rfft(windowed, axis: 1) // [numFrames, nFft/2 + 1]
+    let fft = MLXFFT.rfft(windowed, axis: 1)  // [numFrames, nFft/2 + 1]
+
+    return fft
 }
 
 /// Compute mel spectrogram from audio waveform.
@@ -234,7 +244,7 @@ public func computeMelSpectrogram(
 
         // Compute magnitude squared (power spectrum)
         let magnitudes = MLX.abs(freqs).square()
-        eval(magnitudes) // Allow MLX to free STFT complex output
+        eval(magnitudes)  // Allow MLX to free STFT complex output
 
         // Create mel filterbank [nFreqs, nMels]
         let filters = melFilters(
@@ -246,7 +256,7 @@ public func computeMelSpectrogram(
 
         // Apply mel filterbank: [numFrames, nFreqs] @ [nFreqs, nMels] = [numFrames, nMels]
         var melSpec = MLX.matmul(magnitudes, filters)
-        eval(melSpec) // Allow MLX to free magnitudes and filters
+        eval(melSpec)  // Allow MLX to free magnitudes and filters
 
         // Apply log scaling with clamping (Whisper-style normalization)
         melSpec = MLX.maximum(melSpec, MLXArray(Float(1e-10)))

@@ -32,7 +32,7 @@ public protocol TextProcessor: Sendable {
     func process(text: String, language: String?) throws -> String
 }
 
-public extension TextProcessor {
+extension TextProcessor {
     /// Default no-op implementation for processors that don't need preparation.
-    func prepare() async throws {}
+    public func prepare() async throws {}
 }

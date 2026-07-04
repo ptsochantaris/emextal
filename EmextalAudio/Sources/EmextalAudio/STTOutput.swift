@@ -1,3 +1,10 @@
+//
+//  STTOutput.swift
+//  MLXAudioSTT
+//
+// Created by Prince Canuma on 04/01/2026.
+//
+
 import Foundation
 
 // MARK: - STT Generation Events
@@ -55,14 +62,14 @@ public enum STTError: Error, LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case let .modelNotInitialized(message):
-            "Model not initialized: \(message)"
-        case let .generationFailed(message):
-            "Generation failed: \(message)"
-        case let .invalidInput(message):
-            "Invalid input: \(message)"
-        case let .audioProcessingFailed(message):
-            "Audio processing failed: \(message)"
+        case .modelNotInitialized(let message):
+            return "Model not initialized: \(message)"
+        case .generationFailed(let message):
+            return "Generation failed: \(message)"
+        case .invalidInput(let message):
+            return "Invalid input: \(message)"
+        case .audioProcessingFailed(let message):
+            return "Audio processing failed: \(message)"
         }
     }
 }
@@ -130,7 +137,7 @@ extension STTOutput: CustomStringConvertible {
     public var description: String {
         var result = "STTOutput:\n"
         result += "  text: \(text)\n"
-        if let language {
+        if let language = language {
             result += "  language: \(language)\n"
         }
         result += "  prompt_tokens: \(promptTokens)\n"

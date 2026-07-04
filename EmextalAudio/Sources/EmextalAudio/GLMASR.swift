@@ -1,7 +1,14 @@
+//
+//  GLMASR.swift
+//  MLXAudioSTT
+//
+// Created by Prince Canuma on 04/01/2026.
+//
+
 import Foundation
 import MLX
-import MLXLMCommon
 import MLXNN
+import MLXLMCommon
 import Tokenizers
 
 // MARK: - Audio Processing Constants
@@ -72,7 +79,7 @@ class GLMASRRoPE: Module {
     }
 
     func callAsFunction(_ x: MLXArray, offset: Int = 0) -> MLXArray {
-        MLXFast.RoPE(
+        return MLXFast.RoPE(
             x,
             dimensions: dims,
             traditional: traditional,
@@ -102,14 +109,14 @@ class GLMASRAttention: Module {
         let kvHeads = config.numKeyValueHeads
 
         let headDim = config.headDim ?? (dim / heads)
-        scale = pow(Float(headDim), -0.5)
+        self.scale = pow(Float(headDim), -0.5)
 
-        _wq.wrappedValue = Linear(dim, heads * headDim, bias: config.attentionBias)
-        _wk.wrappedValue = Linear(dim, kvHeads * headDim, bias: config.attentionBias)
-        _wv.wrappedValue = Linear(dim, kvHeads * headDim, bias: config.attentionBias)
-        _wo.wrappedValue = Linear(heads * headDim, dim, bias: config.attentionBias)
+        self._wq.wrappedValue = Linear(dim, heads * headDim, bias: config.attentionBias)
+        self._wk.wrappedValue = Linear(dim, kvHeads * headDim, bias: config.attentionBias)
+        self._wv.wrappedValue = Linear(dim, kvHeads * headDim, bias: config.attentionBias)
+        self._wo.wrappedValue = Linear(heads * headDim, dim, bias: config.attentionBias)
 
-        rope = GLMASRRoPE(
+        self.rope = GLMASRRoPE(
             dims: headDim,
             traditional: config.ropeTraditional,
             base: config.ropeTheta
@@ -131,7 +138,7 @@ class GLMASRAttention: Module {
         keys = keys.reshaped(B, L, config.numKeyValueHeads, headDim).transposed(0, 2, 1, 3)
         values = values.reshaped(B, L, config.numKeyValueHeads, headDim).transposed(0, 2, 1, 3)
 
-        if let cache {
+        if let cache = cache {
             queries = rope(queries, offset: cache.offset)
             keys = rope(keys, offset: cache.offset)
             (keys, values) = cache.update(keys: keys, values: values)
@@ -158,13 +165,13 @@ class GLMASRMLP: Module {
     @ModuleInfo(key: "up_proj") var up: Linear
 
     init(_ config: LlamaConfig) {
-        _gate.wrappedValue = Linear(config.hiddenSize, config.intermediateSize, bias: config.mlpBias)
-        _down.wrappedValue = Linear(config.intermediateSize, config.hiddenSize, bias: config.mlpBias)
-        _up.wrappedValue = Linear(config.hiddenSize, config.intermediateSize, bias: config.mlpBias)
+        self._gate.wrappedValue = Linear(config.hiddenSize, config.intermediateSize, bias: config.mlpBias)
+        self._down.wrappedValue = Linear(config.intermediateSize, config.hiddenSize, bias: config.mlpBias)
+        self._up.wrappedValue = Linear(config.hiddenSize, config.intermediateSize, bias: config.mlpBias)
     }
 
     func callAsFunction(_ x: MLXArray) -> MLXArray {
-        down(silu(gate(x)) * up(x))
+        return down(silu(gate(x)) * up(x))
     }
 }
 
@@ -176,10 +183,10 @@ class GLMASRTransformerBlock: Module {
     @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayerNorm: RMSNorm
 
     init(_ config: LlamaConfig) {
-        _attention.wrappedValue = GLMASRAttention(config)
-        _mlp.wrappedValue = GLMASRMLP(config)
-        _inputLayerNorm.wrappedValue = RMSNorm(dimensions: config.hiddenSize, eps: config.rmsNormEps)
-        _postAttentionLayerNorm.wrappedValue = RMSNorm(dimensions: config.hiddenSize, eps: config.rmsNormEps)
+        self._attention.wrappedValue = GLMASRAttention(config)
+        self._mlp.wrappedValue = GLMASRMLP(config)
+        self._inputLayerNorm.wrappedValue = RMSNorm(dimensions: config.hiddenSize, eps: config.rmsNormEps)
+        self._postAttentionLayerNorm.wrappedValue = RMSNorm(dimensions: config.hiddenSize, eps: config.rmsNormEps)
     }
 
     func callAsFunction(
@@ -201,20 +208,20 @@ class GLMASRModelInner: Module {
     init(_ config: LlamaConfig) {
         precondition(config.vocabSize > 0)
 
-        _embedTokens.wrappedValue = Embedding(
+        self._embedTokens.wrappedValue = Embedding(
             embeddingCount: config.vocabSize,
             dimensions: config.hiddenSize
         )
 
-        layers = (0 ..< config.numHiddenLayers).map { _ in GLMASRTransformerBlock(config) }
-        norm = RMSNorm(dimensions: config.hiddenSize, eps: config.rmsNormEps)
+        self.layers = (0..<config.numHiddenLayers).map { _ in GLMASRTransformerBlock(config) }
+        self.norm = RMSNorm(dimensions: config.hiddenSize, eps: config.rmsNormEps)
     }
 
     func callAsFunction(_ inputs: MLXArray?, cache: [KVCache]? = nil, inputEmbeddings: MLXArray? = nil) -> MLXArray {
         var h: MLXArray
-        if let inputEmbeddings {
+        if let inputEmbeddings = inputEmbeddings {
             h = inputEmbeddings
-        } else if let inputs {
+        } else if let inputs = inputs {
             h = embedTokens(inputs)
         } else {
             fatalError("Either inputs or inputEmbeddings must be provided")
@@ -240,15 +247,15 @@ public class GLMASRLanguageModel: Module, KVCacheDimensionProvider {
     @ModuleInfo(key: "lm_head") var lmHead: Linear?
 
     public var kvHeads: [Int] {
-        (0 ..< config.numHiddenLayers).map { _ in config.numKeyValueHeads }
+        return (0..<config.numHiddenLayers).map { _ in config.numKeyValueHeads }
     }
 
     public init(config: LlamaConfig) {
         self.config = config
-        _model.wrappedValue = GLMASRModelInner(config)
+        self._model.wrappedValue = GLMASRModelInner(config)
 
         if !config.tieWordEmbeddings {
-            _lmHead.wrappedValue = Linear(config.hiddenSize, config.vocabSize, bias: false)
+            self._lmHead.wrappedValue = Linear(config.hiddenSize, config.vocabSize, bias: false)
         }
     }
 
@@ -259,7 +266,7 @@ public class GLMASRLanguageModel: Module, KVCacheDimensionProvider {
     ) -> MLXArray {
         let out = model(inputs, cache: cache, inputEmbeddings: inputEmbeddings)
 
-        if let lmHead {
+        if let lmHead = lmHead {
             return lmHead(out)
         } else {
             return model.embedTokens.asLinear(out)
@@ -267,7 +274,7 @@ public class GLMASRLanguageModel: Module, KVCacheDimensionProvider {
     }
 
     public var embedTokens: Embedding {
-        model.embedTokens
+        return model.embedTokens
     }
 }
 
@@ -324,17 +331,17 @@ public class GLMASRModel: Module {
 
     public init(config: GLMASRModelConfig) {
         self.config = config
-        vocabSize = config.lmConfig.vocabSize
+        self.vocabSize = config.lmConfig.vocabSize
 
-        _audioEncoder.wrappedValue = AudioEncoder(config: config)
-        _languageModel.wrappedValue = GLMASRLanguageModel(config: config.lmConfig)
+        self._audioEncoder.wrappedValue = AudioEncoder(config: config)
+        self._languageModel.wrappedValue = GLMASRLanguageModel(config: config.lmConfig)
     }
 
     // MARK: - Public API
 
     /// Get the input embeddings from the language model.
     public func getInputEmbeddings() -> Embedding {
-        languageModel.embedTokens
+        return languageModel.embedTokens
     }
 
     /// Forward pass.
@@ -349,7 +356,7 @@ public class GLMASRModel: Module {
         var computedAudioEmbeds = audioEmbeds
 
         // Compute audio embeddings if raw audio provided and no pre-computed embeds
-        if let audios, audioEmbeds == nil {
+        if let audios = audios, audioEmbeds == nil {
             let (embeds, _) = audioEncoder(audios)
             computedAudioEmbeds = embeds
         }
@@ -392,11 +399,11 @@ public class GLMASRModel: Module {
         audio: MLXArray,
         maxTokens: Int = 128,
         temperature: Float = 0.0,
-        topP _: Float = 0.95,
-        topK _: Int = 0,
+        topP: Float = 0.95,
+        topK: Int = 0,
         verbose: Bool = false
     ) -> STTOutput {
-        guard let tokenizer else {
+        guard let tokenizer = tokenizer else {
             fatalError("Tokenizer not loaded")
         }
 
@@ -409,7 +416,7 @@ public class GLMASRModel: Module {
         // Generate tokens
         var generatedTokens: [Int] = []
 
-        for _ in 0 ..< maxTokens {
+        for _ in 0..<maxTokens {
             let nextToken = ctx.sampleNextToken(temperature: temperature)
 
             if ctx.isEOS(nextToken) {
@@ -454,50 +461,50 @@ public class GLMASRModel: Module {
         audio: MLXArray,
         maxTokens: Int = 128,
         temperature: Float = 0.0,
-        topP _: Float = 0.95
+        topP: Float = 0.95
     ) -> AsyncThrowingStream<STTGeneration, Error> {
         AsyncThrowingStream { continuation in
             do {
                 guard let tokenizer = self.tokenizer else {
                     throw STTError.modelNotInitialized("Tokenizer not loaded")
                 }
-
+                
                 let startTime = Date()
-
+                
                 // Prepare for generation
                 let (context, promptTokenCount) = self.prepareGeneration(audio: audio, tokenizer: tokenizer)
                 var ctx = context
-
+                
                 let prefillEndTime = Date()
                 let prefillTime = prefillEndTime.timeIntervalSince(startTime)
-
+                
                 let generateStartTime = Date()
                 var generatedTokens: [Int] = []
-
+                
                 // Generate tokens
-                for _ in 0 ..< maxTokens {
+                for _ in 0..<maxTokens {
                     let nextToken = ctx.sampleNextToken(temperature: temperature)
-
+                    
                     if ctx.isEOS(nextToken) {
                         break
                     }
-
+                    
                     generatedTokens.append(nextToken)
-
+                    
                     // Emit token
                     let tokenText = ctx.decode(nextToken)
                     continuation.yield(.token(tokenText))
-
+                    
                     // Step to next token
                     ctx = self.stepGeneration(context: ctx, nextToken: nextToken)
                 }
-
+                
                 let endTime = Date()
                 let generateTime = endTime.timeIntervalSince(generateStartTime)
                 let totalTime = endTime.timeIntervalSince(startTime)
-
+                
                 Memory.clearCache()
-
+                
                 // Emit generation info
                 let tokensPerSecond = generateTime > 0 ? Double(generatedTokens.count) / generateTime : 0
                 let peakMemory = Double(Memory.peakMemory) / 1e9
@@ -510,7 +517,7 @@ public class GLMASRModel: Module {
                     peakMemoryUsage: peakMemory
                 )
                 continuation.yield(.info(info))
-
+                
                 // Emit final result
                 let text = ctx.decode(generatedTokens)
                 let output = STTOutput(
@@ -524,7 +531,7 @@ public class GLMASRModel: Module {
                     peakMemoryUsage: peakMemory
                 )
                 continuation.yield(.result(output))
-
+                
                 continuation.finish()
             } catch {
                 continuation.finish(throwing: error)
@@ -534,7 +541,7 @@ public class GLMASRModel: Module {
 
     /// Create KV cache for generation.
     public func makeCache() -> [KVCache] {
-        (0 ..< config.lmConfig.numHiddenLayers).map { _ in
+        return (0..<config.lmConfig.numHiddenLayers).map { _ in
             KVCacheSimple()
         }
     }
@@ -570,8 +577,8 @@ public class GLMASRModel: Module {
             }
 
             // Handle conv weight transposition
-            if newKey.contains("conv"), newKey.contains("weight") {
-                if v.ndim == 3, v.shape[2] < v.shape[1] {
+            if newKey.contains("conv") && newKey.contains("weight") {
+                if v.ndim == 3 && v.shape[2] < v.shape[1] {
                     sanitized[newKey] = v.transposed(0, 2, 1)
                 } else {
                     sanitized[newKey] = v
@@ -621,7 +628,7 @@ public class GLMASRModel: Module {
                 print(" Per-layer: \(perLayerQuant)")
             }
 
-            quantize(model: model) { path, _ in
+            quantize(model: model) { path, module in
                 // Convert model path back to original weight path for scales check
                 var origPath = path
                 if origPath.hasPrefix("language_model.model.") {
@@ -658,14 +665,14 @@ public class GLMASRModel: Module {
         let textEmbeds = getInputEmbeddings()(inputIds)
 
         // Skip if no audio or cache already populated
-        guard let audioEmbeds else { return textEmbeds }
-        if let cache, let firstCache = cache.first as? KVCacheSimple, firstCache.offset > 0 {
+        guard let audioEmbeds = audioEmbeds else { return textEmbeds }
+        if let cache = cache, let firstCache = cache.first as? KVCacheSimple, firstCache.offset > 0 {
             return textEmbeds
         }
 
         let batchSize = textEmbeds.shape[0]
 
-        for b in 0 ..< batchSize {
+        for b in 0..<batchSize {
             guard let offsets = audioOffsets, offsets.count > b else { continue }
             let offsetList = offsets[b]
             let lengths = audioLength?[b] ?? [audioEmbeds.shape[1]]
@@ -673,11 +680,11 @@ public class GLMASRModel: Module {
             var audioIdx = 0
             for (offset, length) in zip(offsetList, lengths) {
                 if audioIdx < audioEmbeds.shape[0] {
-                    let audioChunk = audioEmbeds[audioIdx, 0 ..< length]
+                    let audioChunk = audioEmbeds[audioIdx, 0..<length]
                     let endPos = min(offset + length, textEmbeds.shape[1])
                     let actualLength = endPos - offset
 
-                    for i in 0 ..< actualLength {
+                    for i in 0..<actualLength {
                         textEmbeds[b, offset + i] = audioChunk[i]
                     }
                     audioIdx += 1
@@ -743,4 +750,5 @@ public class GLMASRModel: Module {
             logits: logits
         )
     }
+
 }
