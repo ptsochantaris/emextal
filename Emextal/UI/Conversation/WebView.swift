@@ -37,9 +37,9 @@ extension WebView {
     // web view (whose configuration owns that controller), so registering the coordinator
     // directly would create a retain cycle. This forwarder breaks it.
     private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
-        private weak var delegate: WKScriptMessageHandler?
+        private weak var delegate: (any WKScriptMessageHandler)?
 
-        init(delegate: WKScriptMessageHandler) {
+        init(delegate: any WKScriptMessageHandler) {
             self.delegate = delegate
         }
 
