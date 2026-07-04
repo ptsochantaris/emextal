@@ -108,7 +108,13 @@ final class AppState {
         Task { [weak self] in
             for await _ in center.notifications(named: .startModelWithoutConfirming) {
                 guard let self, let selectedModel else { return }
-                mode = .conversation(conversation: .init(model: selectedModel, speaker: speaker, mic: mic), model: selectedModel)
+                mode = .conversation(conversation: .init(engine: .llm(model: selectedModel), speaker: speaker, mic: mic), model: selectedModel)
+            }
+        }
+        Task { [weak self] in
+            for await _ in center.notifications(named: .startTranscription) {
+                guard let self else { return }
+                mode = .conversation(conversation: .init(engine: .transcription, speaker: speaker, mic: mic), model: nil)
             }
         }
         Task {
@@ -138,11 +144,11 @@ final class AppState {
         }
     }
 
-    // `@concurrent` forces this onto the global concurrent executor so the synchronous AVAudioSession
-    // calls never run on the main thread. (A plain `nonisolated async` function isn't enough here: with
-    // approachable concurrency / NonisolatedNonsendingByDefault it runs on the caller's executor, which
-    // is the main actor.) The engine isn't `Sendable`, so it's passed `sending`: safe because the engine
-    // is handed off and not touched concurrently while this runs.
+    /// `@concurrent` forces this onto the global concurrent executor so the synchronous AVAudioSession
+    /// calls never run on the main thread. (A plain `nonisolated async` function isn't enough here: with
+    /// approachable concurrency / NonisolatedNonsendingByDefault it runs on the caller's executor, which
+    /// is the main actor.) The engine isn't `Sendable`, so it's passed `sending`: safe because the engine
+    /// is handed off and not touched concurrently while this runs.
     @concurrent private static func configureAudioSession(for engine: sending AVAudioEngine) async throws {
         // On iOS we configure the shared session: using the input node forces the `playAndRecord`
         // category, whose default output route is the receiver (the earpiece used during phone calls),

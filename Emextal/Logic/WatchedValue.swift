@@ -14,7 +14,7 @@ import Synchronization
 /// bootDone.set(true)          // from the producer
 /// await bootDone.reaches(true) // from the consumer
 /// ```
-nonisolated final class WatchedValue<Value: Sendable>: Sendable {
+final nonisolated class WatchedValue<Value: Sendable>: Sendable {
     private struct Waiter {
         let predicate: @Sendable (Value) -> Bool
         let continuation: CheckedContinuation<Value, Never>

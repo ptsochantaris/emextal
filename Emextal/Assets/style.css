@@ -285,6 +285,61 @@ think {
     border-left: 2px solid #80808033;
 }
 
+/* Per-paragraph copy/delete controls, enabled in transcription mode
+   (body.paragraph-copy). The turn reserves room on the right so text never
+   runs under the buttons. */
+.paragraph-copy .turn {
+    position: relative;
+    padding-right: 56pt;
+}
+
+.turn-copy-button,
+.turn-delete-button {
+    position: absolute;
+    top: 12pt;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4pt;
+
+    border: none;
+    border-radius: 6pt;
+    background: #FFFFFF1F;
+    color: currentColor;
+
+    opacity: 0.6;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    transition: opacity 0.15s ease;
+}
+
+/* Copy at the far edge; delete inset from it, so the destructive control isn't
+   the one nearest a flicked cursor. */
+.turn-copy-button {
+    right: 0;
+}
+
+.turn-delete-button {
+    right: 26pt;
+}
+
+.turn-copy-button:hover,
+.turn-delete-button:hover {
+    opacity: 1;
+}
+
+.turn-copy-button.copied {
+    opacity: 1;
+    background: #34C75955;
+}
+
+.turn-delete-button:hover {
+    background: #FF453A40;
+    color: #FF453A;
+}
+
 img {
     width: 256pt;
     margin-top: 12pt;

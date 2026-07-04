@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct SectionCell: View {
-    let category: Model.Category
+    let title: String
+    let description: String
 
     var body: some View {
         HStack(spacing: 14) {
@@ -9,10 +10,10 @@ struct SectionCell: View {
                 .frame(width: 1)
 
             VStack(alignment: .leading, spacing: 8) {
-                Text(category.title)
+                Text(title)
                     .font(.title)
 
-                Text(category.description)
+                Text(description)
                     .font(.caption2)
 
                 Spacer(minLength: 0)

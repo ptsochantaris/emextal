@@ -21,6 +21,8 @@ struct SelectionGrid: View {
                             SectionCarousel(category: category, modelList: models, selected: $selected)
                         }
                     }
+
+                    UtilitySection()
                 }
                 .padding([.top, .bottom])
             }

@@ -33,15 +33,39 @@ import WebKit
 extension WebView {
     nonisolated static let temporaryDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("emextal-webview", conformingTo: .directory)
 
-    final class Coordinator {
+    // The user content controller retains its message handlers, and the coordinator retains the
+    // web view (whose configuration owns that controller), so registering the coordinator
+    // directly would create a retain cycle. This forwarder breaks it.
+    private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
+        private weak var delegate: WKScriptMessageHandler?
+
+        init(delegate: WKScriptMessageHandler) {
+            self.delegate = delegate
+        }
+
+        func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            delegate?.userContentController(userContentController, didReceive: message)
+        }
+    }
+
+    final class Coordinator: NSObject, WKScriptMessageHandler {
         let webView: WKWebView
+        private let viewModel: Conversation
 
         deinit {
             log("\(Self.self) deinit")
         }
 
+        func userContentController(_: WKUserContentController, didReceive message: WKScriptMessage) {
+            if message.name == "deleteTurn", let id = message.body as? String {
+                viewModel.deleteTurn(id: id)
+            }
+        }
+
         init(viewModel: Conversation) {
             log("Coordinator init")
+
+            self.viewModel = viewModel
 
             // Move to RW directory
             let itemsToCopy = [Bundle.main.url(forResource: "log", withExtension: "html")!,
@@ -64,6 +88,10 @@ extension WebView {
             let config = WKWebViewConfiguration()
             config.suppressesIncrementalRendering = true
             webView = WKWebView(frame: .zero, configuration: config)
+
+            super.init()
+
+            config.userContentController.add(WeakScriptMessageHandler(delegate: self), name: "deleteTurn")
             webView.loadFileURL(WebView.temporaryDirectory.appending(path: "log.html"), allowingReadAccessTo: WebView.temporaryDirectory)
 
             #if canImport(AppKit)

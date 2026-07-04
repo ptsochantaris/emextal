@@ -13,7 +13,8 @@ nonisolated struct Turn: Codable {
     }
 
     func renderHtml(parser: MarkdownParser) -> String {
-        let promptText = "\n#### \(prompt.addingUnicodeEntities())"
+        // Transcription turns carry no prompt; skip the heading so the text renders as body copy.
+        let promptText: String? = prompt.isEmpty ? nil : "\n#### \(prompt.addingUnicodeEntities())"
         let imageText: String? = if let image {
             "![Image](\(image))"
         } else {

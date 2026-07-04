@@ -31,6 +31,7 @@ function icon(id, size) {
 
 const copyIcon = icon("icon-copy", 15);
 const checkIcon = icon("icon-check", 15);
+const trashIcon = icon("icon-trash", 15);
 const chevronIcon = icon("icon-chevron", 13);
 const thoughtIcon = icon("icon-thought", 13);
 
@@ -232,12 +233,61 @@ function fallbackCopy(text, finished) {
     finished();
 }
 
+// Transcription mode: each committed turn is one dictated paragraph, so offer a
+// per-turn copy control. Toggled from the Swift side before history is rendered.
+var paragraphCopy = false;
+
+function setParagraphCopy(on) {
+    paragraphCopy = on;
+    document.body.classList.toggle("paragraph-copy", on);
+    return false;
+}
+
+function addTurnControls(turnDiv) {
+    if (!paragraphCopy || turnDiv.querySelector(".turn-copy-button")) {
+        return;
+    }
+    // Capture the text before the buttons join the DOM, so their own
+    // markup never leaks into what gets copied.
+    const text = turnDiv.textContent.trim();
+    if (!text) {
+        return;
+    }
+    const copyButton = document.createElement("button");
+    copyButton.className = "turn-copy-button";
+    copyButton.type = "button";
+    copyButton.title = "Copy";
+    copyButton.setAttribute("aria-label", "Copy paragraph");
+    copyButton.innerHTML = copyIcon;
+    copyButton.addEventListener("click", function(){
+        copyText(text, copyButton);
+    });
+    turnDiv.appendChild(copyButton);
+
+    // Removing the element here is the whole visual side of deletion; the
+    // posted message keeps the Swift-side history (and the saved file) in step.
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "turn-delete-button";
+    deleteButton.type = "button";
+    deleteButton.title = "Delete";
+    deleteButton.setAttribute("aria-label", "Delete paragraph");
+    deleteButton.innerHTML = trashIcon;
+    deleteButton.addEventListener("click", function(){
+        turnDiv.remove();
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.deleteTurn) {
+            window.webkit.messageHandlers.deleteTurn.postMessage(turnDiv.id);
+        }
+    });
+    turnDiv.appendChild(deleteButton);
+}
+
 function addHistory(id, html) {
     const newDiv = document.createElement('div');
     newDiv.className = 'turn';
     newDiv.id = id;
     newDiv.innerHTML = html;
     decorate(newDiv, false);
+    addTurnControls(newDiv);
     historyElement.appendChild(newDiv);
     // Clear the live buffer in the same synchronous pass. On completion the
     // committed turn is appended here and the live copy is cleared by a separate

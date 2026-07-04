@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ConversationContainer: View {
     let conversation: Conversation
-    let model: Model
+    let model: Model?
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
@@ -35,11 +35,18 @@ struct ConversationContainer: View {
                 EmptyView()
             }
 
-            ParamsView(model: model)
-                .clipShape(RoundedRectangle(cornerRadius: 20))
+            if let model {
+                ParamsView(model: model)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+            } else {
+                // No model, no params panel — but that panel is where "Back" normally lives.
+                Button("Back") {
+                    NotificationCenter.default.post(name: .endModel, object: nil)
+                }
+            }
         }
         .padding(horizontalSizeClass == .compact ? 10 : 88)
-        .animation(.easeInOut, value: model.params.cacheStrategy)
+        .animation(.easeInOut, value: model?.params.cacheStrategy)
 
         // On compact the panel can be taller than the screen, so let it scroll. On regular it stays
         // centered in the available space.

@@ -7,12 +7,14 @@ enum ConversationMode: Equatable {
     case warmup
     case loading(progress: CGFloat, status: [LoadingProgressDisplay.Status])
     case loaded
-    case waiting(session: ChatSession)
-    case listening(state: MicState, session: ChatSession)
-    case transcribing(session: ChatSession)
-    case transcribingDone(session: ChatSession)
-    case processingPrompt(session: ChatSession, task: Task<Void, Never>)
-    case replying(session: ChatSession, task: Task<Void, Never>)
+    // The session is nil in transcription mode, where a conversation runs without a model; a
+    // state carrying a nil session is still an active one (see `isActive`).
+    case waiting(session: ChatSession?)
+    case listening(state: MicState, session: ChatSession?)
+    case transcribing(session: ChatSession?)
+    case transcribingDone(session: ChatSession?)
+    case processingPrompt(session: ChatSession?, task: Task<Void, Never>)
+    case replying(session: ChatSession?, task: Task<Void, Never>)
     case shutdown
     case error(any Error)
 
@@ -21,6 +23,18 @@ enum ConversationMode: Equatable {
         case .transcribingDone, .waiting:
             true
         case .booting, .error, .listening, .loaded, .loading, .processingPrompt, .replying, .shutdown, .startup, .transcribing, .warmup:
+            false
+        }
+    }
+
+    /// True in the states that represent a running conversation — the session-carrying cases.
+    /// In transcription mode the session payload is nil, so this, not `session != nil`, is the
+    /// "are we live" check.
+    var isActive: Bool {
+        switch self {
+        case .listening, .processingPrompt, .replying, .transcribing, .transcribingDone, .waiting:
+            true
+        case .booting, .error, .loaded, .loading, .shutdown, .startup, .warmup:
             false
         }
     }

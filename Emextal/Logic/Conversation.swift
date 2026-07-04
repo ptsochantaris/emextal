@@ -6,10 +6,12 @@ import WebKit
 import MLX
 
 @Observable final class Conversation {
-    private let messageLog = MessageLog()
+    private let messageLog: MessageLog
     private let speaker: Speaker
     private let mic: Mic
-    private let brain: Brain
+
+    // Nil in transcription mode: there is no model, and utterances go straight into the log.
+    private let brain: Brain?
 
     private(set) var micPermission = false
     private(set) var activationState = ActivationState.button
@@ -41,15 +43,22 @@ import MLX
 
     let displayName: String
     let supportsImageInputs: Bool
+    let isTranscription: Bool
     private let historyPath: URL
 
-    init(model: Model, speaker: Speaker, mic: Mic) {
+    init(engine: Engine, speaker: Speaker, mic: Mic) {
         self.speaker = speaker
         self.mic = mic
-        brain = Brain(model: model)
-        displayName = model.variant.displayName
-        supportsImageInputs = model.variant.architecture.supportsImageInputs
-        historyPath = model.modelHistoryPath
+        brain = engine.makeBrain()
+        messageLog = MessageLog(showsParagraphCopy: engine.isTranscription)
+        displayName = engine.displayName
+        supportsImageInputs = engine.supportsImageInputs
+        isTranscription = engine.isTranscription
+        historyPath = engine.historyPath
+
+        if isTranscription {
+            statusComponents.removeAll { $0.text == "Language Model" }
+        }
 
         Task {
             micPermission = await AVCaptureDevice.requestAccess(for: .audio)
@@ -81,31 +90,31 @@ import MLX
     }
 
     func setListeningTalkingMode() {
-        guard let session = mode.session else {
+        guard mode.isActive else {
             return
         }
-        setMode(.listening(state: .talking, session: session))
+        setMode(.listening(state: .talking, session: mode.session))
     }
 
     func setTranscribingMode() {
-        guard let session = mode.session else {
+        guard mode.isActive else {
             return
         }
-        setMode(.transcribing(session: session))
+        setMode(.transcribing(session: mode.session))
     }
 
     func setListeningQuietMode() {
-        guard let session = mode.session else {
+        guard mode.isActive else {
             return
         }
-        setMode(.listening(state: .quiet, session: session))
+        setMode(.listening(state: .quiet, session: mode.session))
     }
 
     func setWaitingMode() {
-        guard let session = mode.session else {
+        guard mode.isActive else {
             return
         }
-        setMode(.waiting(session: session))
+        setMode(.waiting(session: mode.session))
     }
 
     // Barge-in: invoked by the mic the moment the user starts speaking. If the assistant is
@@ -167,16 +176,20 @@ import MLX
                 }
             }
 
+            // With a model, its download dominates the bar; in transcription mode the audio
+            // models take the whole bar between them.
+            let (speakerUnits, micUnits): (Int64, Int64) = brain == nil ? (300, 700) : (150, 150)
+
             let warmupTask = Task {
                 let t1 = Task {
-                    loadProgress.addChild(speaker.loadingProgress, withPendingUnitCount: 150)
+                    loadProgress.addChild(speaker.loadingProgress, withPendingUnitCount: speakerUnits)
                     setStatus("Text-to-Speech", to: .loading, loadProgress: loadProgress)
                     await speaker.waitForBoot()
                     setStatus("Text-to-Speech", to: .done, loadProgress: loadProgress)
                 }
 
                 let t2 = Task {
-                    loadProgress.addChild(mic.loadingProgress, withPendingUnitCount: 150)
+                    loadProgress.addChild(mic.loadingProgress, withPendingUnitCount: micUnits)
                     setStatus("Voice Recognition", to: .loading, loadProgress: loadProgress)
                     await mic.waitForBoot()
                     setStatus("Voice Recognition", to: .done, loadProgress: loadProgress)
@@ -187,9 +200,11 @@ import MLX
                 await t2.value
             }
 
-            setStatus("Language Model", to: .loading, loadProgress: loadProgress)
-            try await brain.install(parentProgress: loadProgress, progressCount: 700)
-            setStatus("Language Model", to: .done, loadProgress: loadProgress)
+            if let brain {
+                setStatus("Language Model", to: .loading, loadProgress: loadProgress)
+                try await brain.install(parentProgress: loadProgress, progressCount: 700)
+                setStatus("Language Model", to: .done, loadProgress: loadProgress)
+            }
 
             setStatus("Ready", to: .warmup, loadProgress: loadProgress)
 
@@ -215,10 +230,15 @@ import MLX
     }
 
     private func mainLoop() async {
-        let asHistory = await messageLog.asSessionHistory
-
-        guard let session = brain.makeSession(history: asHistory.data()) else {
-            return
+        let session: ChatSession?
+        if let brain {
+            let asHistory = await messageLog.asSessionHistory
+            guard let llmSession = brain.makeSession(history: asHistory.data()) else {
+                return
+            }
+            session = llmSession
+        } else {
+            session = nil
         }
 
         mode = .waiting(session: session)
@@ -230,7 +250,7 @@ import MLX
         }
     }
 
-    private func receivedPhrase(_ text: String, in session: ChatSession) {
+    private func receivedPhrase(_ text: String, in session: ChatSession?) {
         if text.isEmpty {
             switch activationState {
             case .button:
@@ -247,7 +267,7 @@ import MLX
         }
     }
 
-    private func appendText(_ text: String, session: ChatSession, first: inout Bool) {
+    private func appendText(_ text: String, session: ChatSession?, first: inout Bool) {
         messageLog.appendResponse(text: text)
         if first, let task = mode.task {
             mode = .replying(session: session, task: task)
@@ -255,10 +275,17 @@ import MLX
         }
     }
 
-    private func respond(session: ChatSession) {
+    private func respond(session: ChatSession?) {
         guard mode.canRespond else { return }
 
         let trimmedText = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard let brain, let session else {
+            // Transcription mode: there's no model to reply — the utterance itself is the content.
+            appendTranscript(trimmedText)
+            return
+        }
+
         let attached = attachedImage
         messageLog.prompt(text: trimmedText, image: attached)
         if attached != nil {
@@ -301,6 +328,33 @@ import MLX
         }
 
         mode = .processingPrompt(session: session, task: responseTask)
+    }
+
+    // Transcription mode's whole "reply": commit the utterance as a turn with no prompt, so it
+    // renders as body text rather than a heading, and return to listening for the next one.
+    private func appendTranscript(_ text: String) {
+        prompt = ""
+
+        if !text.isEmpty {
+            messageLog.prompt(text: "", image: nil)
+            messageLog.appendResponse(text: text)
+            messageLog.commitTurn()
+
+            Task {
+                do {
+                    try await messageLog.save(to: historyPath)
+                } catch {
+                    log("Warning: Failed to save message log: \(error)")
+                }
+            }
+        }
+
+        switch activationState {
+        case .button:
+            setWaitingMode()
+        case .voiceActivated:
+            setListeningQuietMode()
+        }
     }
 
     private func responseEnd(speechBuffer: String, session: ChatSession) async {
@@ -350,8 +404,37 @@ import MLX
     }
 
     func respondToTypedPrompt() {
-        if let session = mode.session {
-            respond(session: session)
+        // `respond` bails unless the mode can accept input, and only active modes can, so the
+        // nil-session (transcription) case can't fire outside a running conversation.
+        respond(session: mode.session)
+    }
+
+    // Invoked from the web log's per-paragraph delete button. Only transcription mode offers
+    // that control: with no session there's no KV cache to reconcile, so deletion is purely a
+    // history edit.
+    func deleteTurn(id: String) {
+        guard isTranscription, let uuid = UUID(uuidString: id) else {
+            return
+        }
+        messageLog.deleteTurn(id: uuid)
+        Task {
+            do {
+                try await messageLog.save(to: historyPath)
+            } catch {
+                log("Warning: Failed to save message log: \(error)")
+            }
+        }
+    }
+
+    func copyTranscript() {
+        Task {
+            let text = await messageLog.plainText
+            #if canImport(AppKit)
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(text, forType: .string)
+            #else
+                UIPasteboard.general.string = text
+            #endif
         }
     }
 
@@ -362,8 +445,8 @@ import MLX
         activationState = .button
         Task {
             await mic.stop()
-            if let session = mode.session {
-                mode = .waiting(session: session)
+            if mode.isActive {
+                mode = .waiting(session: mode.session)
             }
         }
     }
@@ -412,8 +495,8 @@ import MLX
         }
         Task {
             await mic.stop()
-            if let session = mode.session {
-                mode = .waiting(session: session)
+            if mode.isActive {
+                mode = .waiting(session: mode.session)
             }
         }
     }

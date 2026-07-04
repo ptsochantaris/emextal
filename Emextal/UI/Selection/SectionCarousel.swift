@@ -9,7 +9,7 @@ struct SectionCarousel: View {
         ScrollViewReader { horizontalScrollReader in
             ScrollView(.horizontal) {
                 HStack(spacing: 14) {
-                    SectionCell(category: category)
+                    SectionCell(title: category.title, description: category.description)
                         .frame(width: 200)
 
                     ForEach(modelList) {

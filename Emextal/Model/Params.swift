@@ -90,7 +90,7 @@ extension Model.Params: Codable {
         case topK, topP, minP, systemPrompt, temperature
         case repeatPenatly, frequencyPenatly, presentPenatly, enableThinking
         case cacheStrategy
-        // Legacy key, decoded only for backward compatibility (see init(from:)).
+        /// Legacy key, decoded only for backward compatibility (see init(from:)).
         case contextSize
     }
 

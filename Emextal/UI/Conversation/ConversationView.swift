@@ -14,7 +14,7 @@ struct ConversationView: View {
             VStack(spacing: spacing) {
                 WebView(viewModel: conversation)
 
-                TextField("Hold \"↓\" to speak, or enter your message here", text: $conversation.prompt)
+                TextField(conversation.isTranscription ? "Hold \"↓\" to speak, or type here to add to the transcript" : "Hold \"↓\" to speak, or enter your message here", text: $conversation.prompt)
                     .textFieldStyle(.plain)
                     .onAppear { focusEntryField = true }
                     .padding(7)
@@ -44,12 +44,22 @@ struct ConversationView: View {
         .padding(spacing)
         .colorScheme(.dark)
         .toolbar {
-            Button {
-                conversation.textOnly.toggle()
-            } label: {
-                Label(conversation.textOnly ? "Text Only" : "Spoken Replies", systemImage: conversation.textOnly ? "text.bubble" : "speaker.wave.2.bubble")
+            if conversation.isTranscription {
+                // No replies to speak in transcription mode; offer the transcript instead.
+                Button {
+                    conversation.copyTranscript()
+                } label: {
+                    Label("Copy Transcript", systemImage: "doc.on.doc")
+                }
+                .labelStyle(.titleAndIcon)
+            } else {
+                Button {
+                    conversation.textOnly.toggle()
+                } label: {
+                    Label(conversation.textOnly ? "Text Only" : "Spoken Replies", systemImage: conversation.textOnly ? "text.bubble" : "speaker.wave.2.bubble")
+                }
+                .labelStyle(.titleAndIcon)
             }
-            .labelStyle(.titleAndIcon)
 
             let va = conversation.activationState == .voiceActivated
             Button { [weak conversation] in

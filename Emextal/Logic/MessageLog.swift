@@ -12,6 +12,7 @@ final actor MessageLog {
         case prompt(text: String, image: ImageClass?),
              appendResponse(text: String),
              commitTurn,
+             deleteTurn(id: UUID),
              save(to: URL, @Sendable ((any Error)?) -> Void),
              isEmpty(@Sendable (Bool) -> Void),
              synchronize(@Sendable () -> Void),
@@ -46,6 +47,18 @@ final actor MessageLog {
         }
     }
 
+    /// The committed turns as plain text, one block per turn — used by transcription mode's
+    /// "copy transcript" control.
+    var plainText: String {
+        get async {
+            await synchronize()
+            return history
+                .map { $0.text.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .joined(separator: "\n\n")
+        }
+    }
+
     func setWebView(_ webView: WKWebView) async {
         self.webView = webView
 
@@ -58,6 +71,12 @@ final actor MessageLog {
                     }
                 }
             }.value
+
+            if showsParagraphCopy {
+                try await Task { @MainActor in
+                    _ = try await webView.evaluateJavaScript("setParagraphCopy(true);")
+                }.value
+            }
 
             for turn in history {
                 let js = "addHistory('\(turn.id)', '\(turn.renderHtml(parser: parser))');"
@@ -100,6 +119,10 @@ final actor MessageLog {
         changeContinuation.yield(.commitTurn)
     }
 
+    nonisolated func deleteTurn(id: UUID) {
+        changeContinuation.yield(.deleteTurn(id: id))
+    }
+
     nonisolated func save(to url: URL) async throws {
         try await withCheckedThrowingContinuation { [weak self] (continuation: CheckedContinuation<Void, Error>) in
             if let self {
@@ -130,7 +153,8 @@ final actor MessageLog {
         changeContinuation.finish()
     }
 
-    init() {
+    init(showsParagraphCopy: Bool = false) {
+        self.showsParagraphCopy = showsParagraphCopy
         (changeStream, changeContinuation) = AsyncStream.makeStream(of: Change.self, bufferingPolicy: .unbounded)
 
         Task { [weak self] in
@@ -147,6 +171,7 @@ final actor MessageLog {
         log("\(Self.self) deinit")
     }
 
+    private let showsParagraphCopy: Bool
     private var displayedHistoryCount = 0
     private var displayedBuildingCount = 0
     private var history = [Turn]()
@@ -187,6 +212,14 @@ final actor MessageLog {
 
         case let .synchronize(callback):
             callback()
+            return
+
+        case let .deleteTurn(id):
+            history.removeAll { $0.id == id }
+            // The web view removed the turn's own element before posting the deletion, so just
+            // keep the displayed count in step — the generic update below would misread the
+            // count change as a new turn and re-render the last one.
+            displayedHistoryCount = history.count
             return
 
         case .commitTurn:
