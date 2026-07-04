@@ -115,13 +115,13 @@ extension Model {
             }
         }
 
-        // The model's native maximum context length (`max_position_embeddings`), used as the ceiling
-        // for the user-adjustable context-size slider. Verified against each repo's config.json.
+        /// The model's native maximum context length (`max_position_embeddings`), used as the ceiling
+        /// for the user-adjustable context-size slider. Verified against each repo's config.json.
         var maxContextTokens: Int {
             switch self {
             case .gemma4, .nemotron3, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular: 262_144
             case .gptOss, .gptOssLarge, .llama: 131_072
-            case .smol: 65_536
+            case .smol: 65536
             }
         }
 
@@ -188,7 +188,7 @@ extension Model {
             switch self {
             case .gptOss, .gptOssLarge:
                 false
-            case .llama, .nemotron3, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .gemma4:
+            case .gemma4, .llama, .nemotron3, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
                 true
             }
         }
@@ -196,7 +196,7 @@ extension Model {
         var supportsThinkingSwitch: Bool {
             switch self {
             case .gemma4, // TODO: implement on system prompt for gemma4
-                    .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .nemotron3:
+                 .nemotron3, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
                 true
             case .gptOss, .gptOssLarge, .llama, .qwen3coderNext:
                 false

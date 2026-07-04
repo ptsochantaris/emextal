@@ -33,9 +33,9 @@ import WebKit
 extension WebView {
     nonisolated static let temporaryDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("emextal-webview", conformingTo: .directory)
 
-    // The user content controller retains its message handlers, and the coordinator retains the
-    // web view (whose configuration owns that controller), so registering the coordinator
-    // directly would create a retain cycle. This forwarder breaks it.
+    /// The user content controller retains its message handlers, and the coordinator retains the
+    /// web view (whose configuration owns that controller), so registering the coordinator
+    /// directly would create a retain cycle. This forwarder breaks it.
     private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
         private weak var delegate: (any WKScriptMessageHandler)?
 

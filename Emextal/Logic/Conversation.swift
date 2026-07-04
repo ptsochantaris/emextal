@@ -1,16 +1,16 @@
 import AVFoundation
 import Foundation
+import MLX
 import MLXLMCommon
 import SwiftUI
 import WebKit
-import MLX
 
 @Observable final class Conversation {
     private let messageLog: MessageLog
     private let speaker: Speaker
     private let mic: Mic
 
-    // Nil in transcription mode: there is no model, and utterances go straight into the log.
+    /// Nil in transcription mode: there is no model, and utterances go straight into the log.
     private let brain: Brain?
 
     private(set) var micPermission = false
@@ -330,8 +330,8 @@ import MLX
         mode = .processingPrompt(session: session, task: responseTask)
     }
 
-    // Transcription mode's whole "reply": commit the utterance as a turn with no prompt, so it
-    // renders as body text rather than a heading, and return to listening for the next one.
+    /// Transcription mode's whole "reply": commit the utterance as a turn with no prompt, so it
+    /// renders as body text rather than a heading, and return to listening for the next one.
     private func appendTranscript(_ text: String) {
         prompt = ""
 
@@ -409,9 +409,9 @@ import MLX
         respond(session: mode.session)
     }
 
-    // Invoked from the web log's per-paragraph delete button. Only transcription mode offers
-    // that control: with no session there's no KV cache to reconcile, so deletion is purely a
-    // history edit.
+    /// Invoked from the web log's per-paragraph delete button. Only transcription mode offers
+    /// that control: with no session there's no KV cache to reconcile, so deletion is purely a
+    /// history edit.
     func deleteTurn(id: String) {
         guard isTranscription, let uuid = UUID(uuidString: id) else {
             return

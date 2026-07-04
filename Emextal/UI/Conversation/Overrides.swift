@@ -60,7 +60,7 @@ struct ParamsView: View {
     private let contextStep = 1024
 
     private var defaultWindowTokens: Int {
-        min(model.variant.maxContextTokens, 32_768)
+        min(model.variant.maxContextTokens, 32768)
     }
 
     private var currentWindowTokens: Int {
@@ -70,7 +70,7 @@ struct ParamsView: View {
     private var cacheKindBinding: Binding<CacheKind> {
         Binding {
             switch model.params.cacheStrategy {
-            case .unbounded, .quantized: .unbounded
+            case .quantized, .unbounded: .unbounded
             case .window: .window
             }
         } set: { newKind in
@@ -103,7 +103,7 @@ struct ParamsView: View {
     @ViewBuilder
     private var cacheMiddle: some View {
         switch model.params.cacheStrategy {
-        case .unbounded, .quantized:
+        case .quantized, .unbounded:
             if model.variant.supportsQuantisation {
                 let precision = Binding<Int> {
                     if case let .quantized(bits) = model.params.cacheStrategy { bits } else { 0 }
@@ -143,7 +143,7 @@ struct ParamsView: View {
     }
 
     private var cacheCaption: some View {
-        let text: String = switch model.params.cacheStrategy {
+        let text = switch model.params.cacheStrategy {
         case .unbounded: "Keeps the entire conversation at full precision."
         case .quantized: "Keeps all context, compressing the cache to save memory."
         case .window: "Caps memory to the most recent tokens, dropping older context."
@@ -273,7 +273,7 @@ struct ParamsView: View {
         }
     }
 
-    // Each group is a direct child of the stack so they share one even spacing.
+    /// Each group is a direct child of the stack so they share one even spacing.
     private var compactBody: some View {
         VStack(spacing: 36) {
             if model.variant.acceptsSystemPrompt {
