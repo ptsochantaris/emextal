@@ -1,5 +1,6 @@
 enum Registry {
     static let allModels: [Model] = [
+        .init(category: .qwen, variant: .qwen38regular),
         .init(category: .qwen, variant: .qwen36regular),
         .init(category: .qwen, variant: .qwen36moe),
         .init(category: .qwen, variant: .qwen3coderNext),

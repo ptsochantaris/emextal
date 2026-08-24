@@ -34,7 +34,7 @@
       "location" : "https://github.com/ml-explore/mlx-swift-lm/",
       "state" : {
         "branch" : "main",
-        "revision" : "e3cb1e1b4fb373391a414c33e9221516d02134ef"
+        "revision" : "d3f28a89d8684f1cf9f2dcb9bb4aa8ef652bd1a1"
       }
     },
     {
@@ -67,10 +67,10 @@
     {
       "identity" : "swift-crypto",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-crypto.git",
+      "location" : "https://github.com/apple/swift-crypto",
       "state" : {
-        "revision" : "1b6b2e274e85105bfa155183145a1dcfd63331f1",
-        "version" : "4.5.0"
+        "revision" : "47d3869a7291f085c1fb9fb1e6d3b97a793f45c6",
+        "version" : "4.5.1"
       }
     },
     {
@@ -123,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/DePasqualeOrg/swift-tokenizers.git",
       "state" : {
-        "revision" : "e4e01cb59fb77c4753c6db38b4a539d624d44ce3",
-        "version" : "0.7.1"
+        "revision" : "5992cbbbb02dfe78fa722440ea0fc45a6b42fd51",
+        "version" : "0.7.3"
       }
     },
     {

@@ -19,6 +19,7 @@ extension Model {
         case qwen36regular,
              qwen36moe,
              qwen36deckard,
+             qwen38regular,
              qwen3coderNext,
              gptOss,
              gptOssLarge,
@@ -29,6 +30,7 @@ extension Model {
 
         var repoId: String {
             switch self {
+            case .qwen38regular: "mlx-community/Qwen3.8-27B-OptiQ-4bit"
             case .qwen36regular: "mlx-community/Qwen3.6-27B-OptiQ-4bit"
             case .qwen36moe: "mlx-community/Qwen3.6-35B-A3B-OptiQ-4bit"
             case .qwen3coderNext: "mlx-community/Qwen3-Coder-Next-4bit"
@@ -43,14 +45,14 @@ extension Model {
         }
 
         var recommended: Bool {
-            self == .qwen36regular
+            self == .qwen38regular
         }
 
         private var defaultPrompt: String {
             switch self {
             case .qwen3coderNext:
                 "You are an AI coding assistant"
-            case .gemma4, .gptOss, .gptOssLarge, .llama, .nemotron3, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
+            case .gemma4, .gptOss, .gptOssLarge, .llama, .nemotron3, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
                 "You are a conversational AI chatbot"
             }
         }
@@ -71,6 +73,7 @@ extension Model {
             case .llama: "39.7 GB"
             case .gemma4: "18.4 GB"
             case .qwen36deckard: "41.5 GB"
+            case .qwen38regular: "20.7 GB"
             }
         }
 
@@ -78,6 +81,7 @@ extension Model {
             switch self {
             case .qwen3coderNext: 44 * gb
             case .qwen36regular: 26 * gb
+            case .qwen38regular: 26 * gb // TODO
             case .qwen36moe: 22 * gb
             case .gptOss: 18 * gb
             case .nemotron3: 22 * gb
@@ -104,7 +108,7 @@ extension Model {
 
         var aboutText: String {
             switch self {
-            case .qwen3coderNext, .qwen36moe, .qwen36regular: "A consistently well regarded all-round model by users and benchmarks."
+            case .qwen3coderNext, .qwen36moe, .qwen36regular, .qwen38regular: "A consistently well regarded all-round model by users and benchmarks."
             case .qwen36deckard: "Qwen 3.6 uncensored and trained on Deckard/PDK, and Claude 4.6 Opus Distill"
             case .gptOss: "Compact version of OpenAI's open-weight language model."
             case .nemotron3: "Nvidia's full nemotron 3 model."
@@ -119,7 +123,7 @@ extension Model {
         /// for the user-adjustable context-size slider. Verified against each repo's config.json.
         var maxContextTokens: Int {
             switch self {
-            case .gemma4, .nemotron3, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular: 262_144
+            case .gemma4, .nemotron3, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular, .qwen38regular: 262_144
             case .gptOss, .gptOssLarge, .llama: 131_072
             case .smol: 65536
             }
@@ -129,7 +133,7 @@ extension Model {
             switch self {
             case .gptOss:
                 true
-            case .gemma4, .gptOssLarge, .llama, .nemotron3, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
+            case .gemma4, .gptOssLarge, .llama, .nemotron3, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
                 false
             }
         }
@@ -142,7 +146,7 @@ extension Model {
             switch self {
             case .nemotron3, .qwen3coderNext:
                 40
-            case .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
+            case .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
                 20
             case .gemma4:
                 64
@@ -153,7 +157,7 @@ extension Model {
             switch self {
             case .gemma4, .nemotron3, .qwen3coderNext:
                 0.95
-            case .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
+            case .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
                 0.8
             }
         }
@@ -166,7 +170,7 @@ extension Model {
             switch self {
             case .gemma4, .nemotron3, .qwen3coderNext:
                 1.0
-            case .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
+            case .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
                 0.7
             }
         }
@@ -179,7 +183,7 @@ extension Model {
             switch self {
             case .nemotron3, .qwen3coderNext:
                 0.0
-            case .gemma4, .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
+            case .gemma4, .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
                 0.7
             }
         }
@@ -188,7 +192,7 @@ extension Model {
             switch self {
             case .gptOss, .gptOssLarge:
                 false
-            case .gemma4, .llama, .nemotron3, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
+            case .gemma4, .llama, .nemotron3, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
                 true
             }
         }
@@ -196,7 +200,7 @@ extension Model {
         var supportsThinkingSwitch: Bool {
             switch self {
             case .gemma4, // TODO: implement on system prompt for gemma4
-                 .nemotron3, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
+                    .nemotron3, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
                 true
             case .gptOss, .gptOssLarge, .llama, .qwen3coderNext:
                 false
@@ -211,7 +215,7 @@ extension Model {
             switch self {
             case .nemotron3, .qwen3coderNext:
                 1.0
-            case .gemma4, .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
+            case .gemma4, .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
                 1.5
             }
         }
@@ -220,7 +224,7 @@ extension Model {
             switch self {
             case .gptOss, .gptOssLarge, .llama, .nemotron3, .qwen3coderNext, .smol:
                 .llm
-            case .gemma4, .qwen36deckard, .qwen36moe, .qwen36regular:
+            case .gemma4, .qwen36deckard, .qwen36moe, .qwen36regular, .qwen38regular:
                 .vlm
             }
         }
@@ -229,7 +233,7 @@ extension Model {
             switch self {
             case .nemotron3:
                 true
-            case .gemma4, .gptOss, .gptOssLarge, .llama, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
+            case .gemma4, .gptOss, .gptOssLarge, .llama, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
                 false
             }
         }
@@ -238,13 +242,14 @@ extension Model {
             switch self {
             case .qwen3coderNext:
                 false
-            case .gemma4, .gptOss, .gptOssLarge, .llama, .nemotron3, .qwen36deckard, .qwen36moe, .qwen36regular, .smol:
+            case .gemma4, .gptOss, .gptOssLarge, .llama, .nemotron3, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
                 true
             }
         }
 
         var displayName: String {
             switch self {
+            case .qwen38regular: "Qwen 3.8 Regular"
             case .qwen36regular: "Qwen 3.6 Regular"
             case .qwen36moe: "Qwen 3.6 (MoE)"
             case .qwen36deckard: "Qwen 3.6 Deckard"
@@ -260,6 +265,7 @@ extension Model {
 
         var detail: String {
             switch self {
+            case .qwen38regular: "27b params, OptiQ variant"
             case .qwen36moe: "35b params MoE, OptiQ variant"
             case .qwen36regular: "27b params, OptiQ variant"
             case .qwen36deckard: "40b params"
@@ -275,6 +281,7 @@ extension Model {
 
         var id: String {
             switch self {
+            case .qwen38regular: "E5816E2F-DB29-4A48-B7AB-0C4CFE0791FB"
             case .qwen36regular: "A16F4CE6-CC01-4EBC-9444-EC07E80FCA5C"
             case .qwen36moe: "231FF4DE-ECD2-45A1-87B5-79084B0ECFBF"
             case .qwen3coderNext: "A6D0B2BC-7C5E-4692-8ABA-8779D57665AC"
