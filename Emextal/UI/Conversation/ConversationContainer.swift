@@ -48,14 +48,17 @@ struct ConversationContainer: View {
         .padding(horizontalSizeClass == .compact ? 10 : 88)
         .animation(.easeInOut, value: model?.params.cacheStrategy)
 
-        // On compact the panel can be taller than the screen, so let it scroll. On regular it stays
-        // centered in the available space.
-        if horizontalSizeClass == .compact {
+        // This panel is rigid vertically: its minimum height is its ideal height. Placed in the window
+        // directly it therefore becomes the window's minimum content height, and while loading — status
+        // rows plus the params panel — that is taller than a good many screens, which leaves the window
+        // pinned to full height with no way to drag it back down. Scrolling gives it a zero minimum,
+        // and the `minHeight` keeps it centred in the viewport for as long as it does fit.
+        GeometryReader { proxy in
             ScrollView {
                 content
+                    .frame(maxWidth: .infinity, minHeight: proxy.size.height)
             }
-        } else {
-            content
+            .scrollBounceBehavior(.basedOnSize)
         }
     }
 
