@@ -15,7 +15,7 @@ needed to do that quickly.
 |---|---|
 | Upstream repo | `https://github.com/Blaizzy/mlx-audio-swift` |
 | Upstream branch | `main` |
-| **Last synced upstream commit** | `cae704f53bc32a3d0b606823828fbc5bedaaf388` |
+| **Last synced upstream commit** | `bf14ae0c26e4e85553dd989571cae29d70fa6735` |
 
 > When you finish a sync pass, **update the commit hash above** to the upstream `main` HEAD you
 > reconciled against. That hash is the `<baseline>` for the next pass.
@@ -84,7 +84,7 @@ back:
 git clone --filter=blob:none https://github.com/Blaizzy/mlx-audio-swift.git /tmp/mlx-audio-swift
 cd /tmp/mlx-audio-swift
 
-BASELINE=cae704f53bc32a3d0b606823828fbc5bedaaf388   # <-- "Last synced" commit above
+BASELINE=bf14ae0c26e4e85553dd989571cae29d70fa6735   # <-- "Last synced" commit above
 HEAD=$(git rev-parse HEAD)
 
 # 2. See which upstream files changed, then intersect with the mapping table above.
@@ -98,7 +98,11 @@ git diff $BASELINE..$HEAD -- Sources/MLXAudioSTT/Models/GLMASR/GLMASRLayers.swif
 Then, back in this package:
 - Apply the changes to the corresponding local files.
 - Sanity-check with Xcode (`XcodeRefreshCodeIssuesInFile` on edited files, or a full `BuildProject`).
-- **Update the "Last synced" commit hash** in this document to `$HEAD`.
+- **Update the "Last synced" commit hash** in this document to `$HEAD` — in *two* places: the table
+  above and the `BASELINE=` line in the snippet. Edit those two literally; do **not** do a
+  find-and-replace-all of the old hash across this file, or you'll also rewrite the History row that
+  legitimately records it (this happened in the 2026-08-24 and 2026-09-04 passes and had to be
+  repaired).
 - Commit with a message noting the upstream range synced.
 
 ## History
@@ -108,5 +112,6 @@ Then, back in this package:
 | 2026-06-14 | `856e04afb3c6eb931d92bb0d6ae7bbfbdfa89b15` | Initial extraction (`dfd3df4` in this repo). |
 | 2026-06-20 | `3f6b0553188a921f635df54b5e20442001037336` | First maintenance pass. Only GLM-ASR `Whisper*` → `GLMASRWhisper*` rename affected us; everything else upstream was in non-extracted models. |
 | 2026-07-04 | `580e952adda0cd6bdc5c04f402822adbb61525c8` | No-op sync: none of our extracted files changed upstream (9 commits, all in non-extracted models/codecs). Noted but did not extract the new `MLXAudioVAD/SpeechSegmenter.swift` (batch VAD segmentation on top of SileroVAD; app uses streaming VAD instead). Also reverted an accidental formatter pass and added the `.swiftformat` override. |
-| 2026-08-10 | `cae704f53bc32a3d0b606823828fbc5bedaaf388` | 17 commits upstream; only two mapped files touched, both purely additive. `GenerationTypes.swift`: new `AudioGeneration.progress(Double)` case (for models with a deterministic step count) plus a doc-comment change on `.audio` — no exhaustive switch over the enum exists here, so adding the case is safe. `STTGeneration.swift`: new `kvBits` / `kvGroupSize` / `quantizedKVStart` params on `STTGenerateParameters`. Both are unused by the models we extract (the KV-quantization params are consumed by the new MOSS-Transcribe-Diarize model, `.progress` by OmniVoice) — folded in anyway to keep future diffs clean. Everything else upstream was in non-extracted models (new MOSS-Transcribe-Diarize and IndexTTS, plus Voxtral/Whisper/Nemotron/Fish/Chatterbox/Qwen3 fixes). Upstream `Package.swift` dependency requirements unchanged, so no manifest work here. |
+| 2026-08-10 | `4266f988d170a83017d1e82e2e4654602f277f1d` | 17 commits upstream; only two mapped files touched, both purely additive. `GenerationTypes.swift`: new `AudioGeneration.progress(Double)` case (for models with a deterministic step count) plus a doc-comment change on `.audio` — no exhaustive switch over the enum exists here, so adding the case is safe. `STTGeneration.swift`: new `kvBits` / `kvGroupSize` / `quantizedKVStart` params on `STTGenerateParameters`. Both are unused by the models we extract (the KV-quantization params are consumed by the new MOSS-Transcribe-Diarize model, `.progress` by OmniVoice) — folded in anyway to keep future diffs clean. Everything else upstream was in non-extracted models (new MOSS-Transcribe-Diarize and IndexTTS, plus Voxtral/Whisper/Nemotron/Fish/Chatterbox/Qwen3 fixes). Upstream `Package.swift` dependency requirements unchanged, so no manifest work here. |
 | 2026-08-24 | `cae704f53bc32a3d0b606823828fbc5bedaaf388` | No-op sync. Upstream has been quiet: a single commit since the last pass, touching only `MLXAudioTTS/Models/StyleTTS2/Kokoro/KokoroModel.swift` (new `generateWithDurations` exposing per-phoneme durations). Kokoro is not extracted, and the change is self-contained — no shared protocol (`SpeechGenerationModel`) or shared type was touched, so nothing rippled into our files. No local edits beyond this record; no build needed. |
+| 2026-09-04 | `bf14ae0c26e4e85553dd989571cae29d70fa6735` | 5 commits upstream; one mapped file touched: `DSP.swift`, from the Qwen3-ASR mel-frontend fix (`#247`). `hanningWindow` gained a `periodic:` flag and `computeMelSpectrogram` gained `melScale:` / `hannPeriodic:`, threading the scale through to `melFilters`. **All three new params default to the old behaviour** (`.htk`, non-periodic), so GLM-ASR's `computeMelSpectrogram` call is byte-for-byte unaffected — this is API surface for Whisper-style front-ends we don't extract, folded in to keep diffs clean. Local `MelScale` / `melFilters(melScale:)` already existed, so no new plumbing was needed. Everything else upstream was non-extracted: new BreezeTTS model (plus its registration in `TTSModel.swift`, which is the TTS loader and not mapped — `SpeechGenerationModel` lives in the untouched `Generation.swift`), FireRedASR2/SenseVoice/Qwen3-ASR fixes, and a `Package.swift` README exclusion for upstream's `MLXAudioVAD` target that our flat manifest doesn't need. |

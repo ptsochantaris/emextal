@@ -4,6 +4,7 @@ import SwiftUI
 struct LoadingRow: View {
     let title: String
     let phase: LoadingProgressDisplay.Status.Phase
+    var detail: String? = nil
 
     var body: some View {
         HStack {
@@ -28,8 +29,21 @@ struct LoadingRow: View {
             }
             .contentTransition(.symbolEffect(.replace))
 
-            Text(title)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+
+                if let detail {
+                    // Monospaced digits stop the line jittering as digit widths change. No numeric
+                    // content transition: most of the line is not numeric, so rolling the whole
+                    // string reads as noise at this update cadence.
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+            }
         }
         .font(.title2)
+        .animation(.default, value: detail)
     }
 }

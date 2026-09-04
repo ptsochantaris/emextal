@@ -143,9 +143,9 @@ import WebKit
         LoadingProgressDisplay.Status(phase: .waiting, text: "Ready")
     ]
 
-    private func setStatus(_ text: String, to phase: LoadingProgressDisplay.Status.Phase, loadProgress: Progress) {
+    private func setStatus(_ text: String, to phase: LoadingProgressDisplay.Status.Phase, detail: String? = nil, loadProgress: Progress) {
         if let index = statusComponents.firstIndex(where: { $0.text == text }) {
-            statusComponents[index] = .init(phase: phase, text: statusComponents[index].text)
+            statusComponents[index] = .init(phase: phase, text: statusComponents[index].text, detail: detail)
             mode = .loading(progress: loadProgress.fractionCompleted, status: statusComponents)
         } else {
             log("Warning: could not find status for \(text)")
@@ -202,7 +202,9 @@ import WebKit
 
             if let brain {
                 setStatus("Language Model", to: .loading, loadProgress: loadProgress)
-                try await brain.install(parentProgress: loadProgress, progressCount: 700)
+                try await brain.install(parentProgress: loadProgress, progressCount: 700) { [weak self] detail in
+                    self?.setStatus("Language Model", to: .loading, detail: detail, loadProgress: loadProgress)
+                }
                 setStatus("Language Model", to: .done, loadProgress: loadProgress)
             }
 

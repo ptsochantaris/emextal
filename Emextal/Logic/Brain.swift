@@ -20,8 +20,8 @@ final class Brain {
 
     /// Downloads (if needed) and loads the language model into memory, reporting into the supplied
     /// parent progress. Must complete before `makeSession` can produce a session.
-    func install(parentProgress: Progress, progressCount: Int64) async throws {
-        try await model.install(parentProgress: parentProgress, progressCount: progressCount)
+    func install(parentProgress: Progress, progressCount: Int64, detailHandler: (@MainActor (String?) -> Void)? = nil) async throws {
+        try await model.install(parentProgress: parentProgress, progressCount: progressCount, detailHandler: detailHandler)
     }
 
     /// Builds a fresh chat session seeded with prior history. Returns `nil` if the model isn't

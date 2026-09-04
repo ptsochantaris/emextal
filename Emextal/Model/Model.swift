@@ -29,36 +29,68 @@ final class Model: Hashable, Identifiable, Sendable {
 
     var modelContainer: ModelContainer?
 
-    static func installModel(id: String, parentProgress: Progress, progressCount: Int64) async throws -> URL {
+    static func installModel(id: String, parentProgress: Progress, progressCount: Int64, detailHandler: (@MainActor (String?) -> Void)? = nil) async throws -> URL {
         let repoId = Repo.ID(stringLiteral: id)
         let modelDestination = HubCache.default.snapshotPath(repo: repoId, kind: .model, revision: "main")
         if let modelDestination {
             parentProgress.completedUnitCount += progressCount
             return modelDestination
         } else {
-            nonisolated(unsafe) var addedChild = false
+            // Progress is measured from the cache directory rather than taken from the Hub client's
+            // progress object, which only moves as whole files complete — see DownloadTracker. The
+            // Hub client's progress is used solely for the total size, so this stands in for it as
+            // the child of the caller's progress.
+            let downloadProgress = Progress(totalUnitCount: 0)
+            parentProgress.addChild(downloadProgress, withPendingUnitCount: progressCount)
+
+            let blobsDirectory = HubCache.default.blobsDirectory(repo: repoId, kind: .model)
+            let tracker = DownloadTracker(
+                blobsDirectory: blobsDirectory,
+                progress: downloadProgress,
+                detailHandler: detailHandler
+            )
+
+            // Only the first of these callbacks does anything: it hands over the total size, which
+            // in turn triggers the opening read.
             let progressHandler = { @Sendable (progress: Progress) in
                 _ = Task { @MainActor in
-                    if unsafe !addedChild {
-                        unsafe addedChild = true
-                        parentProgress.addChild(progress, withPendingUnitCount: progressCount)
-                    }
+                    await tracker.setTotalBytes(progress.totalUnitCount)
                 }
             }
 
+            // Polled rather than observed. File presentation reports coordinated writes, and the
+            // downloader appends to its shards with plain writes that the coordination machinery
+            // never hears about — notifications only arrive while some other process happens to be
+            // watching the directory. FSEvents would see them, but exists only on macOS.
+            let pollTask = Task { @MainActor in
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(1))
+                    await tracker.poll()
+                }
+            }
+
+            defer {
+                pollTask.cancel()
+                tracker.finish()
+            }
+
             let hubClientOnline = HubClient(useOfflineMode: false)
-            return try await hubClientOnline.downloadSnapshot(of: repoId, progressHandler: progressHandler)
+            return try await hubClientOnline.downloadSnapshot(of: repoId, maxConcurrent: 1, progressHandler: progressHandler)
         }
     }
 
-    func install(parentProgress: Progress, progressCount: Int64) async throws {
+    func install(parentProgress: Progress, progressCount: Int64, detailHandler: (@MainActor (String?) -> Void)? = nil) async throws {
         defer {
             updateStatus()
         }
 
         let loader = EmextalTokenizerLoader()
-        let snapshotPath = try await Self.installModel(id: variant.repoId, parentProgress: parentProgress, progressCount: progressCount)
+        let snapshotPath = try await Self.installModel(id: variant.repoId, parentProgress: parentProgress, progressCount: progressCount, detailHandler: detailHandler)
+        // Reading a multi-gigabyte model off disk is slow enough to look like another stall, so the
+        // detail line has to say what is happening now that the download is behind us.
+        detailHandler?("Loading into memory…")
         modelContainer = try await loadModelContainer(from: snapshotPath, using: loader)
+        detailHandler?(nil)
     }
 
     func delete() {
