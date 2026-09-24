@@ -5,12 +5,10 @@
 //  Provides a `TokenizerLoader` that bridges swift-tokenizers' `Tokenizer` to
 //  `MLXLMCommon.Tokenizer`.
 //
-//  This intentionally replaces the `swift-tokenizers-mlx` integration package:
-//  its published versions do not compile against `ml-explore/mlx-swift-lm` +
-//  `swift-tokenizers` 0.7.x, because ml-explore's `MLXLMCommon.Tokenizer`
-//  requires non-throwing `encode`/`decode`, while swift-tokenizers 0.7.x made
-//  those calls typed-throwing — and the package's bridge calls them without
-//  `try`. We perform the throwing → non-throwing adaptation here instead.
+//  This intentionally replaces the `swift-tokenizers-mlx` integration package,
+//  whose published versions don't track the `swift-tokenizers` API. The only
+//  real adaptation left is the `decode(tokens:)` → `decode(tokenIds:)` label
+//  and mapping the "missing chat template" error to its MLXLMCommon twin.
 //
 
 import Foundation
@@ -23,13 +21,12 @@ public struct EmextalTokenizerLoader: MLXLMCommon.TokenizerLoader {
     public init() {}
 
     public func load(from directory: URL) async throws -> any MLXLMCommon.Tokenizer {
-        let upstream = try await AutoTokenizer.from(directory: directory)
+        let upstream = try await AutoTokenizer.from(modelFolder: directory)
         return BridgedTokenizer(upstream)
     }
 }
 
-/// Adapts swift-tokenizers' typed-throwing `Tokenizers.Tokenizer` to the
-/// non-throwing `MLXLMCommon.Tokenizer` protocol.
+/// Adapts swift-tokenizers' `Tokenizers.Tokenizer` to the `MLXLMCommon.Tokenizer` protocol.
 private struct BridgedTokenizer: MLXLMCommon.Tokenizer {
     private let upstream: any Tokenizers.Tokenizer
 
@@ -37,14 +34,12 @@ private struct BridgedTokenizer: MLXLMCommon.Tokenizer {
         self.upstream = upstream
     }
 
-    // `MLXLMCommon.Tokenizer.encode`/`decode` are non-throwing, so encoding or
-    // decoding failures are surfaced as empty results.
     func encode(text: String, addSpecialTokens: Bool) -> [Int] {
-        (try? upstream.encode(text: text, addSpecialTokens: addSpecialTokens)) ?? []
+        upstream.encode(text: text, addSpecialTokens: addSpecialTokens)
     }
 
     func decode(tokenIds: [Int], skipSpecialTokens: Bool) -> String {
-        (try? upstream.decode(tokenIds: tokenIds, skipSpecialTokens: skipSpecialTokens)) ?? ""
+        upstream.decode(tokens: tokenIds, skipSpecialTokens: skipSpecialTokens)
     }
 
     func convertTokenToId(_ token: String) -> Int? {

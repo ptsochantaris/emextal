@@ -303,12 +303,12 @@ private struct GenerationContext {
 
     /// Decode token to text.
     func decode(_ token: Int) -> String {
-        (try? tokenizer.decode(tokenIds: [token])) ?? ""
+        tokenizer.decode(tokens: [token])
     }
 
     /// Decode tokens to text.
     func decode(_ tokens: [Int]) -> String {
-        (try? tokenizer.decode(tokenIds: tokens)) ?? ""
+        tokenizer.decode(tokens: tokens)
     }
 }
 
@@ -604,7 +604,7 @@ public class GLMASRModel: Module {
         let model = GLMASRModel(config: config)
 
         // Load tokenizer
-        model.tokenizer = try await AutoTokenizer.from(directory: modelDir)
+        model.tokenizer = try await AutoTokenizer.from(modelFolder: modelDir)
 
         // Load weights
         var weights: [String: MLXArray] = [:]
@@ -705,10 +705,10 @@ public class GLMASRModel: Module {
         eval(audioEmbeds)
 
         // Build prompt tokens
-        let prefixTokens = (try? tokenizer.encode(text: PromptTemplate.userPrefix)) ?? []
+        let prefixTokens = tokenizer.encode(text: PromptTemplate.userPrefix)
         var tokens = prefixTokens
         tokens.append(contentsOf: Array(repeating: 0, count: audioLen))
-        tokens.append(contentsOf: (try? tokenizer.encode(text: PromptTemplate.userSuffix)) ?? [])
+        tokens.append(contentsOf: tokenizer.encode(text: PromptTemplate.userSuffix))
 
         let inputIds = MLXArray(tokens.map { Int32($0) }).expandedDimensions(axis: 0)
         let promptTokenCount = inputIds.shape[1]

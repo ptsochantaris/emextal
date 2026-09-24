@@ -1,16 +1,16 @@
-// swift-tools-version:6.3
+// swift-tools-version: 6.4
 import PackageDescription
 
 let package = Package(
     name: "EmextalAudio",
-    platforms: [.macOS(.v14), .iOS(.v17)],
+    platforms: [.macOS(.v15), .iOS(.v18)],
     products: [
         .library(name: "EmextalAudio", targets: ["EmextalAudio"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/ml-explore/mlx-swift.git", .upToNextMajor(from: "0.31.4")),
+        .package(url: "https://github.com/ml-explore/mlx-swift.git", .upToNextMajor(from: "0.31.6")),
         .package(url: "https://github.com/ml-explore/mlx-swift-lm.git", branch: "main"),
-        .package(url: "https://github.com/DePasqualeOrg/swift-tokenizers.git", .upToNextMinor(from: "0.7.1")),
+        .package(url: "https://github.com/aleroot/swift-tokenizers", from: "1.0.0")
     ],
     targets: [
         .target(
