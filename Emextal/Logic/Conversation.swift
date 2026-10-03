@@ -16,6 +16,13 @@ import WebKit
     private(set) var activationState = ActivationState.button
     private(set) var recognitionLoop: Task<Void, Never>?
 
+    /// The live chat session. Nil in transcription mode, and until the main loop has started.
+    private var session: ChatSession?
+
+    /// The most recent reply. The next reply waits for it, so it starts on the session
+    /// `rebuildSession` restores after an interruption.
+    private var lastResponseTask: Task<Void, Never>?
+
     var prompt = ""
     var attachedImage: ImageClass?
     let memoryStats = MemoryStats()
@@ -92,28 +99,28 @@ import WebKit
         guard mode.isActive else {
             return
         }
-        setMode(.listening(state: .talking, session: mode.session))
+        setMode(.listening(state: .talking))
     }
 
     func setTranscribingMode() {
         guard mode.isActive else {
             return
         }
-        setMode(.transcribing(session: mode.session))
+        setMode(.transcribing)
     }
 
     func setListeningQuietMode() {
         guard mode.isActive else {
             return
         }
-        setMode(.listening(state: .quiet, session: mode.session))
+        setMode(.listening(state: .quiet))
     }
 
     func setWaitingMode() {
         guard mode.isActive else {
             return
         }
-        setMode(.waiting(session: mode.session))
+        setMode(.waiting)
     }
 
     // Barge-in: invoked by the mic the moment the user starts speaking. If the assistant is
@@ -124,14 +131,24 @@ import WebKit
         guard activationState == .voiceActivated else {
             return
         }
+        interruptReply()
+    }
+
+    /// Cancels the reply in progress, if any: stops generation and silences the speaker. Returns
+    /// whether there was a reply to cancel. The cancelled task's `responseEnd` leaves the mode
+    /// alone, so callers are responsible for moving to the next state.
+    @discardableResult
+    private func interruptReply() -> Bool {
         switch mode {
         case .processingPrompt, .replying:
+            log("Interrupting reply")
             mode.task?.cancel()
             Task {
                 await speaker.stopSpeaking()
             }
+            return true
         case .booting, .error, .listening, .loaded, .loading, .shutdown, .startup, .transcribing, .transcribingDone, .waiting, .warmup:
-            break
+            return false
         }
     }
 
@@ -229,64 +246,75 @@ import WebKit
     }
 
     private func mainLoop() async {
-        let session: ChatSession?
         if let brain {
             let asHistory = await messageLog.asSessionHistory
             guard let llmSession = brain.makeSession(history: asHistory.data()) else {
                 return
             }
             session = llmSession
-        } else {
-            session = nil
         }
 
-        mode = .waiting(session: session)
+        mode = .waiting
 
         recognitionLoop = Task {
             for await text in mic.phraseStream {
-                receivedPhrase(text, in: session)
+                receivedPhrase(text)
             }
         }
     }
 
-    private func receivedPhrase(_ text: String, in session: ChatSession?) {
+    /// mlx-swift-lm drops a cancelled turn from the live session: both the partial reply and the
+    /// prompt that led to it. The message log keeps both, so rebuild the session from the log to
+    /// make the model remember the interrupted exchange. The cancellation has already invalidated
+    /// the session's KV cache, so the next reply re-prefills the history either way.
+    private func rebuildSession() async {
+        guard let brain else {
+            return
+        }
+        let asHistory = await messageLog.asSessionHistory
+        if let llmSession = brain.makeSession(history: asHistory.data()) {
+            log("Rebuilt chat session after interrupted reply")
+            session = llmSession
+        }
+    }
+
+    private func receivedPhrase(_ text: String) {
         if text.isEmpty {
             switch activationState {
             case .button:
-                mode = .waiting(session: session)
+                mode = .waiting
             case .voiceActivated:
                 // The autodetect loop is already running continuously; just return to
                 // quietly listening for the next utterance.
                 setListeningQuietMode()
             }
         } else {
-            mode = .transcribingDone(session: session)
+            mode = .transcribingDone
             prompt = text
-            respond(session: session)
+            respond()
         }
     }
 
-    private func appendText(_ text: String, session: ChatSession?, first: inout Bool) {
+    private func appendText(_ text: String, first: inout Bool) {
         messageLog.appendResponse(text: text)
         if first, let task = mode.task {
-            mode = .replying(session: session, task: task)
+            mode = .replying(task: task)
             first = false
         }
     }
 
-    private func respond(session: ChatSession?) {
+    private func respond() {
         guard mode.canRespond else { return }
 
         let trimmedText = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard let brain, let session else {
+        guard let brain, session != nil else {
             // Transcription mode: there's no model to reply — the utterance itself is the content.
             appendTranscript(trimmedText)
             return
         }
 
         let attached = attachedImage
-        messageLog.prompt(text: trimmedText, image: attached)
         if attached != nil {
             attachedImage = nil
         }
@@ -297,7 +325,20 @@ import WebKit
             .map { CIImage(cgImage: $0) }
             .map { UserInput.Image.ciImage($0) }
 
+        let previousResponse = lastResponseTask
+
         let responseTask = Task {
+            // An interrupted reply commits its turn and rebuilds the session as it winds down.
+            // Wait for that, so this prompt lands after it in the log and runs on the session
+            // that remembers it.
+            await previousResponse?.value
+
+            guard let session else {
+                return
+            }
+
+            messageLog.prompt(text: trimmedText, image: attached)
+
             var speechBuffer = ""
             speechBuffer.reserveCapacity(1024)
 
@@ -306,7 +347,7 @@ import WebKit
             for await token in brain.reply(in: session, to: trimmedText, images: images) {
                 switch token {
                 case let .text(item):
-                    appendText(item, session: session, first: &first)
+                    appendText(item, first: &first)
                     speechBuffer.append(item)
                     switch speechBuffer.last {
                     case ":", "!", "?", ".", ")", "\n":
@@ -318,15 +359,16 @@ import WebKit
                     }
 
                 case let .tag(token):
-                    appendText(token, session: session, first: &first)
+                    appendText(token, first: &first)
                     speechBuffer.append(token)
                 }
             }
 
-            await responseEnd(speechBuffer: speechBuffer, session: session)
+            await responseEnd(speechBuffer: speechBuffer)
         }
 
-        mode = .processingPrompt(session: session, task: responseTask)
+        lastResponseTask = responseTask
+        mode = .processingPrompt(task: responseTask)
     }
 
     /// Transcription mode's whole "reply": commit the utterance as a turn with no prompt, so it
@@ -356,12 +398,13 @@ import WebKit
         }
     }
 
-    private func responseEnd(speechBuffer: String, session: ChatSession) async {
+    private func responseEnd(speechBuffer: String) async {
         // A cancelled task means the user barged in: the mic is already capturing their new
         // utterance, so don't speak the trailing buffer, wait on the speaker, or touch the mode.
         if Task.isCancelled {
             messageLog.commitTurn()
             try? await messageLog.save(to: historyPath)
+            await rebuildSession()
             return
         }
 
@@ -388,7 +431,7 @@ import WebKit
 
         switch activationState {
         case .button:
-            setMode(.waiting(session: session))
+            setMode(.waiting)
 
         case .voiceActivated:
             // The autodetect loop keeps running continuously; only return to quiet listening
@@ -405,7 +448,7 @@ import WebKit
     func respondToTypedPrompt() {
         // `respond` bails unless the mode can accept input, and only active modes can, so the
         // nil-session (transcription) case can't fire outside a running conversation.
-        respond(session: mode.session)
+        respond()
     }
 
     /// Invoked from the web log's per-paragraph delete button. Only transcription mode offers
@@ -445,7 +488,7 @@ import WebKit
         Task {
             await mic.stop()
             if mode.isActive {
-                mode = .waiting(session: mode.session)
+                mode = .waiting
             }
         }
     }
@@ -469,7 +512,7 @@ import WebKit
             await task.value
         }
 
-        if let session = FinalWrapper(mode.session).data() {
+        if let session = FinalWrapper(session).data() {
             await session.synchronize()
             await session.clear()
         }
@@ -480,11 +523,20 @@ import WebKit
     }
 
     private func buttonDown() {
-        guard activationState == .button else {
-            return
-        }
-        Task {
-            await mic.startManual()
+        // Pressing the mic button always cuts off a reply in progress, in either activation mode.
+        let interrupted = interruptReply()
+
+        switch activationState {
+        case .button:
+            // Push-to-talk recording takes over from the interrupted reply.
+            Task {
+                await mic.startManual()
+            }
+        case .voiceActivated:
+            // The autodetect loop is already running; just return to quietly listening.
+            if interrupted {
+                setListeningQuietMode()
+            }
         }
     }
 
@@ -495,14 +547,13 @@ import WebKit
         Task {
             await mic.stop()
             if mode.isActive {
-                mode = .waiting(session: mode.session)
+                mode = .waiting
             }
         }
     }
 
     func reset() {
         let task = mode.task
-        let session = mode.session
 
         // Cancel and return to the idle/listening state synchronously, before any awaits. A
         // cancelled response task early-returns from `responseEnd` without restoring the mode, so
@@ -522,6 +573,7 @@ import WebKit
             await task?.value
             messageLog.reset()
             try? await messageLog.save(to: historyPath)
+            // Read the session only now: the cancelled reply may have just rebuilt it.
             if let session = FinalWrapper(session).data() {
                 await session.clear()
             }

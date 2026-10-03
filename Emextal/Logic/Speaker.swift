@@ -23,7 +23,7 @@ private extension AVAudioPlayerNode {
 
 final actor Speaker {
     nonisolated var unownedExecutor: UnownedSerialExecutor {
-        unsafe HighPriorityExecutor.sharedExecutor.asUnownedSerialExecutor()
+        unsafe HighPriorityExecutor.speechExecutor.asUnownedSerialExecutor()
     }
 
     // Each queued line carries the speaking-session token (`active`) captured when it was enqueued.
@@ -178,8 +178,9 @@ final actor Speaker {
     private let playingLatestBuffer = WatchedValue(false)
     private var generationTask: Task<[Float], any Error>?
 
-    /// Isolated to this actor so the (interruptible) render stays on the same executor the inline
-    /// call used, rather than hopping to the global pool and racing the STT model's MLX work.
+    /// Isolated to this actor so the (interruptible) render stays on the speech executor rather than
+    /// hopping to the global pool. That executor is separate from the mic's, so a long render can't
+    /// stall audio capture or voice detection.
     private func renderSamples(_ text: String, using speechModel: SopranoModel) async throws -> [Float] {
         try await speechModel.generate(text: text, parameters: voiceParams).asArray(Float.self)
     }

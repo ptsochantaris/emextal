@@ -1,5 +1,4 @@
 import Foundation
-import MLXLMCommon
 
 enum ConversationMode: Equatable {
     case startup
@@ -7,14 +6,12 @@ enum ConversationMode: Equatable {
     case warmup
     case loading(progress: CGFloat, status: [LoadingProgressDisplay.Status])
     case loaded
-    // The session is nil in transcription mode, where a conversation runs without a model; a
-    // state carrying a nil session is still an active one (see `isActive`).
-    case waiting(session: ChatSession?)
-    case listening(state: MicState, session: ChatSession?)
-    case transcribing(session: ChatSession?)
-    case transcribingDone(session: ChatSession?)
-    case processingPrompt(session: ChatSession?, task: Task<Void, Never>)
-    case replying(session: ChatSession?, task: Task<Void, Never>)
+    case waiting
+    case listening(state: MicState)
+    case transcribing
+    case transcribingDone
+    case processingPrompt(task: Task<Void, Never>)
+    case replying(task: Task<Void, Never>)
     case shutdown
     case error(any Error)
 
@@ -27,9 +24,8 @@ enum ConversationMode: Equatable {
         }
     }
 
-    /// True in the states that represent a running conversation — the session-carrying cases.
-    /// In transcription mode the session payload is nil, so this, not `session != nil`, is the
-    /// "are we live" check.
+    /// True in the states that represent a running conversation. Transcription mode runs without a
+    /// chat session, so this, not the session's presence, is the "are we live" check.
     var isActive: Bool {
         switch self {
         case .listening, .processingPrompt, .replying, .transcribing, .transcribingDone, .waiting:
@@ -64,31 +60,10 @@ enum ConversationMode: Equatable {
     }
 
     var isQuietListening: Bool {
-        if case let .listening(state, _) = self, state == .quiet {
+        if case let .listening(state) = self, state == .quiet {
             true
         } else {
             false
-        }
-    }
-
-    var session: ChatSession? {
-        switch self {
-        case .booting,
-             .error,
-             .loaded,
-             .loading,
-             .shutdown,
-             .startup,
-             .warmup:
-            nil
-
-        case let .listening(_, session),
-             let .processingPrompt(session, _),
-             let .replying(session, _),
-             let .transcribing(session),
-             let .transcribingDone(session),
-             let .waiting(session):
-            session
         }
     }
 
@@ -107,8 +82,8 @@ enum ConversationMode: Equatable {
              .warmup:
             nil
 
-        case let .processingPrompt(_, task),
-             let .replying(_, task):
+        case let .processingPrompt(task),
+             let .replying(task):
             task
         }
     }
@@ -128,7 +103,7 @@ enum ConversationMode: Equatable {
             true
         case let (.loading(p1, s1), .loading(p2, s2)):
             p1 == p2 && s1 == s2
-        case let (.listening(stateL, _), .listening(stateR, _)):
+        case let (.listening(stateL), .listening(stateR)):
             stateL == stateR
         case (.loaded, .loaded):
             true
