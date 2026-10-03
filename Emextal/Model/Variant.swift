@@ -26,10 +26,12 @@ extension Model {
              nemotron3,
              smol,
              llama,
-             gemma4
+             gemma4,
+             bonsai2
 
         var repoId: String {
             switch self {
+            case .bonsai2: "prism-ml/Ternary-Bonsai-2-27B-mlx-2bit"
             case .qwen38regular: "mlx-community/Qwen3.8-27B-OptiQ-4bit"
             case .qwen36regular: "mlx-community/Qwen3.6-27B-OptiQ-4bit"
             case .qwen36moe: "mlx-community/Qwen3.6-35B-A3B-OptiQ-4bit"
@@ -52,7 +54,7 @@ extension Model {
             switch self {
             case .qwen3coderNext:
                 "You are an AI coding assistant"
-            case .gemma4, .gptOss, .gptOssLarge, .llama, .nemotron3, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
+            case .gemma4, .gptOss, .gptOssLarge, .llama, .nemotron3, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular, .bonsai2:
                 "You are a conversational AI chatbot"
             }
         }
@@ -74,6 +76,7 @@ extension Model {
             case .gemma4: "18.4 GB"
             case .qwen36deckard: "41.5 GB"
             case .qwen38regular: "20.7 GB"
+            case .bonsai2: "8.6 GB"
             }
         }
 
@@ -90,6 +93,7 @@ extension Model {
             case .llama: 39 * gb
             case .gemma4: 23 * gb
             case .qwen36deckard: 42 * gb
+            case .bonsai2: 12 * gb
             }
         }
 
@@ -116,6 +120,7 @@ extension Model {
             case .llama: "The regular version of the latest Llama-3 model from Meta."
             case .gemma4: "The latest Gemma 4 model."
             case .gptOssLarge: "Full version of OpenAI's open-weight language model."
+            case .bonsai2: "Qwen 3.8 squeezed into ternary weights by Prism ML, at a fraction of the usual size."
             }
         }
 
@@ -123,7 +128,7 @@ extension Model {
         /// for the user-adjustable context-size slider. Verified against each repo's config.json.
         var maxContextTokens: Int {
             switch self {
-            case .gemma4, .nemotron3, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular, .qwen38regular: 262_144
+            case .gemma4, .nemotron3, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular, .qwen38regular, .bonsai2: 262_144
             case .gptOss, .gptOssLarge, .llama: 131_072
             case .smol: 65536
             }
@@ -133,7 +138,7 @@ extension Model {
             switch self {
             case .gptOss:
                 true
-            case .gemma4, .gptOssLarge, .llama, .nemotron3, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
+            case .gemma4, .gptOssLarge, .llama, .nemotron3, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular, .bonsai2:
                 false
             }
         }
@@ -146,7 +151,7 @@ extension Model {
             switch self {
             case .nemotron3, .qwen3coderNext:
                 40
-            case .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
+            case .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular, .bonsai2:
                 20
             case .gemma4:
                 64
@@ -157,7 +162,7 @@ extension Model {
             switch self {
             case .gemma4, .nemotron3, .qwen3coderNext:
                 0.95
-            case .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
+            case .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular, .bonsai2:
                 0.8
             }
         }
@@ -170,7 +175,7 @@ extension Model {
             switch self {
             case .gemma4, .nemotron3, .qwen3coderNext:
                 1.0
-            case .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
+            case .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular, .bonsai2:
                 0.7
             }
         }
@@ -183,7 +188,7 @@ extension Model {
             switch self {
             case .nemotron3, .qwen3coderNext:
                 0.0
-            case .gemma4, .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
+            case .gemma4, .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular, .bonsai2:
                 0.7
             }
         }
@@ -192,7 +197,7 @@ extension Model {
             switch self {
             case .gptOss, .gptOssLarge:
                 false
-            case .gemma4, .llama, .nemotron3, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
+            case .gemma4, .llama, .nemotron3, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular, .bonsai2:
                 true
             }
         }
@@ -200,7 +205,7 @@ extension Model {
         var supportsThinkingSwitch: Bool {
             switch self {
             case .gemma4, // TODO: implement on system prompt for gemma4
-                    .nemotron3, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
+                    .nemotron3, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular, .bonsai2:
                 true
             case .gptOss, .gptOssLarge, .llama, .qwen3coderNext:
                 false
@@ -215,7 +220,7 @@ extension Model {
             switch self {
             case .nemotron3, .qwen3coderNext:
                 1.0
-            case .gemma4, .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
+            case .gemma4, .gptOss, .gptOssLarge, .llama, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular, .bonsai2:
                 1.5
             }
         }
@@ -224,7 +229,7 @@ extension Model {
             switch self {
             case .gptOss, .gptOssLarge, .llama, .nemotron3, .qwen3coderNext, .smol:
                 .llm
-            case .gemma4, .qwen36deckard, .qwen36moe, .qwen36regular, .qwen38regular:
+            case .gemma4, .qwen36deckard, .qwen36moe, .qwen36regular, .qwen38regular, .bonsai2:
                 .vlm
             }
         }
@@ -233,7 +238,7 @@ extension Model {
             switch self {
             case .nemotron3:
                 true
-            case .gemma4, .gptOss, .gptOssLarge, .llama, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
+            case .gemma4, .gptOss, .gptOssLarge, .llama, .qwen3coderNext, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular, .bonsai2:
                 false
             }
         }
@@ -242,7 +247,7 @@ extension Model {
             switch self {
             case .qwen3coderNext:
                 false
-            case .gemma4, .gptOss, .gptOssLarge, .llama, .nemotron3, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular:
+            case .gemma4, .gptOss, .gptOssLarge, .llama, .nemotron3, .qwen36deckard, .qwen36moe, .qwen36regular, .smol, .qwen38regular, .bonsai2:
                 true
             }
         }
@@ -260,12 +265,14 @@ extension Model {
             case .gptOssLarge: "GPT OSS Regular"
             case .llama: "Llama 3.3"
             case .gemma4: "Gemma 4"
+            case .bonsai2: "Ternary Bonsai 2"
             }
         }
 
         var detail: String {
             switch self {
             case .qwen38regular: "27b params, OptiQ variant"
+            case .bonsai2: "27b params, ternary 2-bit"
             case .qwen36moe: "35b params MoE, OptiQ variant"
             case .qwen36regular: "27b params, OptiQ variant"
             case .qwen36deckard: "40b params"
@@ -292,6 +299,7 @@ extension Model {
             case .llama: "73476AA8-9D1E-444C-B6C0-140A4682A67D"
             case .gemma4: "5B90E2EA-A97F-4AF5-BF99-F4E1C684D7D5"
             case .qwen36deckard: "8286D907-F97A-43C1-B046-2162D0CEE654"
+            case .bonsai2: "3F6C2A9E-7B41-4D8A-9E25-C1D07A4B8F63"
             }
         }
 

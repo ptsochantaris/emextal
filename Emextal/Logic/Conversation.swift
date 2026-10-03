@@ -1,6 +1,5 @@
 import AVFoundation
 import Foundation
-import MLX
 import MLXLMCommon
 import SwiftUI
 import WebKit
@@ -154,8 +153,6 @@ import WebKit
 
     private func boot() async {
         await mic.setModeDelegate(self)
-
-        Memory.cacheLimit = 1024 * 1024 * 16 // 16Mb
 
         do {
             let logTask = Task {

@@ -89,6 +89,7 @@ final class Model: Hashable, Identifiable, Sendable {
         // Reading a multi-gigabyte model off disk is slow enough to look like another stall, so the
         // detail line has to say what is happening now that the download is behind us.
         detailHandler?("Loading into memory…")
+        await PrismHadamard.register()
         modelContainer = try await loadModelContainer(from: snapshotPath, using: loader)
         detailHandler?(nil)
     }

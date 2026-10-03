@@ -39,7 +39,7 @@ final class TokenIngestion {
                         }
                         tagState = .tag("<")
 
-                    case ",", ":", "!", "?", ".", ")", "\n":
+                    case ";", ",", ":", "!", "?", ".", ")", "\n", "—":
                         charBuffer.append(char)
                         continuation.yield(.text(charBuffer))
                         charBuffer.removeAll(keepingCapacity: true)

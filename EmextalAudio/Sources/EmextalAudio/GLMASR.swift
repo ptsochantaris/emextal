@@ -439,7 +439,8 @@ public class GLMASRModel: Module {
             print()
         }
 
-        Memory.clearCache()
+        // No Memory.clearCache() here: other models may still have GPU work in flight, and clearing
+        // releases cached buffers that work may still be using (a Metal validation failure).
 
         let text = ctx.decode(generatedTokens)
         let totalTime = endTime.timeIntervalSince(startTime)
@@ -502,9 +503,9 @@ public class GLMASRModel: Module {
                 let endTime = Date()
                 let generateTime = endTime.timeIntervalSince(generateStartTime)
                 let totalTime = endTime.timeIntervalSince(startTime)
-                
-                Memory.clearCache()
-                
+
+                // No Memory.clearCache() here, see generate(audio:...).
+
                 // Emit generation info
                 let tokensPerSecond = generateTime > 0 ? Double(generatedTokens.count) / generateTime : 0
                 let peakMemory = Double(Memory.peakMemory) / 1e9

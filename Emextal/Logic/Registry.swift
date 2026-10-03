@@ -9,6 +9,7 @@ enum Registry {
         .init(category: .openAi, variant: .gptOss),
         .init(category: .llamas, variant: .llama),
         .init(category: .tiny, variant: .smol),
+        .init(category: .experimental, variant: .bonsai2),
         .init(category: .experimental, variant: .qwen36deckard),
         .init(category: .experimental, variant: .nemotron3)
     ]
