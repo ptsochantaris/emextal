@@ -8,7 +8,7 @@ let package = Package(
         .library(name: "EmextalAudio", targets: ["EmextalAudio"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/ml-explore/mlx-swift.git", .upToNextMajor(from: "0.31.6")),
+        .package(url: "https://github.com/ml-explore/mlx-swift.git", .upToNextMajor(from: "0.0.0")),
         .package(url: "https://github.com/ml-explore/mlx-swift-lm.git", branch: "main"),
         .package(url: "https://github.com/aleroot/swift-tokenizers", from: "1.0.0")
     ],
