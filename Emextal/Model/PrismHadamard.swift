@@ -207,8 +207,8 @@ nonisolated final class HadamardQuantizedLinear: QuantizedLinear {
         signs = MLXArray.ones([width], type: Float32.self)
         super.init(
             weight: MLXArray.zeros([rows, width * bits / 32], type: UInt32.self),
-            scales: MLXArray.zeros([rows, width / groupSize], type: Float16.self),
-            biases: MLXArray.zeros([rows, width / groupSize], type: Float16.self),
+            scales: MLXArray.zeros([rows, width / groupSize], dtype: .float16),
+            biases: MLXArray.zeros([rows, width / groupSize], dtype: .float16),
             groupSize: groupSize,
             bits: bits,
             mode: mode
@@ -237,8 +237,8 @@ nonisolated final class HadamardQuantizedEmbedding: QuantizedEmbedding {
         signs = MLXArray.ones([width], type: Float32.self)
         super.init(
             weight: MLXArray.zeros([rows, width * bits / 32], type: UInt32.self),
-            scales: MLXArray.zeros([rows, width / groupSize], type: Float16.self),
-            biases: MLXArray.zeros([rows, width / groupSize], type: Float16.self),
+            scales: MLXArray.zeros([rows, width / groupSize], dtype: .float16),
+            biases: MLXArray.zeros([rows, width / groupSize], dtype: .float16),
             groupSize: groupSize,
             bits: bits,
             mode: mode
