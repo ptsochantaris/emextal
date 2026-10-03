@@ -96,6 +96,7 @@ nonisolated enum PrismHadamard {
         // the right shapes; the regular weight loading fills them in (including `signs`) and, because they
         // are already `Quantized`, leaves them alone when it quantizes everything else.
         let leaves = Dictionary(uniqueKeysWithValues: model.leafModules().flattened())
+        let memo = HadamardRotationMemo()
         var replacements = [(String, Module)]()
         for record in pack.modules {
             guard [512, 1024, 2048, 4096].contains(record.block) else {
@@ -112,7 +113,7 @@ nonisolated enum PrismHadamard {
                 let rows = linear.weight.dim(0)
                 let width = linear.weight.dim(1)
                 try validate(width: width, block: record.block, groupSize: groupSize, path: path)
-                replacements.append((path, HadamardQuantizedLinear(rows: rows, width: width, block: record.block, groupSize: groupSize, bits: bits, mode: mode)))
+                replacements.append((path, HadamardQuantizedLinear(rows: rows, width: width, block: record.block, groupSize: groupSize, bits: bits, mode: mode, memo: memo)))
 
             case let embedding as Embedding where record.embedding:
                 let rows = embedding.weight.dim(0)
@@ -138,16 +139,57 @@ nonisolated enum PrismHadamard {
     /// slice of the last axis, or the reverse for `inverse`. The normalised transform is its own inverse, so
     /// only the order of the sign flip changes. Computed in float32, as the reference runtime does.
     static func rotate(_ x: MLXArray, block: Int, signs: MLXArray, inverse: Bool) -> MLXArray {
-        let shape = x.shape
-        var y = x.asType(.float32)
-        if !inverse {
-            y = y * signs
+        // On the forward path, multiplying by float32 signs promotes to float32 within the same kernel, which
+        // saves a separate cast on a path that runs before every packed layer. (`asType` is free when the
+        // signs are already float32, which they are in the shipped packs.)
+        let signs = signs.asType(.float32)
+        let y = inverse ? x.asType(.float32) : x * signs
+        let rotated = hadamardTransform(y.reshaped([-1, block]), scale: 1 / Float(block).squareRoot()).reshaped(x.shape)
+        return (inverse ? rotated * signs : rotated).asType(x.dtype)
+    }
+}
+
+/// Shares forward rotations between layers that are fed the same activations. q/k/v, gate/up and the GDN
+/// `in_proj_qkv`/`in_proj_z` each receive one array instance back to back, and the shipped packs give
+/// every layer of a given input width the same sign vector, so without this the same transform is
+/// recomputed two or three times over in every decoder layer.
+///
+/// Only the most recent rotation is kept, so at most one extra activation stays alive (prefill activations
+/// can be large). The input is held strongly so its identity can't be recycled by a different array.
+///
+/// Like the modules that own it this isn't `Sendable`: the model is only ever driven by one caller at a
+/// time, which `ModelContainer` enforces.
+nonisolated final class HadamardRotationMemo {
+    private struct Entry {
+        let input: MLXArray
+        let block: Int
+        let signsKey: Int
+        let output: MLXArray
+    }
+
+    private var last: Entry?
+    /// Distinct sign vectors seen so far, by width. A vector's index here is its key.
+    private var knownSigns = [Int: [MLXArray]]()
+
+    /// Interns `signs` by value, so layers whose sign vectors match get the same key. The pack format
+    /// stores a vector per layer and doesn't promise they're shared, so this is checked, not assumed.
+    func key(for signs: MLXArray) -> Int {
+        var known = knownSigns[signs.size, default: []]
+        if let index = known.firstIndex(where: { arrayEqual($0, signs).item(Bool.self) }) {
+            return index
         }
-        y = hadamardTransform(y.reshaped([-1, block]), scale: 1 / Float(block).squareRoot()).reshaped(shape)
-        if inverse {
-            y = y * signs
+        known.append(signs)
+        knownSigns[signs.size] = known
+        return known.count - 1
+    }
+
+    func rotate(_ x: MLXArray, block: Int, signs: MLXArray, signsKey: Int) -> MLXArray {
+        if let last, last.input === x, last.block == block, last.signsKey == signsKey {
+            return last.output
         }
-        return y.asType(x.dtype)
+        let output = PrismHadamard.rotate(x, block: block, signs: signs, inverse: false)
+        last = Entry(input: x, block: block, signsKey: signsKey, output: output)
+        return output
     }
 }
 
@@ -155,9 +197,13 @@ nonisolated enum PrismHadamard {
 nonisolated final class HadamardQuantizedLinear: QuantizedLinear {
     let block: Int
     let signs: MLXArray
+    private let memo: HadamardRotationMemo
+    /// Resolved on first use rather than at init, because `signs` is only filled in by weight loading.
+    private var signsKey: Int?
 
-    init(rows: Int, width: Int, block: Int, groupSize: Int, bits: Int, mode: QuantizationMode) {
+    init(rows: Int, width: Int, block: Int, groupSize: Int, bits: Int, mode: QuantizationMode, memo: HadamardRotationMemo) {
         self.block = block
+        self.memo = memo
         signs = MLXArray.ones([width], type: Float32.self)
         super.init(
             weight: MLXArray.zeros([rows, width * bits / 32], type: UInt32.self),
@@ -170,7 +216,14 @@ nonisolated final class HadamardQuantizedLinear: QuantizedLinear {
     }
 
     override func callAsFunction(_ x: MLXArray) -> MLXArray {
-        super.callAsFunction(PrismHadamard.rotate(x, block: block, signs: signs, inverse: false))
+        let key: Int
+        if let signsKey {
+            key = signsKey
+        } else {
+            key = memo.key(for: signs)
+            signsKey = key
+        }
+        return super.callAsFunction(memo.rotate(x, block: block, signs: signs, signsKey: key))
     }
 }
 
